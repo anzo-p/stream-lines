@@ -23,31 +23,34 @@ pub async fn process_message(ws_message: Message) -> Result<(), ProcessError> {
 async fn process_item(item: Value) -> Result<(), ProcessError> {
     match item.get("T").and_then(Value::as_str) {
         Some("q") => {
-            let quotation_message: QuotationMessage = serde_json::from_value(item)
-                .map_err(|e| ProcessError::ParsingError {
+            let quotation_message: QuotationMessage =
+                serde_json::from_value(item).map_err(|e| ProcessError::ParsingError {
                     msg: e.to_string(),
-                    item_type: "QuotationMessage".to_string()
+                    item_type: "QuotationMessage".to_string(),
                 })?;
 
             // kinesis write
             println!("Quotation: {:?}", quotation_message);
-        },
+        }
 
         Some("t") => {
-            let trade_message: TradeMessage = serde_json::from_value(item)
-                .map_err(|e| ProcessError::ParsingError {
+            let trade_message: TradeMessage =
+                serde_json::from_value(item).map_err(|e| ProcessError::ParsingError {
                     msg: e.to_string(),
-                    item_type: "TradeMessage".to_string()
+                    item_type: "TradeMessage".to_string(),
                 })?;
 
             // kinesis write
             println!("Trade: {:?}", trade_message);
-        },
+        }
 
         // normal operation log
         Some("success") => println!("{:?}", item.get("msg")),
 
-        Some("subscription") => println!("successful subscription to market data: {:?}", item.to_string()),
+        Some("subscription") => println!(
+            "successful subscription to market data: {:?}",
+            item.to_string()
+        ),
 
         _ => return Err(ProcessError::UnknownItemType(item.clone())),
     }

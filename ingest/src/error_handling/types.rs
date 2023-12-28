@@ -4,9 +4,15 @@ use std::env;
 #[derive(Debug)]
 pub enum ProcessError {
     EnvVarError(String),
-    ParsingError { msg: String, item_type: String },
+    ParsingError {
+        msg: String,
+        item_type: String,
+    },
     SerializationError(serde_json::Error),
-    WebSocketConnectionError { url: String, source: tokio_tungstenite::tungstenite::Error },
+    WebSocketConnectionError {
+        url: String,
+        source: tokio_tungstenite::tungstenite::Error,
+    },
     WebSocketCommunicationError(tokio_tungstenite::tungstenite::Error),
     WebSocketReadError(tokio_tungstenite::tungstenite::Error),
     UnknownItemType(Value),
