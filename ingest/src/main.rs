@@ -4,6 +4,8 @@ use futures_util::future;
 mod error_handling;
 use error_handling::{handle_process_error, ProcessError};
 
+mod protobuf;
+
 mod websocket;
 use websocket::{connect_to_stream, handle_websocket_stream};
 

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package quotation;
+
+import "google/protobuf/timestamp.proto";
+
+message QuotationMessage {
+    string ty = 1;
+    string sy = 2;
+    string bx = 3;
+    int32 bpu = 4; 
+    int32 bpf = 5; 
+    int32 bs = 6;
+    string ax = 7;
+    int32 apu = 8;
+    int32 apf = 9;
+    int32 as = 10;
+    google.protobuf.Timestamp ti = 11;
+    repeated string c = 12;
+    string z = 13;
+}

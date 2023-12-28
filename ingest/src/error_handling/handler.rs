@@ -6,6 +6,9 @@ pub fn handle_process_error(e: &ProcessError) {
         ProcessError::ParsingError { msg, item_type } => {
             eprintln!("Error parsing {}: {}", item_type, msg)
         }
+        ProcessError::ProtobufConversionError(msg) => {
+            eprintln!("Protobuf conversion error: {}", msg)
+        }
         ProcessError::SerializationError(_) => eprintln!("Serialization error"),
         ProcessError::WebSocketConnectionError { url, source } => {
             eprintln!("Failed to connect to WebSocket server at {}: {}", url, source)

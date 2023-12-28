@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package trade;
+
+import "google/protobuf/timestamp.proto";
+
+message TradeMessage {
+    string ty = 1;
+    string sy = 2;
+    int32 i = 3;
+    string x = 4;
+    int32 pu = 5;
+    int32 pf = 6;
+    int32 s = 7;
+    repeated string c = 8;
+    google.protobuf.Timestamp ti = 9;
+    string z = 10;
+}

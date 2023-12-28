@@ -8,6 +8,8 @@ pub enum ProcessError {
         msg: String,
         item_type: String,
     },
+    #[allow(dead_code)]
+    ProtobufConversionError(String),
     SerializationError(serde_json::Error),
     WebSocketConnectionError {
         url: String,

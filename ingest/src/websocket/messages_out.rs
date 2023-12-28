@@ -12,10 +12,10 @@ pub struct AuthMessage {
 
 impl AuthMessage {
     pub fn new() -> Result<Self, ProcessError> {
-        let key = env::var("API_KEY")
-            .map_err(|_| ProcessError::EnvVarError(String::from("API_KEY not found in environment")))?;
-        let secret = env::var("API_SECRET")
-            .map_err(|_| ProcessError::EnvVarError(String::from("API_SECRET not found in environment")))?;
+        let key = env::var("ALPACA_API_KEY")
+            .map_err(|_| ProcessError::EnvVarError(String::from("ALPACA_API_KEY not found in environment")))?;
+        let secret = env::var("ALPACA_API_SECRET")
+            .map_err(|_| ProcessError::EnvVarError(String::from("ALPACA_API_SECRET not found in environment")))?;
 
         Ok(AuthMessage {
             action: "auth".to_string(),
