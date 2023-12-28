@@ -34,11 +34,10 @@ async fn process_item(item: Value) -> Result<(), ProcessError> {
         }
 
         Some("t") => {
-            let trade_message: TradeMessage =
-                serde_json::from_value(item).map_err(|e| ProcessError::ParsingError {
-                    msg: e.to_string(),
-                    item_type: "TradeMessage".to_string(),
-                })?;
+            let trade_message: TradeMessage = serde_json::from_value(item).map_err(|e| ProcessError::ParsingError {
+                msg: e.to_string(),
+                item_type: "TradeMessage".to_string(),
+            })?;
 
             // kinesis write
             println!("Trade: {:?}", trade_message);
@@ -47,10 +46,7 @@ async fn process_item(item: Value) -> Result<(), ProcessError> {
         // normal operation log
         Some("success") => println!("{:?}", item.get("msg")),
 
-        Some("subscription") => println!(
-            "successful subscription to market data: {:?}",
-            item.to_string()
-        ),
+        Some("subscription") => println!("successful subscription to market data: {:?}", item.to_string()),
 
         _ => return Err(ProcessError::UnknownItemType(item.clone())),
     }

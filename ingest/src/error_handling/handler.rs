@@ -7,10 +7,9 @@ pub fn handle_process_error(e: &ProcessError) {
             eprintln!("Error parsing {}: {}", item_type, msg)
         }
         ProcessError::SerializationError(_) => eprintln!("Serialization error"),
-        ProcessError::WebSocketConnectionError { url, source } => eprintln!(
-            "Failed to connect to WebSocket server at {}: {}",
-            url, source
-        ),
+        ProcessError::WebSocketConnectionError { url, source } => {
+            eprintln!("Failed to connect to WebSocket server at {}: {}", url, source)
+        }
         ProcessError::WebSocketCommunicationError(e) => {
             eprintln!("WebSocket communication error occurred: {}", e)
         }
