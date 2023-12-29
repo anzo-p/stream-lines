@@ -11,7 +11,7 @@ message TradeMessageProto {
     string x = 4;
     int32 pu = 5;
     int32 pf = 6;
-    int32 s = 7;
+    double s = 7;
     repeated string c = 8;
     google.protobuf.Timestamp ti = 9;
     string z = 10;
