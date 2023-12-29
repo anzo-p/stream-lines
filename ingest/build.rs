@@ -7,7 +7,7 @@ fn main() {
 
     let proto_files = [
         String::from(proto_dir) + "/quotation.proto",
-        String::from(proto_dir) + "/trade.proto"
+        String::from(proto_dir) + "/trade.proto",
     ];
 
     let out_dir = "src/protobuf";

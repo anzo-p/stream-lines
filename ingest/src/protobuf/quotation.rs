@@ -1,6 +1,6 @@
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct QuotationMessage {
+pub struct QuotationMessageProto {
     #[prost(string, tag = "1")]
     pub ty: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]

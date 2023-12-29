@@ -1,17 +1,18 @@
+use chrono::{DateTime, FixedOffset};
 use prost_types::Timestamp;
 
 use crate::error_handling::ProcessError;
-use crate::protobuf;
-use crate::websocket::{QuotationMessage, TradeMessage};
+use crate::protobuf::{QuotationMessageProto, TradeMessageProto};
+use crate::shared_types::types::{QuotationMessage, TradeMessage};
 
-fn quotation_message_to_protobuf(msg: &QuotationMessage) -> Result<protobuf::QuotationMessage, ProcessError> {
+pub fn quotation_message_to_protobuf(msg: &QuotationMessage) -> Result<QuotationMessageProto, ProcessError> {
     let timestamp = datetime_to_protobuf_timestamp(msg.market_timestamp)?;
     let bid_units = msg.bid_price.trunc();
     let bid_fracts = msg.ask_price.fract();
     let ask_units = msg.ask_price.trunc();
     let ask_fracts = msg.ask_price.fract();
 
-    Ok(protobuf::QuotationMessage {
+    Ok(QuotationMessageProto {
         ty: msg.message_type.clone(),
         sy: msg.symbol.clone(),
         bx: msg.bid_exchange.clone(),
@@ -28,12 +29,12 @@ fn quotation_message_to_protobuf(msg: &QuotationMessage) -> Result<protobuf::Quo
     })
 }
 
-fn trade_message_to_protobuf(msg: &TradeMessage) -> Result<protobuf::TradeMessage, ProcessError> {
+pub fn trade_message_to_protobuf(msg: &TradeMessage) -> Result<TradeMessageProto, ProcessError> {
     let timestamp = datetime_to_protobuf_timestamp(msg.market_timestamp)?;
     let price_units = msg.price.trunc();
     let price_fracts = msg.price.fract();
 
-    Ok(protobuf::TradeMessage {
+    Ok(TradeMessageProto {
         ty: msg.message_type.clone(),
         sy: msg.symbol.clone(),
         i: msg.trade_id.clone(),
@@ -52,7 +53,9 @@ fn datetime_to_protobuf_timestamp(dt: DateTime<FixedOffset>) -> Result<Timestamp
     let nanos = dt.timestamp_subsec_nanos();
 
     if seconds < 0 || nanos > 999_999_999 {
-        return Err(ProcessError::ProtobufConversionError("Invalid DateTime for Timestamp conversion".to_string()));
+        return Err(ProcessError::ProtobufConversionError(
+            "Invalid DateTime for Timestamp conversion".to_string(),
+        ));
     }
 
     Ok(Timestamp {

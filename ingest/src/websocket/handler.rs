@@ -1,10 +1,11 @@
+use aws_sdk_kinesis::Client as KinesisClient;
 use serde::Serialize;
 use tokio_tungstenite::tungstenite::protocol::Message;
 
 use crate::error_handling::ProcessError;
 use crate::websocket::{process_message, read_from_connection, send_to_connection, AuthMessage, SubMessage};
 
-pub async fn handle_websocket_stream() -> Result<(), ProcessError> {
+pub async fn handle_websocket_stream(kinesis_client: &KinesisClient) -> Result<(), ProcessError> {
     if let Err(e) = send_auth_message().await {
         return Err(e);
     }
@@ -13,7 +14,7 @@ pub async fn handle_websocket_stream() -> Result<(), ProcessError> {
     }
 
     while let Ok(Some(message)) = read_from_connection().await {
-        match process_message(message).await {
+        match process_message(message, kinesis_client).await {
             Ok(_) => {}
             Err(e) => return Err(e),
         }

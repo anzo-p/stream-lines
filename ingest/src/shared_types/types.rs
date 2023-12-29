@@ -2,6 +2,11 @@ use chrono::{DateTime, FixedOffset};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
+pub enum ReceivedMessage {
+    QuotationMessage(QuotationMessage),
+    TradeMessage(TradeMessage),
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct QuotationMessage {
     #[serde(rename = "T")]
