@@ -4,7 +4,7 @@ package quotation;
 
 import "google/protobuf/timestamp.proto";
 
-message QuotationMessage {
+message QuotationMessageProto {
     string ty = 1;
     string sy = 2;
     string bx = 3;
