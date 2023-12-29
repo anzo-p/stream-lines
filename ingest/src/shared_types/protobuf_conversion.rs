@@ -1,5 +1,6 @@
 use chrono::{DateTime, FixedOffset};
 use prost_types::Timestamp;
+use rust_decimal::prelude::ToPrimitive;
 
 use crate::error_handling::ProcessError;
 use crate::protobuf::{QuotationMessageProto, TradeMessageProto};
@@ -18,11 +19,11 @@ pub fn quotation_message_to_protobuf(msg: &QuotationMessage) -> Result<Quotation
         bx: msg.bid_exchange.clone(),
         bpu: i32::try_from(bid_units).unwrap(),
         bpf: i32::try_from(bid_fracts).unwrap(),
-        bs: msg.bid_size.clone(),
+        bs: msg.bid_size.clone().to_f64().unwrap(),
         ax: msg.ask_exchange.clone(),
         apu: i32::try_from(ask_units).unwrap(),
         apf: i32::try_from(ask_fracts).unwrap(),
-        r#as: msg.ask_size.clone(),
+        r#as: msg.ask_size.clone().to_f64().unwrap(),
         ti: Some(timestamp),
         c: msg.conditions.clone(),
         z: msg.tape.clone(),
@@ -41,7 +42,7 @@ pub fn trade_message_to_protobuf(msg: &TradeMessage) -> Result<TradeMessageProto
         x: msg.exchange.clone(),
         pu: i32::try_from(price_units).unwrap(),
         pf: i32::try_from(price_fracts).unwrap(),
-        s: msg.size.clone(),
+        s: msg.size.clone().to_f64().unwrap(),
         c: msg.conditions.clone(),
         ti: Some(timestamp),
         z: msg.tape.clone(),

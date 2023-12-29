@@ -13,8 +13,8 @@ pub struct TradeMessageProto {
     pub pu: i32,
     #[prost(int32, tag = "6")]
     pub pf: i32,
-    #[prost(int32, tag = "7")]
-    pub s: i32,
+    #[prost(double, tag = "7")]
+    pub s: f64,
     #[prost(string, repeated, tag = "8")]
     pub c: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "9")]

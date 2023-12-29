@@ -18,13 +18,13 @@ pub struct QuotationMessage {
     #[serde(rename = "bp")]
     pub bid_price: Decimal,
     #[serde(rename = "bs")]
-    pub bid_size: i32,
+    pub bid_size: f32,
     #[serde(rename = "ax")]
     pub ask_exchange: String,
     #[serde(rename = "ap")]
     pub ask_price: Decimal,
     #[serde(rename = "as")]
-    pub ask_size: i32,
+    pub ask_size: f32,
     #[serde(rename = "t")]
     pub market_timestamp: DateTime<FixedOffset>,
     #[serde(rename = "c")]
@@ -46,7 +46,7 @@ pub struct TradeMessage {
     #[serde(rename = "p")]
     pub price: Decimal,
     #[serde(rename = "s")]
-    pub size: i32,
+    pub size: f32,
     #[serde(rename = "c")]
     pub conditions: Vec<String>,
     #[serde(rename = "t")]
