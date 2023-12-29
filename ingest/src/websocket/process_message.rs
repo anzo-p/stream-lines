@@ -27,27 +27,35 @@ pub async fn process_message(ws_message: Message, kinesis_client: &KinesisClient
 async fn process_item(item: Value, kinesis_client: &KinesisClient) -> Result<(), ProcessError> {
     match item.get("T").and_then(Value::as_str) {
         Some("q") => {
-            let message: QuotationMessage = serde_json::from_value(item).map_err(|e| ProcessError::ParsingError {
-                msg: e.to_string(),
-                item_type: "QuotationMessage".to_string(),
-            })?;
+            if let Ok(message) = serde_json::from_value::<QuotationMessage>(item) {
+                let partition_key = message.symbol.clone();
 
-            let partition_key = message.symbol.clone();
-            let data = ReceivedMessage::QuotationMessage(message).to_protobuf()?;
-
-            send_to_kinesis(kinesis_client, &partition_key, data).await?;
+                if let Ok(data) = ReceivedMessage::QuotationMessage(message).to_protobuf() {
+                    if let Err(e) = send_to_kinesis(kinesis_client, &partition_key, data).await {
+                        eprintln!("Error sending to kinesis: {}", e);
+                    }
+                } else {
+                    eprintln!("Error converting to protobuf");
+                }
+            } else {
+                eprintln!("Error parsing QuotationMessage");
+            }
         }
 
         Some("t") => {
-            let message: TradeMessage = serde_json::from_value(item).map_err(|e| ProcessError::ParsingError {
-                msg: e.to_string(),
-                item_type: "TradeMessage".to_string(),
-            })?;
+            if let Ok(message) = serde_json::from_value::<TradeMessage>(item) {
+                let partition_key = message.symbol.clone();
 
-            let partition_key = message.symbol.clone();
-            let data = ReceivedMessage::TradeMessage(message).to_protobuf()?;
-
-            send_to_kinesis(kinesis_client, &partition_key, data).await?;
+                if let Ok(data) = ReceivedMessage::TradeMessage(message).to_protobuf() {
+                    if let Err(e) = send_to_kinesis(kinesis_client, &partition_key, data).await {
+                        eprintln!("Error sending to kinesis: {}", e);
+                    }
+                } else {
+                    eprintln!("Error converting to protobuf");
+                }
+            } else {
+                eprintln!("Error parsing TradeMessage");
+            }
         }
 
         Some("success") => println!("{:?}", item.get("msg")),

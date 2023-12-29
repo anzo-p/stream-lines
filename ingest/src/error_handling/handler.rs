@@ -6,9 +6,11 @@ pub fn handle_process_error(e: &ProcessError) {
     match e {
         ProcessError::AwsSdkError(msg) => eprintln!("AWS SDK error: {}", msg),
         ProcessError::EnvVarError(msg) => eprintln!("Environment variable error: {}", msg),
+        /*
         ProcessError::ParsingError { msg, item_type } => {
             eprintln!("Error parsing {}: {}", item_type, msg)
         }
+         */
         ProcessError::ProtobufConversionError(msg) => {
             eprintln!("Protobuf conversion error: {}", msg)
         }
@@ -30,7 +32,7 @@ impl fmt::Display for ProcessError {
         match self {
             ProcessError::AwsSdkError(msg) => write!(f, "AWS SDK error: {}", msg),
             ProcessError::EnvVarError(msg) => write!(f, "Environment variable error: {}", msg),
-            ProcessError::ParsingError { msg, item_type } => write!(f, "Error parsing {}: {}", item_type, msg),
+            //ProcessError::ParsingError { msg, item_type } => write!(f, "Error parsing {}: {}", item_type, msg),
             ProcessError::ProtobufConversionError(msg) => {
                 write!(f, "Protobuf conversion error: {}", msg)
             }

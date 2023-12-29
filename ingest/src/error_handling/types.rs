@@ -4,10 +4,12 @@ use serde_json::Value;
 pub enum ProcessError {
     AwsSdkError(String),
     EnvVarError(String),
+    /*
     ParsingError {
         msg: String,
         item_type: String,
     },
+     */
     ProtobufConversionError(String),
     SerializationError(serde_json::Error),
     WebSocketConnectionError {
