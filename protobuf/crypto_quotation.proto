@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package crypto_quotation;
+
+import "google/protobuf/timestamp.proto";
+
+message CryptoQuotationMessageProto {
+    string ty = 1;
+    string sy = 2;
+    int64 bpu = 3; 
+    int64 bpf = 4; 
+    double bs = 5;
+    int64 apu = 6;
+    int64 apf = 7;
+    double as = 8;
+    google.protobuf.Timestamp ti = 9;
+}

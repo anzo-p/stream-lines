@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package crypto_trade;
+
+import "google/protobuf/timestamp.proto";
+
+message CryptoTradeMessageProto {
+    string ty = 1;
+    string sy = 2;
+    int64 i = 3;
+    int64 pu = 4;
+    int64 pf = 5;
+    double s = 6;
+    google.protobuf.Timestamp ti = 7;
+    string tks = 8;
+}
