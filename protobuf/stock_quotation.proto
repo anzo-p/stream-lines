@@ -4,18 +4,18 @@ package stock_quotation;
 
 import "google/protobuf/timestamp.proto";
 
+import "money.proto";
+
 message StockQuotationMessageProto {
     string ty = 1;
     string sy = 2;
     string bx = 3;
-    int64 bpu = 4; 
-    int64 bpf = 5; 
-    double bs = 6;
-    string ax = 7;
-    int64 apu = 8;
-    int64 apf = 9;
-    double as = 10;
-    google.protobuf.Timestamp ti = 11;
-    repeated string c = 12;
-    string z = 13;
+    money.MoneyProto bp = 4; 
+    double bs = 5;
+    string ax = 6;
+    money.MoneyProto ap = 7;
+    double as = 8;
+    google.protobuf.Timestamp ti = 9;
+    repeated string c = 10;
+    string z = 11;
 }

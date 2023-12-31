@@ -4,13 +4,14 @@ package crypto_trade;
 
 import "google/protobuf/timestamp.proto";
 
+import "money.proto";
+
 message CryptoTradeMessageProto {
     string ty = 1;
     string sy = 2;
     int64 i = 3;
-    int64 pu = 4;
-    int64 pf = 5;
-    double s = 6;
-    google.protobuf.Timestamp ti = 7;
-    string tks = 8;
+    money.MoneyProto p = 4;
+    double s = 5;
+    google.protobuf.Timestamp ti = 6;
+    string tks = 7;
 }
