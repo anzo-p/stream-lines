@@ -10,6 +10,7 @@ fn main() {
         String::from(proto_dir) + "/crypto_trade.proto",
         String::from(proto_dir) + "/stock_quotation.proto",
         String::from(proto_dir) + "/stock_trade.proto",
+        String::from(proto_dir) + "/money.proto",
     ];
 
     let out_dir = "src/protobuf";

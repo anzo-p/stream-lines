@@ -2,6 +2,8 @@ use chrono::{DateTime, FixedOffset};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
+use crate::shared_types::types_money::{deserialize_money_message, MoneyMessage};
+
 pub enum CryptoMarketDataMessage {
     CryptoQuotation(CryptoQuotationMessage),
     CryptoTrade(CryptoTradeMessage),
@@ -13,12 +15,12 @@ pub struct CryptoQuotationMessage {
     pub message_type: String,
     #[serde(rename = "S")]
     pub symbol: String,
-    #[serde(rename = "bp")]
-    pub bid_price: Decimal,
+    #[serde(rename = "bp", deserialize_with = "deserialize_money_message")]
+    pub bid_price: MoneyMessage,
     #[serde(rename = "bs")]
     pub bid_size: Decimal,
-    #[serde(rename = "ap")]
-    pub ask_price: Decimal,
+    #[serde(rename = "ap", deserialize_with = "deserialize_money_message")]
+    pub ask_price: MoneyMessage,
     #[serde(rename = "as")]
     pub ask_size: Decimal,
     #[serde(rename = "t")]
@@ -33,8 +35,8 @@ pub struct CryptoTradeMessage {
     pub symbol: String,
     #[serde(rename = "i")]
     pub trade_id: i64,
-    #[serde(rename = "p")]
-    pub price: Decimal,
+    #[serde(rename = "p", deserialize_with = "deserialize_money_message")]
+    pub price: MoneyMessage,
     #[serde(rename = "s")]
     pub size: Decimal,
     #[serde(rename = "t")]

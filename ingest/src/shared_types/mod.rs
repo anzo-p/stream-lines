@@ -1,6 +1,7 @@
 mod conversions_protobuf;
 mod traits_protobuf;
 mod types_crypto;
+mod types_money;
 mod types_stock;
 
 pub use traits_protobuf::SerializeToProtobufMessage;

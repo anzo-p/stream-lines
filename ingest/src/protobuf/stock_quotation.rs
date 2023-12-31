@@ -7,24 +7,20 @@ pub struct StockQuotationMessageProto {
     pub sy: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub bx: ::prost::alloc::string::String,
-    #[prost(int64, tag = "4")]
-    pub bpu: i64,
-    #[prost(int64, tag = "5")]
-    pub bpf: i64,
-    #[prost(double, tag = "6")]
+    #[prost(message, optional, tag = "4")]
+    pub bp: ::core::option::Option<super::money::MoneyProto>,
+    #[prost(double, tag = "5")]
     pub bs: f64,
-    #[prost(string, tag = "7")]
+    #[prost(string, tag = "6")]
     pub ax: ::prost::alloc::string::String,
-    #[prost(int64, tag = "8")]
-    pub apu: i64,
-    #[prost(int64, tag = "9")]
-    pub apf: i64,
-    #[prost(double, tag = "10")]
+    #[prost(message, optional, tag = "7")]
+    pub ap: ::core::option::Option<super::money::MoneyProto>,
+    #[prost(double, tag = "8")]
     pub r#as: f64,
-    #[prost(message, optional, tag = "11")]
+    #[prost(message, optional, tag = "9")]
     pub ti: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, repeated, tag = "12")]
+    #[prost(string, repeated, tag = "10")]
     pub c: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "13")]
+    #[prost(string, tag = "11")]
     pub z: ::prost::alloc::string::String,
 }

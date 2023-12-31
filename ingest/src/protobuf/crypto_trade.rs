@@ -7,14 +7,12 @@ pub struct CryptoTradeMessageProto {
     pub sy: ::prost::alloc::string::String,
     #[prost(int64, tag = "3")]
     pub i: i64,
-    #[prost(int64, tag = "4")]
-    pub pu: i64,
-    #[prost(int64, tag = "5")]
-    pub pf: i64,
-    #[prost(double, tag = "6")]
+    #[prost(message, optional, tag = "4")]
+    pub p: ::core::option::Option<super::money::MoneyProto>,
+    #[prost(double, tag = "5")]
     pub s: f64,
-    #[prost(message, optional, tag = "7")]
+    #[prost(message, optional, tag = "6")]
     pub ti: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "8")]
+    #[prost(string, tag = "7")]
     pub tks: ::prost::alloc::string::String,
 }
