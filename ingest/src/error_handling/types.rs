@@ -1,15 +1,9 @@
-use serde_json::Value;
-
 #[derive(Debug)]
 pub enum ProcessError {
     AwsSdkError(String),
+    ConfigError(String),
     EnvVarError(String),
-    /*
-    ParsingError {
-        msg: String,
-        item_type: String,
-    },
-     */
+    KinesisSendError(String),
     ProtobufConversionError(String),
     SerializationError(serde_json::Error),
     WebSocketConnectionError {
@@ -18,6 +12,5 @@ pub enum ProcessError {
     },
     WebSocketCommunicationError(tokio_tungstenite::tungstenite::Error),
     WebSocketReadError(tokio_tungstenite::tungstenite::Error),
-    UnknownItemType(Value),
     UrlParseError(url::ParseError),
 }

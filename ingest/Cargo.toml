@@ -12,6 +12,7 @@ prost-build = "0.12.3"
 aws-config = "1.1.1"
 aws-sdk-kinesis = "1.9.0"
 chrono = { version = "0.4.31", features = ["serde"] }
+config = "0.13.4"
 dotenv = "0.15.0"
 futures-util = "0.3.30"
 lazy_static = "1.4.0"

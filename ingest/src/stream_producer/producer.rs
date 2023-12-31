@@ -5,6 +5,13 @@ use std::env;
 
 use crate::error_handling::ProcessError;
 
+pub async fn create_kinesis_client() -> Result<Client, ProcessError> {
+    let config = aws_config::load_defaults(BehaviorVersion::v2023_11_09()).await;
+    let client = Client::new(&config);
+    check_kinesis(client.clone()).await?;
+    Ok(client)
+}
+
 pub async fn send_to_kinesis(client: &Client, key: &str, data: Vec<u8>) -> Result<(), ProcessError> {
     client
         .put_record()
@@ -17,16 +24,8 @@ pub async fn send_to_kinesis(client: &Client, key: &str, data: Vec<u8>) -> Resul
     Ok(())
 }
 
-pub async fn create_kinesis_client() -> Result<Client, ProcessError> {
-    let config = aws_config::load_defaults(BehaviorVersion::v2023_11_09()).await;
-    let client = Client::new(&config);
-    check_kinesis(client.clone()).await?;
-    Ok(client)
-}
-
 async fn check_kinesis(client: Client) -> Result<(), ProcessError> {
     let stream_name = get_stream_name()?;
-
     let resp = client.describe_stream().stream_name(stream_name).send().await;
 
     match resp {

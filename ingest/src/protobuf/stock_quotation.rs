@@ -1,24 +1,24 @@
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct QuotationMessageProto {
+pub struct StockQuotationMessageProto {
     #[prost(string, tag = "1")]
     pub ty: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub sy: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub bx: ::prost::alloc::string::String,
-    #[prost(int32, tag = "4")]
-    pub bpu: i32,
-    #[prost(int32, tag = "5")]
-    pub bpf: i32,
+    #[prost(int64, tag = "4")]
+    pub bpu: i64,
+    #[prost(int64, tag = "5")]
+    pub bpf: i64,
     #[prost(double, tag = "6")]
     pub bs: f64,
     #[prost(string, tag = "7")]
     pub ax: ::prost::alloc::string::String,
-    #[prost(int32, tag = "8")]
-    pub apu: i32,
-    #[prost(int32, tag = "9")]
-    pub apf: i32,
+    #[prost(int64, tag = "8")]
+    pub apu: i64,
+    #[prost(int64, tag = "9")]
+    pub apf: i64,
     #[prost(double, tag = "10")]
     pub r#as: f64,
     #[prost(message, optional, tag = "11")]

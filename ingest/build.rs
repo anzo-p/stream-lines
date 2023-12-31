@@ -6,8 +6,10 @@ fn main() {
     let proto_dir = "../protobuf";
 
     let proto_files = [
-        String::from(proto_dir) + "/quotation.proto",
-        String::from(proto_dir) + "/trade.proto",
+        String::from(proto_dir) + "/crypto_quotation.proto",
+        String::from(proto_dir) + "/crypto_trade.proto",
+        String::from(proto_dir) + "/stock_quotation.proto",
+        String::from(proto_dir) + "/stock_trade.proto",
     ];
 
     let out_dir = "src/protobuf";

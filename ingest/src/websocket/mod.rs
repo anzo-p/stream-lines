@@ -1,9 +1,11 @@
 mod connection;
-mod handler;
+mod feed_runner;
+mod message_processors;
 mod outgoing_messages;
-mod process_message;
+mod traits_market_message;
 
-pub use connection::{connect_to_stream, read_from_connection, send_to_connection};
-pub use handler::handle_websocket_stream;
+pub use connection::{acquire_connection, read_from_connection};
+pub use feed_runner::run_feeds;
+pub use message_processors::process_item;
 pub use outgoing_messages::{AuthMessage, SubMessage};
-pub use process_message::process_message;
+pub use traits_market_message::MarketMessage;

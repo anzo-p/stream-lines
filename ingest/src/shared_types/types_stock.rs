@@ -2,13 +2,13 @@ use chrono::{DateTime, FixedOffset};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-pub enum ReceivedMessage {
-    QuotationMessage(QuotationMessage),
-    TradeMessage(TradeMessage),
+pub enum StockMarketDataMessage {
+    StockQuotation(StockQuotationMessage),
+    StockTrade(StockTradeMessage),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct QuotationMessage {
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct StockQuotationMessage {
     #[serde(rename = "T")]
     pub message_type: String,
     #[serde(rename = "S")]
@@ -18,13 +18,13 @@ pub struct QuotationMessage {
     #[serde(rename = "bp")]
     pub bid_price: Decimal,
     #[serde(rename = "bs")]
-    pub bid_size: f32,
+    pub bid_size: Decimal,
     #[serde(rename = "ax")]
     pub ask_exchange: String,
     #[serde(rename = "ap")]
     pub ask_price: Decimal,
     #[serde(rename = "as")]
-    pub ask_size: f32,
+    pub ask_size: Decimal,
     #[serde(rename = "t")]
     pub market_timestamp: DateTime<FixedOffset>,
     #[serde(rename = "c")]
@@ -33,20 +33,20 @@ pub struct QuotationMessage {
     pub tape: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct TradeMessage {
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct StockTradeMessage {
     #[serde(rename = "T")]
     pub message_type: String,
     #[serde(rename = "S")]
     pub symbol: String,
     #[serde(rename = "i")]
-    pub trade_id: i32,
+    pub trade_id: i64,
     #[serde(rename = "x")]
     pub exchange: String,
     #[serde(rename = "p")]
     pub price: Decimal,
     #[serde(rename = "s")]
-    pub size: f32,
+    pub size: Decimal,
     #[serde(rename = "c")]
     pub conditions: Vec<String>,
     #[serde(rename = "t")]

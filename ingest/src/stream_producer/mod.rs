@@ -1,3 +1,3 @@
-pub mod producer;
+mod producer;
 
-pub use producer::create_kinesis_client;
+pub use producer::{create_kinesis_client, send_to_kinesis};
