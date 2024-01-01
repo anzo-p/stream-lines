@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package crypto_trade;
+package market_data;
 
 import "google/protobuf/timestamp.proto";
 
@@ -10,7 +10,7 @@ message CryptoTradeMessageProto {
     string ty = 1;
     string sy = 2;
     int64 i = 3;
-    money.MoneyProto p = 4;
+    market_data.MoneyMessageProto p = 4;
     double s = 5;
     google.protobuf.Timestamp ti = 6;
     string tks = 7;

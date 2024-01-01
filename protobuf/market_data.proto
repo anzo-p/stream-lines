@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package market_data;
+
+import "crypto_quotation.proto";
+import "crypto_trade.proto";
+import "stock_quotation.proto";
+import "stock_trade.proto";
+
+message MarketDataMessageProto {
+    oneof message_type {
+        market_data.CryptoQuotationMessageProto cqm = 1;
+        market_data.CryptoTradeMessageProto ctm = 2;
+        market_data.StockQuotationMessageProto sqm = 3;
+        market_data.StockTradeMessageProto stm = 4;
+    }
+}

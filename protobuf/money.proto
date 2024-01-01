@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package money;
+package market_data;
 
-message MoneyProto {
+message MoneyMessageProto {
     int64 u = 1;
     double n = 2;
     string c = 3;
