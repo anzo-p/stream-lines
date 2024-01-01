@@ -1,26 +1,30 @@
 extern crate prost_build;
 
-fn main() {
-    let mut config = prost_build::Config::new();
+use prost_build::Config;
+use std::path::PathBuf;
 
-    let proto_dir = "../protobuf";
+fn main() {
+    let mut config = Config::new();
+
+    let protobuf_root = PathBuf::from("..").join("protobuf");
 
     let proto_files = [
-        String::from(proto_dir) + "/crypto_quotation.proto",
-        String::from(proto_dir) + "/crypto_trade.proto",
-        String::from(proto_dir) + "/stock_quotation.proto",
-        String::from(proto_dir) + "/stock_trade.proto",
-        String::from(proto_dir) + "/money.proto",
+        protobuf_root.join("money.proto"),
+        protobuf_root.join("market_data.proto"),
+        protobuf_root.join("crypto_quotation.proto"),
+        protobuf_root.join("crypto_trade.proto"),
+        protobuf_root.join("stock_quotation.proto"),
+        protobuf_root.join("stock_trade.proto"),
     ];
 
-    let out_dir = "src/protobuf";
+    let out_dir = PathBuf::from("src").join("protobuf");
 
     for file in &proto_files {
-        println!("cargo:rerun-if-changed={}", file);
+        println!("cargo:rerun-if-changed={}", file.to_string_lossy());
     }
 
     config
         .out_dir(out_dir)
-        .compile_protos(&proto_files, &[proto_dir])
+        .compile_protos(&proto_files, &[&protobuf_root])
         .unwrap_or_else(|e| panic!("Failed to compile Rust code from protobuf: {}", e));
 }
