@@ -4,16 +4,13 @@ package market_data;
 
 import "google/protobuf/timestamp.proto";
 
-import "money.proto";
+import "trade_unit.proto";
 
-message StockTradeMessageProto {
-    string ty = 1;
-    string sy = 2;
-    int64 i = 3;
-    string x = 4;
-    market_data.MoneyMessageProto p = 5;
-    double s = 6;
-    repeated string c = 7;
-    google.protobuf.Timestamp ti = 8;
-    string z = 9;
+message StockTradeProto {
+    string symbol = 1;
+    int64 tradeId = 2;
+    market_data.StockTradeUnitProto settle = 3;
+    repeated string conditions = 4;
+    google.protobuf.Timestamp market_timestamp = 5;
+    string tape = 6;
 }

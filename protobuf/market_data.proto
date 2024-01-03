@@ -2,16 +2,19 @@ syntax = "proto3";
 
 package market_data;
 
+import "google/protobuf/timestamp.proto";
+
 import "crypto_quotation.proto";
 import "crypto_trade.proto";
 import "stock_quotation.proto";
 import "stock_trade.proto";
 
-message MarketDataMessageProto {
+message MarketDataProto {
+    google.protobuf.Timestamp ingest_timestamp = 7;
     oneof message_type {
-        market_data.CryptoQuotationMessageProto cqm = 1;
-        market_data.CryptoTradeMessageProto ctm = 2;
-        market_data.StockQuotationMessageProto sqm = 3;
-        market_data.StockTradeMessageProto stm = 4;
+        market_data.CryptoQuotationProto cqm = 1;
+        market_data.CryptoTradeProto ctm = 2;
+        market_data.StockQuotationProto sqm = 3;
+        market_data.StockTradeProto stm = 4;
     }
 }

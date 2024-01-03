@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package market_data;
+
+import "money.proto";
+
+message CryptoTradeUnitProto {
+    market_data.MoneyProto price = 1;
+    double lot_size = 2;
+}
+
+message StockTradeUnitProto {
+    string exchange = 1;
+    market_data.MoneyProto price = 2;
+    double lot_size = 3;
+}

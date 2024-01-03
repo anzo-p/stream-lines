@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package market_data;
 
-message MoneyMessageProto {
-    int64 u = 1;
-    double n = 2;
-    string c = 3;
+message MoneyProto {
+    int64 units = 1;
+    double nanos = 2;
+    string currency = 3;
 }
