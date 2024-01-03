@@ -1,8 +1,5 @@
 name: Control Tower Ingest CI/CD
 
-env:
-  AWS_REGION: "eu-east-1"
-
 on:
   push:
     branches:
