@@ -3,9 +3,9 @@ pub enum ProcessError {
     AwsSdkError(String),
     ConfigError(String),
     EnvVarError(String),
+    JsonDeOrSerializationError(serde_json::Error),
     KinesisSendError(String),
     ProtobufConversionError(String),
-    SerializationError(serde_json::Error),
     WebSocketConnectionError {
         url: String,
         source: tokio_tungstenite::tungstenite::Error,

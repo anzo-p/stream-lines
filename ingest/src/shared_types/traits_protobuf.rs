@@ -1,7 +1,7 @@
 use prost::Message;
 
 use crate::error_handling::ProcessError;
-use crate::protobuf::MarketDataMessageProto;
+use crate::protobuf::MarketDataProto;
 use crate::shared_types::conversions_protobuf::{
     crypto_quotation_to_protobuf, crypto_trade_to_protobuf, stock_quotation_to_protobuf, stock_trade_to_protobuf,
 };
@@ -13,7 +13,7 @@ pub trait SerializeToProtobufMessage {
 }
 
 trait ConvertToProtobufType {
-    fn to_protobuf_type(&self) -> Result<MarketDataMessageProto, ProcessError>;
+    fn to_protobuf_type(&self) -> Result<MarketDataProto, ProcessError>;
 }
 
 impl SerializeToProtobufMessage for CryptoMarketDataMessage {
@@ -71,25 +71,25 @@ impl SerializeToProtobufMessage for StockTradeMessage {
 }
 
 impl ConvertToProtobufType for CryptoQuotationMessage {
-    fn to_protobuf_type(&self) -> Result<MarketDataMessageProto, ProcessError> {
+    fn to_protobuf_type(&self) -> Result<MarketDataProto, ProcessError> {
         crypto_quotation_to_protobuf(self)
     }
 }
 
 impl ConvertToProtobufType for CryptoTradeMessage {
-    fn to_protobuf_type(&self) -> Result<MarketDataMessageProto, ProcessError> {
+    fn to_protobuf_type(&self) -> Result<MarketDataProto, ProcessError> {
         crypto_trade_to_protobuf(self)
     }
 }
 
 impl ConvertToProtobufType for StockQuotationMessage {
-    fn to_protobuf_type(&self) -> Result<MarketDataMessageProto, ProcessError> {
+    fn to_protobuf_type(&self) -> Result<MarketDataProto, ProcessError> {
         stock_quotation_to_protobuf(self)
     }
 }
 
 impl ConvertToProtobufType for StockTradeMessage {
-    fn to_protobuf_type(&self) -> Result<MarketDataMessageProto, ProcessError> {
+    fn to_protobuf_type(&self) -> Result<MarketDataProto, ProcessError> {
         stock_trade_to_protobuf(self)
     }
 }

@@ -25,7 +25,7 @@ impl From<EncodeError> for ProcessError {
 
 impl From<serde_json::Error> for ProcessError {
     fn from(err: serde_json::Error) -> Self {
-        ProcessError::SerializationError(err)
+        ProcessError::JsonDeOrSerializationError(err)
     }
 }
 

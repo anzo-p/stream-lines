@@ -9,12 +9,13 @@ fn main() {
     let protobuf_root = PathBuf::from("..").join("protobuf");
 
     let proto_files = [
-        protobuf_root.join("money.proto"),
-        protobuf_root.join("market_data.proto"),
         protobuf_root.join("crypto_quotation.proto"),
         protobuf_root.join("crypto_trade.proto"),
+        protobuf_root.join("market_data.proto"),
+        protobuf_root.join("money.proto"),
         protobuf_root.join("stock_quotation.proto"),
         protobuf_root.join("stock_trade.proto"),
+        protobuf_root.join("trade_unit.proto"),
     ];
 
     let out_dir = PathBuf::from("src").join("protobuf");

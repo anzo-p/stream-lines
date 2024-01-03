@@ -11,7 +11,7 @@ pub fn handle_process_error(e: &ProcessError) {
         ProcessError::ProtobufConversionError(msg) => {
             eprintln!("Protobuf conversion error: {}", msg)
         }
-        ProcessError::SerializationError(msg) => eprintln!("Serialization error {}", msg),
+        ProcessError::JsonDeOrSerializationError(msg) => eprintln!("JSON De- or Serialization error {}", msg),
         ProcessError::WebSocketConnectionError { url, source } => {
             eprintln!("Failed to connect to WebSocket server at {}: {}", url, source)
         }
@@ -33,7 +33,7 @@ impl fmt::Display for ProcessError {
             ProcessError::ProtobufConversionError(msg) => {
                 write!(f, "Protobuf conversion error: {}", msg)
             }
-            ProcessError::SerializationError(msg) => write!(f, "Serialization error {}", msg),
+            ProcessError::JsonDeOrSerializationError(msg) => write!(f, "JSON De- or Serialization error {}", msg),
             ProcessError::WebSocketConnectionError { url, source } => {
                 write!(f, "Failed to connect to WebSocket server at {}: {}", url, source)
             }

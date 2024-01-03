@@ -15,7 +15,14 @@ pub fn deserialize_money_message<'de, D>(deserializer: D) -> Result<MoneyMessage
 where
     D: Deserializer<'de>,
 {
-    deserializer.deserialize_any(MoneyMessageVisitor)
+    let v = serde_json::Value::deserialize(deserializer)?;
+    if let Some(f) = v.as_f64() {
+        return MoneyMessageVisitor.visit_f64(f);
+    }
+    if let Some(i) = v.as_i64() {
+        return MoneyMessageVisitor.visit_i64(i);
+    }
+    Err(de::Error::custom("Invalid type for MoneyMessage"))
 }
 
 impl<'de> Visitor<'de> for MoneyMessageVisitor {
@@ -35,6 +42,17 @@ impl<'de> Visitor<'de> for MoneyMessageVisitor {
         Ok(MoneyMessage {
             units,
             nanos,
+            currency: "USD".to_string(),
+        })
+    }
+
+    fn visit_i64<E>(self, value: i64) -> Result<MoneyMessage, E>
+    where
+        E: de::Error,
+    {
+        Ok(MoneyMessage {
+            units: value,
+            nanos: 0.0,
             currency: "USD".to_string(),
         })
     }
