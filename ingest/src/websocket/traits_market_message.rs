@@ -1,7 +1,7 @@
 use crate::error_handling::ProcessError;
 use crate::shared_types::{
-    CryptoMarketDataMessage, CryptoQuotationMessage, CryptoTradeMessage, SerializeToProtobufMessage, StockMarketDataMessage,
-    StockQuotationMessage, StockTradeMessage,
+    CryptoMarketDataMessage, CryptoQuotationMessage, CryptoTradeMessage, SerializeToProtobufMessage,
+    StockMarketDataMessage, StockQuotationMessage, StockTradeMessage,
 };
 
 pub trait MarketMessage {

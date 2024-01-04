@@ -7,7 +7,11 @@ use crate::shared_types::{CryptoQuotationMessage, CryptoTradeMessage, StockQuota
 use crate::stream_producer::send_to_kinesis;
 use crate::websocket::MarketMessage;
 
-pub async fn process_item(feed_type: &FeedType, item: Value, kinesis_client: &KinesisClient) -> Result<(), ProcessError> {
+pub async fn process_item(
+    feed_type: &FeedType,
+    item: Value,
+    kinesis_client: &KinesisClient,
+) -> Result<(), ProcessError> {
     match item.get("T").and_then(Value::as_str) {
         Some("q") => process_quotation_message(feed_type, item, kinesis_client).await,
         Some("t") => process_trade_message(feed_type, item, kinesis_client).await,
@@ -26,14 +30,22 @@ pub async fn process_item(feed_type: &FeedType, item: Value, kinesis_client: &Ki
     }
 }
 
-async fn process_quotation_message(feed_type: &FeedType, item: Value, kinesis_client: &KinesisClient) -> Result<(), ProcessError> {
+async fn process_quotation_message(
+    feed_type: &FeedType,
+    item: Value,
+    kinesis_client: &KinesisClient,
+) -> Result<(), ProcessError> {
     match feed_type {
         FeedType::Stocks => process_market_message::<StockQuotationMessage>(item, kinesis_client).await,
         FeedType::Crypto => process_market_message::<CryptoQuotationMessage>(item, kinesis_client).await,
     }
 }
 
-async fn process_trade_message(feed_type: &FeedType, item: Value, kinesis_client: &KinesisClient) -> Result<(), ProcessError> {
+async fn process_trade_message(
+    feed_type: &FeedType,
+    item: Value,
+    kinesis_client: &KinesisClient,
+) -> Result<(), ProcessError> {
     match feed_type {
         FeedType::Stocks => process_market_message::<StockTradeMessage>(item, kinesis_client).await,
         FeedType::Crypto => process_market_message::<CryptoTradeMessage>(item, kinesis_client).await,
@@ -44,6 +56,7 @@ async fn process_market_message<M: MarketMessage + for<'de> serde::Deserialize<'
     item: Value,
     kinesis_client: &KinesisClient,
 ) -> Result<(), ProcessError> {
+    //eprintln!("Received message: {:?}", item);
     let message: M = serde_json::from_value(item)?;
     let partition_key = message.get_partition_key();
     let data = message.to_protobuf_binary()?;

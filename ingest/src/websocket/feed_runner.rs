@@ -25,7 +25,7 @@ pub async fn run_feeds(app_config: AppConfig) -> Result<(), ProcessError> {
 }
 
 async fn handle_feed(feed: WebSocketFeed, kinesis_client: KinesisClient) -> Result<(), ProcessError> {
-    match acquire_connection(&feed.url, &feed.symbols, false).await {
+    match acquire_connection().await {
         Ok(_) => {
             if let Err(e) = handle_websocket_stream(&feed, &kinesis_client).await {
                 handle_process_error(&e);
@@ -51,10 +51,22 @@ async fn handle_websocket_stream(config: &WebSocketFeed, kinesis_client: &Kinesi
     Ok(())
 }
 
-async fn process_message(config: &WebSocketFeed, ws_message: Message, kinesis_client: &KinesisClient) -> Result<(), ProcessError> {
+async fn process_message(
+    config: &WebSocketFeed,
+    ws_message: Message,
+    kinesis_client: &KinesisClient,
+) -> Result<(), ProcessError> {
     match ws_message {
         Message::Text(text) => {
             let json_value: Value = serde_json::from_str(&text)?;
+
+            println!(
+                "{} - Read {} messages from connection {}",
+                chrono::Local::now(),
+                json_value.as_array().unwrap().len(),
+                config.url
+            );
+
             loop_market_data(&config, json_value, kinesis_client).await?;
             Ok(())
         }
@@ -67,7 +79,11 @@ async fn process_message(config: &WebSocketFeed, ws_message: Message, kinesis_cl
     }
 }
 
-async fn loop_market_data(config: &WebSocketFeed, values: Value, kinesis_client: &KinesisClient) -> Result<(), ProcessError> {
+async fn loop_market_data(
+    config: &WebSocketFeed,
+    values: Value,
+    kinesis_client: &KinesisClient,
+) -> Result<(), ProcessError> {
     if let Value::Array(messages) = values {
         for item in messages {
             process_item(&config.feed_type, item, kinesis_client).await?
