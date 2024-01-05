@@ -1,48 +1,48 @@
-import market_data.market_data.MarketDataMessageProto
-import org.apache.flink.api.common.typeinfo.TypeInformation
-// import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.api.scala.{createTypeInformation, DataStream, StreamExecutionEnvironment}
+import org.apache.flink.streaming.api.scala._
+import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows
+import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer
-import org.apache.flink.streaming.connectors.kinesis.serialization.KinesisDeserializationSchema
-import types.{AlpacaMarketDataMessage, AlpacaSerDes}
+import processors.{QuotationWindow, StreamHelpers, WindowedQuotationVolumes}
+import sinks.ResultSink
+import types._
 
+import java.time.{Duration => JavaDuration}
 import java.util.Properties
-
-class MarketDataDeserializer extends KinesisDeserializationSchema[AlpacaMarketDataMessage] {
-  override def deserialize(
-      data: Array[Byte],
-      partitionKey: String,
-      seqNum: String,
-      approxArrivalTimestamp: Long,
-      stream: String,
-      shardId: String
-    ): AlpacaMarketDataMessage = {
-    AlpacaSerDes.fromProtoBuf(MarketDataMessageProto.parseFrom(data))
-  }
-
-  override def getProducedType: TypeInformation[AlpacaMarketDataMessage] = {
-    TypeInformation.of(classOf[AlpacaMarketDataMessage])
-  }
-}
 
 object FlinkApp {
 
   def main(args: Array[String]): Unit = {
     val env = StreamExecutionEnvironment.getExecutionEnvironment
+    env.enableCheckpointing(10000)
 
-    val properties = new Properties()
-    properties.setProperty("aws.region", "eu-west-1")
-    properties.setProperty("flink.stream.initpos", "TRIM_HORIZON")
+    val consumerConfig = new Properties()
+    consumerConfig.setProperty("aws.region", System.getenv().getOrDefault("AWS_REGION", ""))
+    consumerConfig.setProperty("flink.stream.initpos", "LATEST")
 
-    val kinesisConsumer = new FlinkKinesisConsumer[AlpacaMarketDataMessage](
-      "control-tower-downstream",
+    val consumer = new FlinkKinesisConsumer[MarketDataMessage](
+      System.getenv().getOrDefault("KINESIS_STREAM_NAME", ""),
       new MarketDataDeserializer(),
-      properties
+      consumerConfig
     )
 
-    val stream: DataStream[AlpacaMarketDataMessage] = env.addSource(kinesisConsumer)
+    val marketDataStream: DataStream[MarketDataMessage] =
+      env.addSource(consumer)
 
-    stream.print()
+    val stockQuotationStream: DataStream[StockQuotation] =
+      StreamHelpers.filterAndMap[StockQuotation](marketDataStream)
+
+    val watermarkedStockQuotationStream: DataStream[StockQuotation] = StreamHelpers.watermarkForBound(
+      stockQuotationStream,
+      JavaDuration.ofSeconds(65),
+      JavaDuration.ofSeconds(30)
+    )
+
+    val windowedStockQuotationVolumes: DataStream[WindowedQuotationVolumes] = watermarkedStockQuotationStream
+      .keyBy(_.symbol)
+      .window(SlidingProcessingTimeWindows.of(Time.seconds(60), Time.seconds(30)))
+      .apply(QuotationWindow.forStockQuotation())
+
+    windowedStockQuotationVolumes.addSink(ResultSink.forStockQuotation())
 
     env.execute("Flink Kinesis Example")
   }
