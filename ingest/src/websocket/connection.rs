@@ -18,8 +18,10 @@ const INITIAL_BACKOFF: u64 = 1;
 const MAX_BACKOFF: u64 = 64;
 const BACKOFF_FACTOR: u64 = 2;
 
+type MyWebSocketStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
+
 lazy_static! {
-    static ref WEBSOCKET_CONNECTIONS: Mutex<HashMap<String, Arc<Mutex<WebSocketStream<MaybeTlsStream<TcpStream>>>>>> =
+    static ref WEBSOCKET_CONNECTIONS: Mutex<HashMap<String, Arc<Mutex<MyWebSocketStream>>>> =
         Mutex::new(HashMap::new());
 }
 
@@ -33,64 +35,100 @@ pub async fn acquire_connection() -> Result<(), ProcessError> {
 }
 
 pub async fn read_from_connection(url_str: &str) -> Result<Option<Message>, ProcessError> {
-    let connections = WEBSOCKET_CONNECTIONS.lock().await;
+    let ws_arc;
+    {
+        let connections = WEBSOCKET_CONNECTIONS.lock().await;
+        ws_arc = match connections.get(url_str) {
+            Some(arc) => arc.clone(),
+            None => return Ok(None),
+        };
+        // The lock is released here as it goes out of scope
+    }
+
     let mut backoff = INITIAL_BACKOFF;
+    loop {
+        let mut ws: MutexGuard<_> = ws_arc.lock().await;
+        match ws.next().await {
+            Some(Ok(message)) => return Ok(Some(message)),
 
-    if let Some(ws_arc) = connections.get(url_str) {
-        loop {
-            let mut ws: MutexGuard<_> = ws_arc.lock().await;
-            match ws.next().await {
-                Some(Ok(message)) => return Ok(Some(message)),
+            other => {
+                let error_message = if let Some(Err(e)) = other {
+                    format!("Websocket read error: {:?}, ", e)
+                } else {
+                    String::from("Websocket connection closed, ")
+                };
 
-                other => {
-                    let error_message = if let Some(Err(e)) = other {
-                        format!("Websocket read error: {:?}, ", e)
-                    } else {
-                        String::from("Websocket connection closed, ")
-                    };
+                eprintln!(
+                    "{} - {}attempting to reconnect after {} seconds...",
+                    chrono::Local::now(),
+                    error_message,
+                    backoff
+                );
 
-                    eprintln!(
-                        "{} - {}attempting to reconnect after {} seconds...",
-                        chrono::Local::now(),
-                        error_message,
-                        backoff
-                    );
-                    drop(ws);
-                    sleep(Duration::from_secs(backoff)).await;
+                // let go of lock on ws_arc
+                eprintln!("{} - Dropping lock on connection", chrono::Local::now());
+                drop(ws);
 
-                    eprintln!("{} - Reconnecting to {}", chrono::Local::now(), url_str);
-                    let connect_result =
-                        timeout(Duration::from_secs(MAX_BACKOFF), connect_to_stream(url_str, true)).await;
+                // let go of connection in map
+                eprintln!("{} - wait for lock on map", chrono::Local::now());
+                let mut connections = WEBSOCKET_CONNECTIONS.lock().await;
 
-                    // still nort reconnecting after timeout and retry
-                    match connect_result {
-                        Ok(Ok(())) => {
-                            eprintln!("Reconnected successfully.");
-                            backoff = INITIAL_BACKOFF;
+                eprintln!("{} - Dropping connection from map", chrono::Local::now());
+                connections.remove(url_str);
 
-                            let app_config = load_app_config()?;
+                // let go of lock to connection
+                eprintln!("{} - Dropping re-lock on map", chrono::Local::now());
+                drop(connections);
 
-                            if let Some(feed) = app_config.feeds.iter().find(|f| f.url == url_str) {
-                                connect_and_sub(url_str, &feed.symbols, true).await?;
-                            }
+                // sleep before next move
+                eprintln!("{} - Sleeping for {} seconds", chrono::Local::now(), backoff);
+                sleep(Duration::from_secs(backoff)).await;
 
-                            return Ok(None);
+                eprintln!("{} - Reconnecting to {}", chrono::Local::now(), url_str);
+                let connect_result = timeout(Duration::from_secs(MAX_BACKOFF), connect_to_stream(url_str, true)).await;
+
+                // still nort reconnecting after timeout and retry
+                match connect_result {
+                    Ok(Ok(())) => {
+                        eprintln!("Reconnected successfully.");
+                        backoff = INITIAL_BACKOFF;
+
+                        let app_config = load_app_config()?;
+
+                        if let Some(feed) = app_config.feeds.iter().find(|f| f.url == url_str) {
+                            connect_and_sub(url_str, &feed.symbols, true).await?;
                         }
-                        Ok(Err(e)) => {
-                            eprintln!("Error during reconnection: {:?}", e);
-                            backoff = cmp::min(backoff.clone() * BACKOFF_FACTOR, MAX_BACKOFF);
-                        }
-                        Err(_) => {
-                            eprintln!("Reconnection attempt timed out.");
-                            backoff = cmp::min(backoff.clone() * BACKOFF_FACTOR, MAX_BACKOFF);
-                        }
+
+                        return Ok(None);
+                    }
+                    Ok(Err(e)) => {
+                        eprintln!("Error during reconnection: {:?}", e);
+                        backoff = cmp::min(backoff.clone() * BACKOFF_FACTOR, MAX_BACKOFF);
+                    }
+                    Err(_) => {
+                        eprintln!("Reconnection attempt timed out.");
+                        backoff = cmp::min(backoff.clone() * BACKOFF_FACTOR, MAX_BACKOFF);
                     }
                 }
             }
         }
-    } else {
-        Ok(None)
     }
+}
+
+pub async fn send_closing_messages_and_shutdown() {
+    eprintln!("Shutting down - closing all websockect connections");
+    let connections = WEBSOCKET_CONNECTIONS.lock().await;
+
+    for (_, ws_stream) in connections.iter() {
+        let mut ws_stream = ws_stream.lock().await;
+
+        if let Err(e) = ws_stream.close(None).await {
+            eprintln!("Error sending close message: {:?}", e);
+        }
+    }
+
+    eprintln!("Waiting few seconds for all connections to close...");
+    sleep(Duration::from_secs(3)).await;
 }
 
 async fn connect_and_sub(url_str: &str, trading_symbols: &[String], reconnect: bool) -> Result<(), ProcessError> {
