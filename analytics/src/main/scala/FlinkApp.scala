@@ -1,32 +1,22 @@
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows
 import org.apache.flink.streaming.api.windowing.time.Time
-import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer
 import processors.{QuotationWindow, StreamHelpers, WindowedQuotationVolumes}
 import sinks.ResultSink
 import types._
 
 import java.time.{Duration => JavaDuration}
-import java.util.Properties
 
 object FlinkApp {
 
   def main(args: Array[String]): Unit = {
     val env = StreamExecutionEnvironment.getExecutionEnvironment
-    env.enableCheckpointing(10000)
+    StreamConfig.configExecEnv(env)
 
-    val consumerConfig = new Properties()
-    consumerConfig.setProperty("aws.region", System.getenv().getOrDefault("AWS_REGION", ""))
-    consumerConfig.setProperty("flink.stream.initpos", "LATEST")
-
-    val consumer = new FlinkKinesisConsumer[MarketDataMessage](
-      System.getenv().getOrDefault("KINESIS_STREAM_NAME", ""),
-      new MarketDataDeserializer(),
-      consumerConfig
-    )
+    val streamConsumer = StreamConfig.buildConsumer()
 
     val marketDataStream: DataStream[MarketDataMessage] =
-      env.addSource(consumer)
+      env.addSource(streamConsumer)
 
     val stockQuotationStream: DataStream[StockQuotation] =
       StreamHelpers.filterAndMap[StockQuotation](marketDataStream)
