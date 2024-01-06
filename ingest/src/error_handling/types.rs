@@ -11,6 +11,6 @@ pub enum ProcessError {
         source: tokio_tungstenite::tungstenite::Error,
     },
     WebSocketCommunicationError(tokio_tungstenite::tungstenite::Error),
-    WebSocketReadError(tokio_tungstenite::tungstenite::Error),
+    //WebSocketReadError(tokio_tungstenite::tungstenite::Error),
     UrlParseError(url::ParseError),
 }

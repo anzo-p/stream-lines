@@ -1,14 +1,14 @@
 {
     "feeds": [
         {
+            "url": "wss://stream.data.alpaca.markets/v2/iex",
+            "symbols": ["AAPL", "AMD", "AMZN", "COIN", "GOOG", "INTC", "MSFT", "TSLA"],
+            "feed_type": "Stocks"
+        },
+        {
             "url": "wss://stream.data.alpaca.markets/v1beta3/crypto/us",
             "symbols": ["BTC/USD", "ETH/USD"],
             "feed_type": "Crypto"
-        },
-        {
-            "url": "wss://stream.data.alpaca.markets/v2/iex",
-            "symbols": ["AAPL", "MSFT", "TSLA"],
-            "feed_type": "Stocks"
         }
     ]
 }

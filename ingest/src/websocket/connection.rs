@@ -70,7 +70,7 @@ pub async fn read_from_connection(url_str: &str) -> Result<Option<Message>, Proc
                 drop(ws);
 
                 // let go of connection in map
-                eprintln!("{} - wait for lock on map", chrono::Local::now());
+                eprintln!("{} - Wait for lock on map of connections", chrono::Local::now());
                 let mut connections = WEBSOCKET_CONNECTIONS.lock().await;
 
                 eprintln!("{} - Dropping connection from map", chrono::Local::now());
@@ -91,14 +91,11 @@ pub async fn read_from_connection(url_str: &str) -> Result<Option<Message>, Proc
                 match connect_result {
                     Ok(Ok(())) => {
                         eprintln!("Reconnected successfully.");
-                        backoff = INITIAL_BACKOFF;
-
                         let app_config = load_app_config()?;
 
                         if let Some(feed) = app_config.feeds.iter().find(|f| f.url == url_str) {
                             connect_and_sub(url_str, &feed.symbols, true).await?;
                         }
-
                         return Ok(None);
                     }
                     Ok(Err(e)) => {

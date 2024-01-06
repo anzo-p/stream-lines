@@ -5,8 +5,8 @@ use std::time::SystemTime;
 
 use crate::error_handling::ProcessError;
 use crate::protobuf::{
-    market_data_proto, CryptoQuotationProto, CryptoTradeProto, CryptoTradeUnitProto, MarketDataProto, MoneyProto, StockQuotationProto,
-    StockTradeProto, StockTradeUnitProto,
+    market_data_proto, CryptoQuotationProto, CryptoTradeProto, CryptoTradeUnitProto, MarketDataProto, MoneyProto,
+    StockQuotationProto, StockTradeProto, StockTradeUnitProto,
 };
 use crate::shared_types::types_crypto::{CryptoQuotationMessage, CryptoTradeMessage};
 use crate::shared_types::types_money::MoneyMessage;
@@ -106,7 +106,11 @@ fn create_crypto_trade_unit_proto(price: MoneyMessage, lot_size: f64) -> Result<
     })
 }
 
-fn create_stock_trade_unit_proto(exchange: &str, price: MoneyMessage, lot_size: f64) -> Result<StockTradeUnitProto, ProcessError> {
+fn create_stock_trade_unit_proto(
+    exchange: &str,
+    price: MoneyMessage,
+    lot_size: f64,
+) -> Result<StockTradeUnitProto, ProcessError> {
     Ok(StockTradeUnitProto {
         exchange: exchange.to_string(),
         price: Some(money_to_protobuf(price)),

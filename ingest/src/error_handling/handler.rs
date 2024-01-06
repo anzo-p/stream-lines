@@ -18,7 +18,7 @@ pub fn handle_process_error(e: &ProcessError) {
         ProcessError::WebSocketCommunicationError(e) => {
             eprintln!("WebSocket communication error occurred: {}", e)
         }
-        ProcessError::WebSocketReadError(err) => eprintln!("WebSocket read error: {}", err),
+        //ProcessError::WebSocketReadError(err) => eprintln!("WebSocket read error: {}", err),
         ProcessError::UrlParseError(msg) => eprintln!("Url parse error: {}", msg),
     }
 }
@@ -40,7 +40,7 @@ impl fmt::Display for ProcessError {
             ProcessError::WebSocketCommunicationError(e) => {
                 write!(f, "WebSocket communication error occurred: {}", e)
             }
-            ProcessError::WebSocketReadError(err) => write!(f, "WebSocket read error: {}", err),
+            //ProcessError::WebSocketReadError(err) => write!(f, "WebSocket read error: {}", err),
             ProcessError::UrlParseError(msg) => write!(f, "Url parse error: {}", msg),
         }
     }

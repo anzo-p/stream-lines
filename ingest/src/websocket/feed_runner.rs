@@ -1,5 +1,6 @@
 use aws_sdk_kinesis::Client as KinesisClient;
 use serde_json::Value;
+use std::string::String;
 use tokio_tungstenite::tungstenite::protocol::Message;
 
 use crate::app_config::AppConfig;
@@ -8,7 +9,7 @@ use crate::error_handling::{handle_process_error, ProcessError};
 use crate::stream_producer::create_kinesis_client;
 use crate::websocket::{acquire_connection, process_item, read_from_connection};
 
-pub async fn run_feeds(app_config: AppConfig) -> Result<(), ProcessError> {
+pub async fn run_feeds(app_config: &AppConfig) -> Result<(), ProcessError> {
     let feeds = app_config.feeds.clone();
     let mut tasks = Vec::new();
 
@@ -58,16 +59,28 @@ async fn process_message(
 ) -> Result<(), ProcessError> {
     match ws_message {
         Message::Text(text) => {
-            let json_value: Value = serde_json::from_str(&text)?;
-
-            println!(
-                "{} - Read {} messages from connection {}",
-                chrono::Local::now(),
-                json_value.as_array().unwrap().len(),
-                config.url
-            );
-
-            loop_market_data(&config, json_value, kinesis_client).await?;
+            match serde_json::from_str::<Value>(text.as_str()) {
+                Ok(message) => {
+                    if message.is_object() {
+                        process_item(&config.feed_type, message, kinesis_client).await?
+                    } else if message.is_array() {
+                        loop_market_data(&config, message, kinesis_client).await?;
+                    } else {
+                        match message.as_str() {
+                            Some(str) => {
+                                let preview = str.chars().take(200).collect::<String>();
+                                println!("Received JSON is not processable: {}", preview);
+                            }
+                            None => {
+                                println!("Message content is None");
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    println!("Received messageis not JSON: {}", e);
+                }
+            }
             Ok(())
         }
 
