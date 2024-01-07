@@ -8,9 +8,10 @@ mod websocket;
 use dotenv;
 use signal_hook::consts::signal::SIGTERM;
 use signal_hook::iterator::Signals;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use std::thread;
+use tokio::time::{sleep, Duration};
+
 
 use crate::app_config::AppConfig;
 use crate::error_handling::ProcessError;
@@ -30,12 +31,30 @@ fn setup_sigterm_handler(running: Arc<AtomicBool>) {
 }
 
 async fn run_app(app_config: &AppConfig, running: Arc<AtomicBool>) {
-    while running.load(Ordering::SeqCst) {
-        if let Err(e) = run_feeds(&app_config).await {
-            eprintln!("Error running feeds: {}", e);
+    let mut retry_count = 0;
+    let max_retries = 5;
+    let retry_delay = Duration::from_secs(15);
+
+    while running.load(Ordering::SeqCst) && retry_count < max_retries {
+        match run_feeds(&app_config).await {
+            Ok(_) => {
+                retry_count = 0;
+            },
+            Err(e) => {
+                retry_count += 1;
+                let retry_count_str = retry_count.to_string() + "/" + max_retries.to_string().as_str();
+                eprintln!("Error running feeds: {}. Retrying {} in {} seconds...", e, retry_count_str, retry_delay.as_secs());
+                sleep(retry_delay).await;
+            },
         }
     }
+
+    if retry_count >= max_retries {
+        eprintln!("Maximum retry attempts reached. Stopping application.");
+        running.store(false, Ordering::SeqCst);
+    }
 }
+
 
 #[tokio::main]
 async fn main() -> Result<(), ProcessError> {
