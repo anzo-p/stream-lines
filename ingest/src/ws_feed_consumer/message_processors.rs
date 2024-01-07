@@ -1,13 +1,13 @@
 use aws_sdk_kinesis::Client as KinesisClient;
 use serde_json::Value;
 
-use crate::app_config::FeedType;
+use crate::app_config::{FeedType, WebSocketFeed};
 use crate::error_handling::ProcessError;
 use crate::shared_types::{CryptoQuotationMessage, CryptoTradeMessage, StockQuotationMessage, StockTradeMessage};
 use crate::stream_producer::send_to_kinesis;
-use crate::websocket::MarketMessage;
+use crate::ws_feed_consumer::MarketMessage;
 
-pub async fn process_item(
+pub async fn process_one(
     feed_type: &FeedType,
     item: Value,
     kinesis_client: &KinesisClient,
@@ -28,6 +28,19 @@ pub async fn process_item(
             Ok(())
         }
     }
+}
+
+pub async fn process_many(
+    config: &WebSocketFeed,
+    values: Value,
+    kinesis_client: &KinesisClient,
+) -> Result<(), ProcessError> {
+    if let Value::Array(messages) = values {
+        for item in messages {
+            process_one(&config.feed_type, item, kinesis_client).await?
+        }
+    }
+    Ok(())
 }
 
 async fn process_quotation_message(

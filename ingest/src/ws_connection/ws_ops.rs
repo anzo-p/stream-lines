@@ -10,7 +10,7 @@ use url::Url;
 
 use crate::error_handling::ProcessError;
 use crate::load_app_config;
-use crate::websocket::{AuthMessage, SubMessage};
+use crate::ws_feed_consumer::{AuthMessage, SubMessage};
 
 const INITIAL_BACKOFF: u64 = 1;
 const MAX_BACKOFF: u64 = 64;
@@ -35,6 +35,7 @@ pub async fn acquire_connection(url_str: &str) -> Result<(), ProcessError> {
                 return Ok(());
             }
             Err(e) => {
+                retry_count += 1;
                 eprintln!(
                     "{} - Error connecting/reconnecting to {}: {}. Attempt {} of {}.",
                     chrono::Local::now(),
@@ -45,7 +46,6 @@ pub async fn acquire_connection(url_str: &str) -> Result<(), ProcessError> {
                 );
                 sleep(Duration::from_secs(backoff)).await;
                 backoff = std::cmp::min(backoff * BACKOFF_FACTOR, MAX_BACKOFF);
-                retry_count += 1;
             }
         }
     }

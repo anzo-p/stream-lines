@@ -3,7 +3,8 @@ mod error_handling;
 mod protobuf;
 mod shared_types;
 mod stream_producer;
-mod websocket;
+mod ws_connection;
+mod ws_feed_consumer;
 
 use dotenv;
 use signal_hook::consts::signal::SIGTERM;
@@ -16,7 +17,8 @@ use tokio::time::{sleep, Duration};
 use crate::app_config::AppConfig;
 use crate::error_handling::ProcessError;
 use crate::stream_producer::create_kinesis_client;
-use crate::websocket::{run_one_feed, remove_active_connections};
+use crate::ws_connection::remove_active_connections;
+use crate::ws_feed_consumer::run_one_feed;
 
 fn load_app_config() -> Result<AppConfig, ProcessError> {
     AppConfig::new().map_err(|e| ProcessError::ConfigError(e.to_string()))
