@@ -8,14 +8,15 @@ mod websocket;
 use dotenv;
 use signal_hook::consts::signal::SIGTERM;
 use signal_hook::iterator::Signals;
-use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::thread;
 use tokio::time::{sleep, Duration};
 
-
 use crate::app_config::AppConfig;
 use crate::error_handling::ProcessError;
-use crate::websocket::{run_feeds, send_closing_messages_and_shutdown};
+use crate::stream_producer::create_kinesis_client;
+use crate::websocket::{run_one_feed, remove_active_connections};
 
 fn load_app_config() -> Result<AppConfig, ProcessError> {
     AppConfig::new().map_err(|e| ProcessError::ConfigError(e.to_string()))
@@ -31,30 +32,34 @@ fn setup_sigterm_handler(running: Arc<AtomicBool>) {
 }
 
 async fn run_app(app_config: &AppConfig, running: Arc<AtomicBool>) {
-    let mut retry_count = 0;
-    let max_retries = 5;
-    let retry_delay = Duration::from_secs(15);
+    let feeds = app_config.feeds.clone();
+    let mut tasks = Vec::new();
 
-    while running.load(Ordering::SeqCst) && retry_count < max_retries {
-        match run_feeds(&app_config).await {
-            Ok(_) => {
-                retry_count = 0;
-            },
+    for feed in feeds {
+        let kinesis_client = match create_kinesis_client().await {
+            Ok(client) => client,
             Err(e) => {
-                retry_count += 1;
-                let retry_count_str = retry_count.to_string() + "/" + max_retries.to_string().as_str();
-                eprintln!("Error running feeds: {}. Retrying {} in {} seconds...", e, retry_count_str, retry_delay.as_secs());
-                sleep(retry_delay).await;
-            },
-        }
+                eprintln!("Failed to create Kinesis client: {:?}", e);
+                continue;
+            }
+        };
+
+        let task = tokio::spawn(run_one_feed(feed, kinesis_client, 3));
+        tasks.push(task);
     }
 
-    if retry_count >= max_retries {
-        eprintln!("Maximum retry attempts reached. Stopping application.");
-        running.store(false, Ordering::SeqCst);
+    while running.load(Ordering::SeqCst) && !tasks.is_empty() {
+        tasks.retain(|task| !task.is_finished());
+
+        if tasks.is_empty() {
+            eprintln!("All feeds have stopped. Shutting down the application.");
+            running.store(false, Ordering::SeqCst);
+            break;
+        }
+
+        sleep(Duration::from_secs(5)).await;
     }
 }
-
 
 #[tokio::main]
 async fn main() -> Result<(), ProcessError> {
@@ -64,12 +69,12 @@ async fn main() -> Result<(), ProcessError> {
 
     setup_sigterm_handler(running.clone());
 
+    let app_config = load_app_config()?;
     while running.load(Ordering::SeqCst) {
-        let app_config = load_app_config()?;
         run_app(&app_config, running.clone()).await;
     }
 
     println!("Application shutting down gracefully.");
-    send_closing_messages_and_shutdown().await;
+    remove_active_connections().await;
     Ok(())
 }

@@ -1,34 +1,38 @@
 use aws_sdk_kinesis::Client as KinesisClient;
+use rust_decimal::prelude::ToPrimitive;
 use serde_json::Value;
 use std::string::String;
+use tokio::time::{sleep, Duration};
 use tokio_tungstenite::tungstenite::protocol::Message;
 
-use crate::app_config::AppConfig;
 use crate::app_config::WebSocketFeed;
 use crate::error_handling::{handle_process_error, ProcessError};
-use crate::stream_producer::create_kinesis_client;
 use crate::websocket::{acquire_connection, process_item, read_from_connection};
 
-pub async fn run_feeds(app_config: &AppConfig) -> Result<(), ProcessError> {
-    let feeds = app_config.feeds.clone();
-    let mut tasks = Vec::new();
+pub async fn run_one_feed(
+    feed: WebSocketFeed,
+    kinesis_client: KinesisClient,
+    max_retries: usize,
+) -> Result<(), ProcessError> {
+    let mut retry_count = 0;
 
-    for feed in feeds {
-        let kinesis_client = create_kinesis_client().await?;
-        let task = tokio::spawn(handle_feed(feed, kinesis_client));
-        tasks.push(task);
+    while retry_count <= (max_retries.to_i8().unwrap() + 1) {
+        if let Err(e) = handle_feed(feed.clone(), kinesis_client.clone()).await {
+            eprintln!("Error in feed '{}': {:?}. Retrying...", feed.url, e);
+            retry_count += 1;
+            sleep(Duration::from_secs(10)).await;
+        } else {
+            return Ok(());
+        }
     }
-
-    for task in tasks {
-        let _ = task.await.expect("Task failed");
-    }
-    Ok(())
+    Err(ProcessError::MaxRetriesReached("Max retries reached".to_string()))
 }
 
 async fn handle_feed(feed: WebSocketFeed, kinesis_client: KinesisClient) -> Result<(), ProcessError> {
-    match acquire_connection().await {
+    match acquire_connection(&feed.url).await {
         Ok(_) => {
             if let Err(e) = handle_websocket_stream(&feed, &kinesis_client).await {
+                eprintln!("Error in handle_websocket_stream: {:?}", e);
                 handle_process_error(&e);
                 Err(e)
             } else {
@@ -36,6 +40,7 @@ async fn handle_feed(feed: WebSocketFeed, kinesis_client: KinesisClient) -> Resu
             }
         }
         Err(e) => {
+            eprintln!("Error in acquire_connection: {:?}", e);
             handle_process_error(&e);
             Err(e)
         }
@@ -43,13 +48,19 @@ async fn handle_feed(feed: WebSocketFeed, kinesis_client: KinesisClient) -> Resu
 }
 
 async fn handle_websocket_stream(config: &WebSocketFeed, kinesis_client: &KinesisClient) -> Result<(), ProcessError> {
-    while let Ok(Some(message)) = read_from_connection(&config.url).await {
-        match process_message(&config, message, kinesis_client).await {
-            Ok(_) => {}
-            Err(e) => return Err(e),
+    loop {
+        match read_from_connection(&config.url).await {
+            Ok(Some(message)) => match process_message(&config, message, kinesis_client).await {
+                Ok(_) => {}
+                Err(e) => return Err(e),
+            },
+            Ok(None) => {}
+            Err(e) => {
+                println!("Error in read_from_connection: {:?}", e);
+                return Err(e);
+            }
         }
     }
-    Ok(())
 }
 
 async fn process_message(
@@ -78,15 +89,22 @@ async fn process_message(
                     }
                 }
                 Err(e) => {
-                    println!("Received messageis not JSON: {}", e);
+                    println!(
+                        "{} - Received message is not in JSON format: {}",
+                        chrono::Local::now(),
+                        e
+                    );
                 }
             }
             Ok(())
         }
 
         _ => {
-            // log or error
-            println!("Received non-text message");
+            println!(
+                "{} - Received non-content message: {}",
+                chrono::Local::now(),
+                ws_message
+            );
             Ok(())
         }
     }

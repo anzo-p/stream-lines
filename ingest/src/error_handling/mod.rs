@@ -1,6 +1,6 @@
 mod error_conversions;
-mod handler;
-mod types;
+mod error_handlers;
+mod error_types;
 
-pub use handler::handle_process_error;
-pub use types::ProcessError;
+pub use error_handlers::handle_process_error;
+pub use error_types::ProcessError;
