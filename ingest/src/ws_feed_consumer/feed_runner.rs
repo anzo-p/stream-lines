@@ -1,25 +1,34 @@
 use aws_sdk_kinesis::Client as KinesisClient;
-use rust_decimal::prelude::ToPrimitive;
 use serde_json::Value;
-use std::{thread, string::String};
+use std::{string::String, thread};
 use tokio::time::{sleep, Duration};
 use tokio_tungstenite::tungstenite::protocol::Message;
 
 use crate::app_config::WebSocketFeed;
 use crate::error_handling::{handle_process_error, ProcessError};
+use crate::stream_producer::create_kinesis_client;
 use crate::ws_connection::{acquire_connection, read_from_connection};
 use crate::ws_feed_consumer::message_processors::process_many;
 use crate::ws_feed_consumer::process_one;
 
-pub async fn run_one_feed(
-    feed: WebSocketFeed,
-    kinesis_client: KinesisClient,
-    max_retries: usize,
-) -> Result<(), ProcessError> {
+pub async fn run_one_feed(feed: WebSocketFeed, max_retries: usize) -> Result<(), ProcessError> {
     let mut retry_count = 0;
 
-    while retry_count <= (max_retries.to_i8().unwrap() + 1) {
-        if let Err(e) = launch_feed(feed.clone(), kinesis_client.clone()).await {
+    while retry_count <= max_retries {
+        let kinesis_client = match create_kinesis_client().await {
+            Ok(client) => {
+                retry_count = 0;
+                client
+            }
+            Err(e) => {
+                eprintln!("Failed to create Kinesis client: {:?}", e);
+                retry_count += 1;
+                sleep(Duration::from_secs(10)).await;
+                continue;
+            }
+        };
+
+        if let Err(e) = launch_feed(feed.clone(), kinesis_client).await {
             retry_count += 1;
             eprintln!("Error in feed '{}': {:?}. Retrying...", feed.url, e);
             sleep(Duration::from_secs(10)).await;

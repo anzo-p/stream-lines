@@ -16,7 +16,6 @@ use tokio::time::{sleep, Duration};
 
 use crate::app_config::AppConfig;
 use crate::error_handling::ProcessError;
-use crate::stream_producer::create_kinesis_client;
 use crate::ws_connection::remove_active_connections;
 use crate::ws_feed_consumer::run_one_feed;
 
@@ -38,15 +37,7 @@ async fn run_app(app_config: &AppConfig, running: Arc<AtomicBool>) {
     let mut tasks = Vec::new();
 
     for feed in feeds {
-        let kinesis_client = match create_kinesis_client().await {
-            Ok(client) => client,
-            Err(e) => {
-                eprintln!("Failed to create Kinesis client: {:?}", e);
-                continue;
-            }
-        };
-
-        let task = tokio::spawn(run_one_feed(feed, kinesis_client, 3));
+        let task = tokio::spawn(run_one_feed(feed, 5));
         tasks.push(task);
     }
 
