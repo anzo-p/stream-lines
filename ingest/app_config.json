@@ -3,12 +3,14 @@
         {
             "url": "wss://stream.data.alpaca.markets/v2/iex",
             "symbols": ["AAPL", "AMD", "AMZN", "COIN", "GOOG", "INTC", "MSFT", "TSLA"],
-            "feed_type": "Stocks"
+            "feed_type": "Stocks",
+            "max_reads_per_sec": 20
         },
         {
             "url": "wss://stream.data.alpaca.markets/v1beta3/crypto/us",
             "symbols": ["BTC/USD", "ETH/USD"],
-            "feed_type": "Crypto"
+            "feed_type": "Crypto",
+            "max_reads_per_sec": 20
         }
     ]
 }

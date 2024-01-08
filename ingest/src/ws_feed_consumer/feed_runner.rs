@@ -1,7 +1,7 @@
 use aws_sdk_kinesis::Client as KinesisClient;
 use rust_decimal::prelude::ToPrimitive;
 use serde_json::Value;
-use std::string::String;
+use std::{thread, string::String};
 use tokio::time::{sleep, Duration};
 use tokio_tungstenite::tungstenite::protocol::Message;
 
@@ -62,6 +62,8 @@ async fn consume_feed(config: &WebSocketFeed, kinesis_client: &KinesisClient) ->
                 return Err(e);
             }
         }
+
+        thread::sleep(Duration::from_millis(1000 / &config.max_reads_per_sec));
     }
 }
 

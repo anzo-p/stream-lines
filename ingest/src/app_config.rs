@@ -12,6 +12,7 @@ pub struct WebSocketFeed {
     pub url: String,
     pub symbols: Vec<String>,
     pub feed_type: FeedType,
+    pub max_reads_per_sec: u64,
 }
 
 #[derive(Debug, Deserialize)]
