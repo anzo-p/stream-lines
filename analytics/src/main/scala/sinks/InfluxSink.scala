@@ -5,7 +5,7 @@ import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunc
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.{CloseableHttpClient, HttpClients}
-import processors.{InfluxdbResult, WindowedQuotationVolumes}
+import results.{DataSerializer, WindowedQuotationVolumes}
 
 import java.io.IOException
 import scala.util.Try
@@ -23,6 +23,7 @@ trait InfluxSink[T] extends RichSinkFunction[T] {
   lazy val httpClient: CloseableHttpClient = HttpClients.createDefault()
 
   def influxDetails: InfluxDetails
+  val serializer: DataSerializer[T]
   val baseUri: String = s"${influxDetails.uri.toString}&bucket="
   val token: String   = influxDetails.token
 
@@ -34,11 +35,12 @@ trait InfluxSink[T] extends RichSinkFunction[T] {
   }
 }
 
-class ResultSink[T <: InfluxdbResult] private (val influxDetails: InfluxDetails, bucket: InfluxBucket.Name) extends InfluxSink[T] {
+class ResultSink[T] private (val influxDetails: InfluxDetails, bucket: InfluxBucket.Name, val serializer: DataSerializer[T])
+    extends InfluxSink[T] {
   override def invoke(value: T, context: SinkFunction.Context): Unit = {
-
-    val httpPost = new HttpPost(baseUri + bucket.toString)
-    httpPost.setEntity(new StringEntity(value.toLineProtocol))
+    val serializedData = serializer.serialize(value)
+    val httpPost       = new HttpPost(baseUri + bucket.toString)
+    httpPost.setEntity(new StringEntity(serializedData))
     httpPost.addHeader("Authorization", s"Token $token")
 
     Try {
@@ -59,9 +61,15 @@ class ResultSink[T <: InfluxdbResult] private (val influxDetails: InfluxDetails,
 
 object ResultSink {
 
-  def forCryptoQuotation(influxDetails: InfluxDetails): ResultSink[WindowedQuotationVolumes] =
-    new ResultSink[WindowedQuotationVolumes](influxDetails, InfluxBucket.CryptoBucket)
+  def forCryptoQuotation(
+      influxDetails: InfluxDetails,
+      serializer: DataSerializer[WindowedQuotationVolumes]
+    ): ResultSink[WindowedQuotationVolumes] =
+    new ResultSink[WindowedQuotationVolumes](influxDetails, InfluxBucket.CryptoBucket, serializer)
 
-  def forStockQuotation(influxDetails: InfluxDetails): ResultSink[WindowedQuotationVolumes] =
-    new ResultSink[WindowedQuotationVolumes](influxDetails, InfluxBucket.StockBucket)
+  def forStockQuotation(
+      influxDetails: InfluxDetails,
+      serializer: DataSerializer[WindowedQuotationVolumes]
+    ): ResultSink[WindowedQuotationVolumes] =
+    new ResultSink[WindowedQuotationVolumes](influxDetails, InfluxBucket.StockBucket, serializer)
 }

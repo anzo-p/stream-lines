@@ -3,6 +3,7 @@ package processors
 import org.apache.flink.streaming.api.scala.function.WindowFunction
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
+import results.WindowedQuotationVolumes
 import types.{CryptoQuotation, Quotation, StockQuotation}
 
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
@@ -18,7 +19,7 @@ class QuotationWindow[T <: Quotation] private (measurementType: WindowedVolumesM
     val sumBidVolume: BigDecimal = input.map(q => q.bid.price.amount * q.bid.lotSize).sum
     val sumAskVolume: BigDecimal = input.map(q => q.ask.price.amount * q.ask.lotSize).sum
     out.collect(
-      new WindowedQuotationVolumes(
+      WindowedQuotationVolumes(
         measurementType,
         Map("symbol" -> key),
         OffsetDateTime.ofInstant(Instant.ofEpochMilli(window.getEnd), ZoneOffset.UTC),

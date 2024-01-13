@@ -17,6 +17,7 @@ object StreamConfig {
     env.setStateBackend(rocksDbBackend)
     env.getCheckpointConfig.setCheckpointStorage(new FileSystemCheckpointStorage(checkpointPath))
     env.enableCheckpointing(60 * 1000L)
+    env.setParallelism(2)
   }
 
   def createExecutionEnvironment(): StreamExecutionEnvironment = {
@@ -33,7 +34,7 @@ object StreamConfig {
     consumerConfig.setProperty("flink.stream.initpos", "LATEST")
 
     new FlinkKinesisConsumer[MarketDataMessage](
-      sys.env.getOrThrow("KINESIS_STREAM_NAME", "KINESIS_STREAM_NAME is not set"),
+      sys.env.getOrThrow("KINESIS_UPSTREAM_NAME", "KINESIS_UPSTREAM_NAME is not set"),
       new MarketDataDeserializer(),
       consumerConfig
     )

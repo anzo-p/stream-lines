@@ -9,15 +9,18 @@ val apacheFlinkVersion = "1.17.2"
 val apacheHttpVersion  = "4.5.14"
 
 libraryDependencies ++= Seq(
-  "com.amazonaws"             % "aws-java-sdk-kinesis"       % awsSdkVersion,
-  "org.apache.flink"          % "flink-clients"              % apacheFlinkVersion,
-  "org.apache.flink"          % "flink-connector-kinesis"    % "4.0.0-1.16",
-  "org.apache.flink"          % "flink-statebackend-rocksdb" % apacheFlinkVersion,
-  "org.apache.flink"          % "flink-s3-fs-hadoop"         % apacheFlinkVersion,
-  "org.apache.flink"          %% "flink-streaming-scala"     % apacheFlinkVersion,
-  "org.apache.httpcomponents" % "httpclient"                 % apacheHttpVersion,
-  "ch.qos.logback"            % "logback-classic"            % "1.4.12",
-  "com.thesamet.scalapb"      %% "scalapb-runtime"           % scalapb.compiler.Version.scalapbVersion % "protobuf"
+  "com.amazonaws"                  % "aws-java-sdk-kinesis"                % awsSdkVersion,
+  "org.apache.flink"               % "flink-clients"                       % apacheFlinkVersion,
+  "org.apache.flink"               % "flink-connector-kinesis"             % "4.0.0-1.16",
+  "org.apache.flink"               % "flink-connector-aws-kinesis-streams" % "4.0.0-1.16",
+  "org.apache.flink"               % "flink-statebackend-rocksdb"          % apacheFlinkVersion,
+  "org.apache.flink"               % "flink-s3-fs-hadoop"                  % apacheFlinkVersion,
+  "org.apache.flink"               %% "flink-streaming-scala"              % apacheFlinkVersion,
+  "org.apache.httpcomponents"      % "httpclient"                          % apacheHttpVersion,
+  "com.fasterxml.jackson.module"   %% "jackson-module-scala"               % "2.15.3",
+  "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310"             % "2.15.3",
+  "ch.qos.logback"                 % "logback-classic"                     % "1.4.12",
+  "com.thesamet.scalapb"           %% "scalapb-runtime"                    % scalapb.compiler.Version.scalapbVersion % "protobuf"
 )
 
 Compile / PB.targets := Seq(

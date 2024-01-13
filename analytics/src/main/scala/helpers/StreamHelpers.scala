@@ -1,4 +1,4 @@
-package processors
+package helpers
 
 import org.apache.flink.api.common.eventtime.{SerializableTimestampAssigner, WatermarkStrategy}
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -8,8 +8,8 @@ import org.apache.http.impl.client.HttpClients
 import types.{MarketDataContent, MarketDataMessage}
 
 import java.time.Duration
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
