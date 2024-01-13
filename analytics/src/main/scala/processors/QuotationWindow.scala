@@ -7,6 +7,7 @@ import results.WindowedQuotationVolumes
 import types.{CryptoQuotation, Quotation, StockQuotation}
 
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
+import java.util.UUID
 
 class QuotationWindow[T <: Quotation] private (measurementType: WindowedVolumesMeasurement)
     extends WindowFunction[T, WindowedQuotationVolumes, String, TimeWindow] {
@@ -20,11 +21,14 @@ class QuotationWindow[T <: Quotation] private (measurementType: WindowedVolumesM
     val sumAskVolume: BigDecimal = input.map(q => q.ask.price.amount * q.ask.lotSize).sum
     out.collect(
       WindowedQuotationVolumes(
+        measureId = UUID.randomUUID(),
         measurementType,
-        Map("symbol" -> key),
-        OffsetDateTime.ofInstant(Instant.ofEpochMilli(window.getEnd), ZoneOffset.UTC),
+        symbol          = key,
+        windowStartTime = OffsetDateTime.ofInstant(Instant.ofEpochMilli(window.getStart), ZoneOffset.UTC),
+        windowEndTime   = OffsetDateTime.ofInstant(Instant.ofEpochMilli(window.getEnd), ZoneOffset.UTC),
         sumBidVolume,
-        sumAskVolume
+        sumAskVolume,
+        tags = Map("symbol" -> key)
       ))
   }
 }

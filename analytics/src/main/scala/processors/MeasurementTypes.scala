@@ -1,6 +1,10 @@
 package processors
 
+import com.fasterxml.jackson.annotation.JsonValue
+
 sealed trait WindowedVolumesMeasurement {
+
+  @JsonValue
   def value: String
 }
 
