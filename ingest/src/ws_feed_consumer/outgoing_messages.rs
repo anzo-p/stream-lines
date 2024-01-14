@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::env;
 
-use crate::error_handling::ProcessError;
+use crate::errors::ProcessError;
 
 #[derive(Serialize, Deserialize)]
 pub struct AuthMessage {

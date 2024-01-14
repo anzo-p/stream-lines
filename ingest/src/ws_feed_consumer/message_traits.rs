@@ -1,5 +1,5 @@
-use crate::error_handling::ProcessError;
-use crate::shared_types::{
+use crate::errors::ProcessError;
+use crate::types::{
     CryptoMarketDataMessage, CryptoQuotationMessage, CryptoTradeMessage, SerializeToProtobufMessage,
     StockMarketDataMessage, StockQuotationMessage, StockTradeMessage,
 };

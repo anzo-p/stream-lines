@@ -1,12 +1,11 @@
 use prost::Message;
 
-use crate::error_handling::ProcessError;
+use crate::errors::ProcessError;
 use crate::protobuf::MarketDataProto;
-use crate::shared_types::conversions_protobuf::{
+use crate::types::{
     crypto_quotation_to_protobuf, crypto_trade_to_protobuf, stock_quotation_to_protobuf, stock_trade_to_protobuf,
+    CryptoQuotationMessage, CryptoTradeMessage, StockQuotationMessage, StockTradeMessage, CryptoMarketDataMessage, StockMarketDataMessage
 };
-use crate::shared_types::types_crypto::{CryptoMarketDataMessage, CryptoQuotationMessage, CryptoTradeMessage};
-use crate::shared_types::types_stock::{StockMarketDataMessage, StockQuotationMessage, StockTradeMessage};
 
 pub trait SerializeToProtobufMessage {
     fn to_protobuf_binary(&self) -> Result<Vec<u8>, ProcessError>;

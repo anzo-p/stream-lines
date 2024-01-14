@@ -1,11 +1,11 @@
 use aws_sdk_kinesis::Client as KinesisClient;
 use serde_json::Value;
-use std::{string::String, thread};
+use std::string::String;
 use tokio::time::{sleep, Duration};
 use tokio_tungstenite::tungstenite::protocol::Message;
 
 use crate::app_config::WebSocketFeed;
-use crate::error_handling::{handle_process_error, ProcessError};
+use crate::errors::{handle_process_error, ProcessError};
 use crate::stream_producer::create_kinesis_client;
 use crate::ws_connection::{acquire_connection, read_from_connection};
 use crate::ws_feed_consumer::message_processors::process_many;
@@ -71,8 +71,7 @@ async fn consume_feed(config: &WebSocketFeed, kinesis_client: &KinesisClient) ->
                 return Err(e);
             }
         }
-
-        thread::sleep(Duration::from_millis(1000 / &config.max_reads_per_sec));
+        sleep(Duration::from_millis(1000 / &config.max_reads_per_sec)).await;
     }
 }
 

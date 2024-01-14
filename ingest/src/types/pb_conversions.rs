@@ -3,14 +3,14 @@ use prost_types::Timestamp;
 use rust_decimal::prelude::ToPrimitive;
 use std::time::SystemTime;
 
-use crate::error_handling::ProcessError;
+use crate::errors::ProcessError;
 use crate::protobuf::{
     market_data_proto, CryptoQuotationProto, CryptoTradeProto, CryptoTradeUnitProto, MarketDataProto, MoneyProto,
     StockQuotationProto, StockTradeProto, StockTradeUnitProto,
 };
-use crate::shared_types::types_crypto::{CryptoQuotationMessage, CryptoTradeMessage};
-use crate::shared_types::types_money::MoneyMessage;
-use crate::shared_types::types_stock::{StockQuotationMessage, StockTradeMessage};
+use crate::types::{
+    CryptoQuotationMessage, CryptoTradeMessage, MoneyMessage, StockQuotationMessage, StockTradeMessage,
+};
 
 pub fn crypto_quotation_to_protobuf(msg: &CryptoQuotationMessage) -> Result<MarketDataProto, ProcessError> {
     let timestamp = datetime_to_protobuf_timestamp(msg.market_timestamp)?;

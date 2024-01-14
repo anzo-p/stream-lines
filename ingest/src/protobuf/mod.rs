@@ -1,4 +1,4 @@
-pub mod market_data;
+mod market_data;
 
 pub use market_data::market_data_proto;
 pub use market_data::CryptoQuotationProto;

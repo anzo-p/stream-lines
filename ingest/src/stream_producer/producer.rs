@@ -3,7 +3,7 @@ use aws_sdk_kinesis::primitives::Blob;
 use aws_sdk_kinesis::Client;
 use std::env;
 
-use crate::error_handling::ProcessError;
+use crate::errors::ProcessError;
 
 pub async fn create_kinesis_client() -> Result<Client, ProcessError> {
     let config = aws_config::load_defaults(BehaviorVersion::v2023_11_09()).await;
@@ -35,6 +35,6 @@ async fn check_kinesis(client: Client) -> Result<(), ProcessError> {
 }
 
 fn get_stream_name() -> Result<String, ProcessError> {
-    env::var("KINESIS_DOWNSTREAM_NAME")
-        .map_err(|_| ProcessError::EnvVarError(String::from("KINESIS_DOWNSTREAM_NAME not found in environment")))
+    env::var("KINESIS_UPSTREAM_NAME")
+        .map_err(|_| ProcessError::EnvVarError(String::from("KINESIS_UPSTREAM_NAME not found in environment")))
 }

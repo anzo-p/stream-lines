@@ -3,7 +3,7 @@ use aws_sdk_kinesis::operation::put_record::PutRecordError;
 use prost::EncodeError;
 use std::env;
 
-use crate::error_handling::ProcessError;
+use crate::errors::ProcessError;
 
 impl From<SdkError<PutRecordError>> for ProcessError {
     fn from(err: SdkError<PutRecordError>) -> Self {

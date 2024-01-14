@@ -2,9 +2,9 @@ use aws_sdk_kinesis::Client as KinesisClient;
 use serde_json::Value;
 
 use crate::app_config::{FeedType, WebSocketFeed};
-use crate::error_handling::ProcessError;
-use crate::shared_types::{CryptoQuotationMessage, CryptoTradeMessage, StockQuotationMessage, StockTradeMessage};
+use crate::errors::ProcessError;
 use crate::stream_producer::send_to_kinesis;
+use crate::types::{CryptoQuotationMessage, CryptoTradeMessage, StockQuotationMessage, StockTradeMessage};
 use crate::ws_feed_consumer::MarketMessage;
 
 pub async fn process_one(

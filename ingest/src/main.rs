@@ -1,9 +1,9 @@
 mod app_config;
-mod error_handling;
+mod errors;
 mod http;
 mod protobuf;
-mod shared_types;
 mod stream_producer;
+mod types;
 mod ws_connection;
 mod ws_feed_consumer;
 
@@ -15,7 +15,7 @@ use std::thread;
 use tokio::time::{sleep, Duration};
 
 use crate::app_config::AppConfig;
-use crate::error_handling::ProcessError;
+use crate::errors::ProcessError;
 use crate::http::launch_health_server;
 use crate::ws_connection::remove_active_connections;
 use crate::ws_feed_consumer::run_one_feed;

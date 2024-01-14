@@ -8,7 +8,7 @@ use tokio::time::{sleep, Duration};
 use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 use url::Url;
 
-use crate::error_handling::ProcessError;
+use crate::errors::ProcessError;
 use crate::load_app_config;
 use crate::ws_feed_consumer::{AuthMessage, SubMessage};
 
@@ -176,5 +176,5 @@ pub async fn remove_active_connections() {
         }
     }
     eprintln!("Waiting few seconds for all connections to close...");
-    sleep(Duration::from_secs(5)).await;
+    sleep(Duration::from_secs(10)).await;
 }
