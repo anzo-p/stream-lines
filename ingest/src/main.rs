@@ -1,12 +1,12 @@
 mod app_config;
 mod error_handling;
+mod http;
 mod protobuf;
 mod shared_types;
 mod stream_producer;
 mod ws_connection;
 mod ws_feed_consumer;
 
-use dotenv;
 use signal_hook::consts::signal::SIGTERM;
 use signal_hook::iterator::Signals;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -16,6 +16,7 @@ use tokio::time::{sleep, Duration};
 
 use crate::app_config::AppConfig;
 use crate::error_handling::ProcessError;
+use crate::http::launch_health_server;
 use crate::ws_connection::remove_active_connections;
 use crate::ws_feed_consumer::run_one_feed;
 
@@ -56,11 +57,17 @@ async fn run_app(app_config: &AppConfig, running: Arc<AtomicBool>) {
 
 #[tokio::main]
 async fn main() -> Result<(), ProcessError> {
-    dotenv::dotenv().ok();
-
     let running = Arc::new(AtomicBool::new(true));
 
     setup_sigterm_handler(running.clone());
+
+    thread::spawn(move || {
+        tokio::runtime::Runtime::new()
+            .expect("Failed to create Tokio runtime for health server")
+            .block_on(async {
+                launch_health_server().await.expect("Failed to start health server");
+            });
+    });
 
     let app_config = load_app_config()?;
     while running.load(Ordering::SeqCst) {
