@@ -1,16 +1,15 @@
 import { writable } from 'svelte/store';
+import type { CryptoQuotation } from './types';
 
-export type ListItem = string;
+const list = writable<CryptoQuotation[]>([]);
+const maxElements = 60 * 6;
 
-const list = writable<ListItem[]>([]);
-const maxElements = 10;
-
-export function addItem(item: ListItem) {
+export function addItem(item: CryptoQuotation) {
     console.log('Adding item', item);
     list.update((items) => {
-        let newItems = [item, ...items];
+        let newItems = [...items, item];
         if (newItems.length > maxElements) {
-            newItems = newItems.slice(0, maxElements);
+            newItems = newItems.slice(newItems.length - maxElements);
         }
         return newItems;
     });
