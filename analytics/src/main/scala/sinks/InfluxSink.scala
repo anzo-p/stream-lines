@@ -5,19 +5,10 @@ import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunc
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.{CloseableHttpClient, HttpClients}
-import results.{DataSerializer, WindowedQuotationVolumes}
+import results.DataSerializer
 
 import java.io.IOException
 import scala.util.Try
-
-object InfluxBucket extends Enumeration {
-  type Name = Value
-
-  private case class BucketName(name: String) extends super.Val(nextId, name)
-
-  val CryptoBucket: InfluxBucket.Value = BucketName("control-tower-crypto-bucket")
-  val StockBucket: InfluxBucket.Value  = BucketName("control-tower-stock-bucket")
-}
 
 trait InfluxSink[T] extends RichSinkFunction[T] {
   lazy val httpClient: CloseableHttpClient = HttpClients.createDefault()
@@ -35,11 +26,10 @@ trait InfluxSink[T] extends RichSinkFunction[T] {
   }
 }
 
-class ResultSink[T] private (val influxDetails: InfluxDetails, bucket: InfluxBucket.Name, val serializer: DataSerializer[T])
-    extends InfluxSink[T] {
+class ResultSink[T](val influxDetails: InfluxDetails, val serializer: DataSerializer[T]) extends InfluxSink[T] {
   override def invoke(value: T, context: SinkFunction.Context): Unit = {
     val serializedData = serializer.serialize(value)
-    val httpPost       = new HttpPost(baseUri + bucket.toString)
+    val httpPost       = new HttpPost(baseUri + influxDetails.bucket)
     httpPost.setEntity(new StringEntity(serializedData))
     httpPost.addHeader("Authorization", s"Token $token")
 
@@ -49,7 +39,7 @@ class ResultSink[T] private (val influxDetails: InfluxDetails, bucket: InfluxBuc
         case 204 =>
         case _ =>
           println(
-            s"Unexpected request from influx - code: ${response.getStatusLine.getStatusCode}, message: ${response.getStatusLine.getReasonPhrase}")
+            s"Unexpected response from influx - code: ${response.getStatusLine.getStatusCode}, message: ${response.getStatusLine.getReasonPhrase}")
       }
     }.recover {
       case e: Exception => {
@@ -57,19 +47,4 @@ class ResultSink[T] private (val influxDetails: InfluxDetails, bucket: InfluxBuc
       }
     }
   }
-}
-
-object ResultSink {
-
-  def forCryptoQuotation(
-      influxDetails: InfluxDetails,
-      serializer: DataSerializer[WindowedQuotationVolumes]
-    ): ResultSink[WindowedQuotationVolumes] =
-    new ResultSink[WindowedQuotationVolumes](influxDetails, InfluxBucket.CryptoBucket, serializer)
-
-  def forStockQuotation(
-      influxDetails: InfluxDetails,
-      serializer: DataSerializer[WindowedQuotationVolumes]
-    ): ResultSink[WindowedQuotationVolumes] =
-    new ResultSink[WindowedQuotationVolumes](influxDetails, InfluxBucket.StockBucket, serializer)
 }

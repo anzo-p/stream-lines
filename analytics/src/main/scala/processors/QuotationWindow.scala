@@ -17,8 +17,13 @@ class QuotationWindow[T <: Quotation] private (measurementType: WindowedVolumesM
       input: Iterable[T],
       out: Collector[WindowedQuotationVolumes]
     ): Unit = {
-    val sumBidVolume: BigDecimal = input.map(q => q.bid.price.amount * q.bid.lotSize).sum
-    val sumAskVolume: BigDecimal = input.map(q => q.ask.price.amount * q.ask.lotSize).sum
+    val sumBidVolume: BigDecimal        = input.map(q => q.bid.price.amount * q.bid.lotSize).sum
+    val sumAskVolume: BigDecimal        = input.map(q => q.ask.price.amount * q.ask.lotSize).sum
+    val count                           = input.size
+    val averageBidPrice: BigDecimal     = if (count > 0) input.map(_.bid.price.amount).sum / count else 0.0
+    val averageAskPrice: BigDecimal     = if (count > 0) input.map(_.ask.price.amount).sum / count else 0.0
+    val bidPriceAtWindowEnd: BigDecimal = input.last.bid.price.amount
+    val askPriceAtWindowEnd: BigDecimal = input.last.ask.price.amount
     out.collect(
       WindowedQuotationVolumes(
         measureId = UUID.randomUUID(),
@@ -28,6 +33,11 @@ class QuotationWindow[T <: Quotation] private (measurementType: WindowedVolumesM
         windowEndTime   = OffsetDateTime.ofInstant(Instant.ofEpochMilli(window.getEnd), ZoneOffset.UTC),
         sumBidVolume,
         sumAskVolume,
+        count,
+        averageBidPrice,
+        averageAskPrice,
+        bidPriceAtWindowEnd,
+        askPriceAtWindowEnd,
         tags = Map("symbol" -> key)
       ))
   }

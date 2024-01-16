@@ -9,29 +9,15 @@ class SerializablePartitionKeyGenerator[T <: Serializable] extends PartitionKeyG
   override def apply(t: T): String = t.hashCode().toString
 }
 
-class KinesisSink[T <: Serializable](
-    val producerConfig: Properties,
-    val streamName: String,
-    val serializationSchema: SerializationSchema[T]
-  ) {
-
-  private val partitionKeyGenerator = new SerializablePartitionKeyGenerator[T]()
-
-  def createKinesisSink(): KinesisStreamsSink[T] =
-    KinesisStreamsSink
-      .builder[T]()
-      .setKinesisClientProperties(producerConfig)
-      .setStreamName(streamName)
-      .setSerializationSchema(serializationSchema)
-      .setPartitionKeyGenerator(partitionKeyGenerator)
-      .setFailOnError(true)
-      .build()
-}
-
 object KinesisSink {
 
   def make[T <: Serializable](producerConfig: Properties, serializationSchema: SerializationSchema[T]): KinesisStreamsSink[T] =
-    new KinesisSink[T](producerConfig, producerConfig.getProperty("streamName"), serializationSchema)
-      .createKinesisSink()
-
+    KinesisStreamsSink
+      .builder[T]()
+      .setKinesisClientProperties(producerConfig)
+      .setStreamName(producerConfig.getProperty("streamName"))
+      .setSerializationSchema(serializationSchema)
+      .setPartitionKeyGenerator(new SerializablePartitionKeyGenerator[T]())
+      .setFailOnError(true)
+      .build()
 }

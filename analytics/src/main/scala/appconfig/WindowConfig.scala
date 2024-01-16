@@ -1,22 +1,23 @@
 package appconfig
 
 import com.typesafe.config.{Config, ConfigFactory}
+import org.apache.flink.streaming.api.windowing.time.Time
 
-import scala.concurrent.duration._
+import java.time.Duration
 
 case class WatermarkConfig(dueTime: Duration, idlePatience: Duration)
 
-case class SlidingWindowConfig(watermark: WatermarkConfig, windowPeriodLength: Duration, windowInterval: Duration)
+case class SlidingWindowConfig(watermark: WatermarkConfig, windowPeriodLength: Time, windowInterval: Time)
 
 object WindowConfig {
   val config: Config = ConfigFactory.load()
 
-  val windodConfig = SlidingWindowConfig(
+  val slidingWindows5m = SlidingWindowConfig(
     WatermarkConfig(
-      dueTime      = config.getDuration("sliding_window_5min.watermark.dueTime").toMinutes.minutes,
-      idlePatience = config.getDuration("sliding_window_5min.watermark.idlePatience").toMinutes.minutes
+      dueTime      = config.getDuration("sliding_window_5min.watermark.due_time"),
+      idlePatience = config.getDuration("sliding_window_5min.watermark.idle_patience")
     ),
-    windowPeriodLength = config.getDuration("sliding_window_5min.windowPeriodLength").toMinutes.minutes,
-    windowInterval     = config.getDuration("sliding_window_5min.windowInterval").toMinutes.minutes
+    windowPeriodLength = Time.minutes(config.getDuration("sliding_window_5min.window_period_length").toMinutes),
+    windowInterval     = Time.minutes(config.getDuration("sliding_window_5min.window_interval").toMinutes)
   )
 }

@@ -9,6 +9,7 @@ val apacheFlinkVersion = "1.17.2"
 val apacheHttpVersion  = "4.5.14"
 
 libraryDependencies ++= Seq(
+  "com.typesafe"                   % "config"                              % "1.4.2",
   "com.amazonaws"                  % "aws-java-sdk-kinesis"                % awsSdkVersion,
   "org.apache.flink"               % "flink-clients"                       % apacheFlinkVersion,
   "org.apache.flink"               % "flink-connector-kinesis"             % "4.0.0-1.16",
