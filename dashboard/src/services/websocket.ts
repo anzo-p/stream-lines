@@ -2,7 +2,7 @@ import type { CryptoQuotation } from '../types/CryptoQuotation';
 import { readCryptoQuotationFromJson } from '../types/CryptoQuotation';
 
 export function initializeWebSocket(url: string, onNewData: (data: any) => void) {
-    const ws = new WebSocket(url);
+    const ws = new WebSocket('wss://89jhbmj913.execute-api.eu-west-1.amazonaws.com/prod/');
 
     ws.onopen = () => {
         setTimeout(() => {

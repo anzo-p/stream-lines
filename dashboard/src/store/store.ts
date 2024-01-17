@@ -1,21 +1,28 @@
 import { writable } from 'svelte/store';
 import type { CryptoQuotation } from '../types/CryptoQuotation';
 
-const list = writable<CryptoQuotation[]>([]);
-const maxElements = 60 * 6;
+const map = new Map<string, CryptoQuotation>();
+const sortedList = writable<CryptoQuotation[]>([]);
 
-export function addItem(item: CryptoQuotation) {
-    list.update((items) => {
-        console.log('add item', item);
-        let newItems = [...items, item];
-        if (newItems.length > maxElements) {
-            newItems = newItems.slice(newItems.length - maxElements);
-        }
-        return newItems;
+export function addItem(item: CryptoQuotation): void {
+    addItems([item]);
+    sortList();
+}
+
+export function addItems(items: CryptoQuotation[]): void {
+    items.forEach((item) => {
+        map.set(item.measureId, item);
     });
+    sortList();
+}
+
+function sortList() {
+    const newItems = Array.from(map.values()).sort((a, b) => b.windowEndTime - a.windowEndTime);
+    sortedList.set(newItems);
 }
 
 export const listStore = {
-    subscribe: list.subscribe,
+    subscribe: sortedList.subscribe,
+    addItems,
     addItem
 };
