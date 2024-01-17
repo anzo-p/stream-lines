@@ -1,5 +1,5 @@
-import type { CryptoQuotation } from '$lib/types';
-import { isCryptoQuotation } from '$lib/types';
+import type { CryptoQuotation } from '../types/CryptoQuotation';
+import { readCryptoQuotationFromJson } from '../types/CryptoQuotation';
 
 export function initializeWebSocket(url: string, onNewData: (data: any) => void) {
     const ws = new WebSocket(url);
@@ -11,11 +11,10 @@ export function initializeWebSocket(url: string, onNewData: (data: any) => void)
     };
 
     ws.onmessage = (event: MessageEvent) => {
-        const newElement: any = event.data;
-
         try {
-            const potentialQuotation = JSON.parse(event.data);
-            if (isCryptoQuotation(potentialQuotation)) {
+            const jsonData = JSON.parse(event.data);
+            const potentialQuotation = readCryptoQuotationFromJson(jsonData);
+            if (potentialQuotation !== null) {
                 onNewData(potentialQuotation as unknown as CryptoQuotation);
             } else {
                 console.log('Received data is not a CryptoQuotation:', potentialQuotation);

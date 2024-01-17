@@ -1,9 +1,10 @@
 <script lang="ts">
     import { writable, get } from 'svelte/store';
     import { onMount } from 'svelte';
-    import { listStore, addItem } from '$lib/store';
-    import { initializeWebSocket } from '$lib/websocket';
-    import type { CryptoQuotation, ScaledPoint } from '$lib/types';
+    import { listStore, addItem } from '../../store/store';
+    import { initializeWebSocket } from '../../services/websocket';
+    import type { CryptoQuotation } from '../../types/CryptoQuotation';
+    import type { ScaledPoint } from '../../types/ScaledPoint';
 
     const liveFeedUrl = import.meta.env.VITE_MARKET_DATA_FEED;
 
@@ -67,7 +68,11 @@
     }
 
     $: scaledData = scaleData($listStore);
-    $: pointsString = scaledData.map((item) => `${item.x},${item.y}`).join(' ');
+
+    $: pointsString = scaledData
+        .filter((item) => !isNaN(item.x) && !isNaN(item.y) && item.x !== null && item.y !== null)
+        .map((item) => `${item.x},${item.y}`)
+        .join(' ');
 
     $: {
         console.log('Updated pointsString:', pointsString);
