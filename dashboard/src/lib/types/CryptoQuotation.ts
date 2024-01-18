@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import camelCase from 'lodash.camelcase';
 
-export type CryptoQuotation = {
+export type WindowedQuotation = {
     askPriceAtWindowEnd: number;
     averageAskPrice: number;
     averageBidPrice: number;
@@ -19,7 +19,7 @@ export type CryptoQuotation = {
     windowStartTime: number;
 };
 
-export function readCryptoQuotationFromJson(data: any): CryptoQuotation | null {
+export function readCryptoQuotationFromJson(data: any): WindowedQuotation | null {
     const camelCaseData = _.mapKeys(data, (_, key) => camelCase(key));
     if (validateCryptoQuotation(camelCaseData)) {
         return camelCaseData;
@@ -28,7 +28,7 @@ export function readCryptoQuotationFromJson(data: any): CryptoQuotation | null {
     }
 }
 
-function validateCryptoQuotation(data: any): data is CryptoQuotation {
+function validateCryptoQuotation(data: any): data is WindowedQuotation {
     return (
         typeof data === 'object' &&
         typeof data.askPriceAtWindowEnd === 'number' &&

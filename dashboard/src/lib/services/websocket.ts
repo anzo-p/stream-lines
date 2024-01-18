@@ -1,8 +1,17 @@
-import type { CryptoQuotation } from '../types/CryptoQuotation';
+import type { WindowedQuotation } from '../types/CryptoQuotation';
 import { readCryptoQuotationFromJson } from '../types/CryptoQuotation';
 
-export function initializeWebSocket(url: string, onNewData: (data: any) => void) {
-    const ws = new WebSocket('wss://89jhbmj913.execute-api.eu-west-1.amazonaws.com/prod/');
+export function initializeWebSocket(url: string, onDataCallback: (data: any) => void) {
+    if (import.meta.env.SSR) {
+        return {
+            setOnNewDataCallback: (callback: (data: any) => void) => {},
+            closeWebSocket: () => {}
+        };
+    }
+
+    const ws = new WebSocket(url);
+
+    let onNewData: (data: any) => void = onDataCallback;
 
     ws.onopen = () => {
         setTimeout(() => {
@@ -15,7 +24,7 @@ export function initializeWebSocket(url: string, onNewData: (data: any) => void)
             const jsonData = JSON.parse(event.data);
             const potentialQuotation = readCryptoQuotationFromJson(jsonData);
             if (potentialQuotation !== null) {
-                onNewData(potentialQuotation as unknown as CryptoQuotation);
+                onNewData(potentialQuotation as unknown as WindowedQuotation);
             } else {
                 console.log('Received data is not a CryptoQuotation:', potentialQuotation);
             }
@@ -32,7 +41,12 @@ export function initializeWebSocket(url: string, onNewData: (data: any) => void)
         console.log('WebSocket connection closed');
     };
 
-    return () => {
-        ws.close();
+    return {
+        setOnNewDataCallback: (callback: (data: any) => void) => {
+            onNewData = callback;
+        },
+        closeWebSocket: () => {
+            ws.close();
+        }
     };
 }
