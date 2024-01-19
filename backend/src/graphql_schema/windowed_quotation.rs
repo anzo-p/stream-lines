@@ -53,13 +53,10 @@ impl WindowedQuotationRoot {
         input: WindowedQuotationQueryInput,
     ) -> Result<Vec<WindowedQuotationData>, Error> {
 
-        eprintln!("bucket {}", self.inxlux_bucket);
-
         let query_str = format!(
             "from(bucket: \"{}\")
                 |> range(start: {} , stop: {})
                 |> filter(fn: (r) => r.symbol == \"{}\")
-                |> limit(n: 10)
                 ",
             self.inxlux_bucket, input.start_time, input.end_time, input.symbol
         );
