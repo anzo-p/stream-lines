@@ -7,66 +7,49 @@ const apiGwClient = new ApiGatewayManagementApiClient({
 });
 
 export const handler: KinesisStreamHandler = async (event: KinesisStreamEvent) => {
-  const messages = [];
-  const messagesOut: { [key: string]: any } = {};
-
   for (const record of event.Records) {
     const payload = Buffer.from(record.kinesis.data, 'base64').toString('ascii');
 
-    let data;
     try {
-      data = JSON.parse(payload);
-      messages.push(data);
+      const data = JSON.parse(payload);
+      await processMessage(data);
     } catch (err) {
       console.error(`Error parsing payload: ${payload}`);
       continue;
     }
-
-    const symbol: string = data?.symbol;
-    if (symbol && !messagesOut[symbol]) {
-      messagesOut[symbol] = {};
-    }
   }
+};
 
-  for (const symbol of Object.keys(messagesOut)) {
-    const connectionIds = await queryConnectionIdsBySymbol(symbol);
+const processMessage = async (message: any) => {
+  const symbol: string = message?.symbol;
+  if (!symbol) return;
 
-    connectionIds.forEach((item) => {
-      const connectionId = item.connectionId.S;
-      if (connectionId) {
-        messagesOut[symbol][connectionId] = [];
-      }
-    });
-  }
-
-  for (const message of messages) {
-    const symbol = message?.symbol;
-    if (symbol) {
-      for (const connectionId of Object.keys(messagesOut[symbol])) {
-        messagesOut[symbol][connectionId].push(message);
-      }
+  const connectionIds = await queryConnectionIdsBySymbol(symbol);
+  connectionIds.forEach(async (item) => {
+    const connectionId = item.connectionId.S;
+    if (connectionId) {
+      const messages = [message];
+      await sendMessage(connectionId, messages);
     }
-  }
+  });
+};
 
-  for (const symbol of Object.keys(messagesOut)) {
-    for (const connectionId of Object.keys(messagesOut[symbol])) {
-      const messages = messagesOut[symbol][connectionId];
-
-      await apiGwClient
-        .send(
-          new PostToConnectionCommand({
-            ConnectionId: connectionId,
-            Data: JSON.stringify(messages)
-          })
-        )
-        .catch(async (err) => {
-          if (err.statusCode === 410) {
-            console.error(`Messages not sent due to stale connection, removing: ${connectionId}`);
-            await removeConnection(connectionId);
-          } else {
-            console.error(`Error sending to connection ${connectionId}:`, err);
-          }
-        });
-    }
+const sendMessage = async (connectionId: string, messages: any[]) => {
+  try {
+    await apiGwClient
+      .send(
+        new PostToConnectionCommand({
+          ConnectionId: connectionId,
+          Data: JSON.stringify(messages)
+        })
+      )
+      .catch(async (err) => {
+        if (err.statusCode === 410) {
+          console.error(`Messages not sent due to stale connection, removing: ${connectionId}`);
+          await removeConnection(connectionId);
+        }
+      });
+  } catch (err) {
+    console.error(`Error sending to connection ${connectionId}:`, err);
   }
 };

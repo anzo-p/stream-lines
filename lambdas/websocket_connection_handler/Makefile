@@ -28,8 +28,13 @@ upload:
 
 update:
 	@if aws lambda get-function --function-name $(FUNCTION_NAME) > /dev/null 2>&1; then \
-		aws lambda update-function-code --function-name $(FUNCTION_NAME) --s3-bucket $(S3_BUCKET) --s3-key $(S3_KEY); \
+		if aws lambda update-function-code --function-name $(FUNCTION_NAME) --s3-bucket $(S3_BUCKET) --s3-key $(S3_KEY); then \
+			echo "Deployment successful"; \
+		else \
+			EXIT_CODE=$$?; \
+			echo "Deployment failed with exit code $$EXIT_CODE"; \
+			aws lambda update-function-code --function-name $(FUNCTION_NAME) --s3-bucket $(S3_BUCKET) --s3-key $(S3_KEY) 2>&1 | sed 's/^/Error message: /'; \
+		fi \
 	else \
 		echo "Function does not exist yet, skipping update."; \
 	fi
-

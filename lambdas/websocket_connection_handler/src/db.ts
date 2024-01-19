@@ -1,19 +1,9 @@
-import {
-  AttributeValue,
-  DeleteItemCommand,
-  DeleteItemCommandInput,
-  DynamoDBClient,
-  GetItemCommand,
-  GetItemInput,
-  PutItemCommand,
-  PutItemCommandInput
-} from '@aws-sdk/client-dynamodb';
+import { DeleteItemCommand, DeleteItemCommandInput, DynamoDBClient, PutItemCommand, PutItemCommandInput } from '@aws-sdk/client-dynamodb';
 
 const region = process.env.AWS_REGION;
-const connectionsTable = process.env.WS_CONNS_TABLE_NAME;
+const connectionTable = process.env.WS_CONNS_TABLE_NAME;
 
 let dbClient: DynamoDBClient | null = null;
-
 const getDb = () => {
   if (!dbClient) {
     dbClient = new DynamoDBClient({ region });
@@ -21,54 +11,36 @@ const getDb = () => {
   return dbClient;
 };
 
-export async function getConnection(connectionId: string): Promise<Record<string, AttributeValue> | undefined> {
-  const params: GetItemInput = {
-    TableName: connectionsTable,
-    Key: {
-      connectionId: { S: connectionId }
-    },
-    ConsistentRead: true,
-    ProjectionExpression: 'connectionId'
-  };
+export async function subscribeToFeeds(connectionId: string, symbols: string[]): Promise<void> {
+  await removeConnection(connectionId);
 
-  const result = await getDb()
-    .send(new GetItemCommand(params))
-    .catch((err) => {
-      console.error('Error getting connection:', err);
-    });
+  for (const symbol of symbols) {
+    const params: PutItemCommandInput = {
+      TableName: connectionTable,
+      Item: {
+        symbol: { S: symbol },
+        connectionId: { S: connectionId }
+      }
+    };
 
-  return result?.Item;
-}
-
-export async function addConnection(connectionId: string): Promise<void> {
-  const params: PutItemCommandInput = {
-    TableName: connectionsTable,
-    Item: {
-      connectionId: { S: connectionId }
-    }
-  };
-
-  const command: PutItemCommand = new PutItemCommand(params);
-
-  await getDb()
-    .send(command)
-    .catch((err) => {
-      console.error('Error adding connection:', err);
-    });
+    await getDb()
+      .send(new PutItemCommand(params))
+      .catch((err) => {
+        console.error(`Error subscribing to symbol: $symbol`, err);
+      });
+  }
 }
 
 export async function removeConnection(connectionId: string): Promise<void> {
   const params: DeleteItemCommandInput = {
-    TableName: connectionsTable,
+    TableName: connectionTable,
     Key: {
       connectionId: { S: connectionId }
     }
   };
 
-  const command: DeleteItemCommand = new DeleteItemCommand(params);
-
   await getDb()
-    .send(command)
+    .send(new DeleteItemCommand(params))
     .catch((err) => {
       console.error('Error removing connection:', err);
     });
