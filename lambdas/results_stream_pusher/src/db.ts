@@ -1,34 +1,37 @@
-import { DeleteItemCommand, DeleteItemCommandInput, DynamoDBClient, ScanCommand, ScanCommandOutput } from '@aws-sdk/client-dynamodb';
+import { DeleteItemCommand, DeleteItemCommandInput, DynamoDBClient, QueryCommand, QueryCommandInput } from '@aws-sdk/client-dynamodb';
 
 const connectionsTable = process.env.WS_CONNS_TABLE_NAME;
+const connectionsBySymbolInex = process.env.WS_CONNS_BY_SYMBOL_INDEX;
 
 let dbClient: DynamoDBClient | null = null;
-const getDb = () => {
+export const getDb = () => {
   if (!dbClient) {
     dbClient = new DynamoDBClient({ region: process.env.AWS_REGION });
   }
   return dbClient;
 };
 
-export async function getActiveConnections(): Promise<string[]> {
-  const params = {
+export async function queryConnectionIdsBySymbol(symbol: string) {
+  const params: QueryCommandInput = {
     TableName: connectionsTable,
-    ProjectionExpression: 'connectionId'
+    IndexName: connectionsBySymbolInex,
+    KeyConditionExpression: 'symbol = :symbol',
+    ExpressionAttributeValues: {
+      ':symbol': { S: symbol }
+    }
   };
 
-  const fetch: ScanCommandOutput | void = await getDb()
-    .send(new ScanCommand(params))
+  const result = await getDb()
+    .send(new QueryCommand(params))
     .catch((err) => {
-      console.log('Error scanning connections', err);
-      return undefined;
+      console.error(err);
+      return { Items: [] };
     });
 
-  const result: string[] = fetch?.Items?.map((item) => item.connectionId.S).filter((id): id is string => id !== undefined) ?? [];
-
-  return result;
+  return result.Items || [];
 }
 
-export async function removeStaleConnection(connectionId: string): Promise<void> {
+export async function removeConnection(connectionId: string): Promise<void> {
   const params: DeleteItemCommandInput = {
     TableName: connectionsTable,
     Key: {
@@ -36,10 +39,8 @@ export async function removeStaleConnection(connectionId: string): Promise<void>
     }
   };
 
-  const command: DeleteItemCommand = new DeleteItemCommand(params);
-
   await getDb()
-    .send(command)
+    .send(new DeleteItemCommand(params))
     .catch((err) => {
       console.error('Error removing connection:', err);
     });
