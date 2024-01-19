@@ -40,15 +40,11 @@ export class WebSocketApiGatewaySubStack extends cdk.NestedStack {
 
     roleWebSocketHandlerLambda.addToPolicy(
       new iam.PolicyStatement({
-        actions: [
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:UpdateItem",
-          "dynamodb:DeleteItem",
-        ],
+        actions: ["dynamodb:PutItem", "dynamodb:DeleteItem"],
         effect: iam.Effect.ALLOW,
         resources: [
           `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:table/${process.env.WS_CONNS_TABLE_NAME}`,
+          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:table/${process.env.WS_CONNS_BY_SYMBOL_INDEX}/index`,
         ],
       })
     );

@@ -55,10 +55,11 @@ export class KinesisStreamsSubStack extends cdk.NestedStack {
 
     roleResultsStreamPusherLambda.addToPolicy(
       new iam.PolicyStatement({
-        actions: ["dynamodb:Scan", "dynamodb:DeleteItem"],
+        actions: ["dynamodb:Query", "dynamodb:DeleteItem"],
         effect: iam.Effect.ALLOW,
         resources: [
           `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:table/${process.env.WS_CONNS_TABLE_NAME}`,
+          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:table/${process.env.WS_CONNS_TABLE_NAME}/index/${process.env.WS_CONNS_BY_SYMBOL_INDEX}`,
         ],
       })
     );
@@ -108,6 +109,7 @@ export class KinesisStreamsSubStack extends cdk.NestedStack {
         environment: {
           API_GW_CONNECTIONS_URL: `${webSocketApiGatewayConnectionsUrl}`,
           WS_CONNS_TABLE_NAME: `${process.env.WS_CONNS_TABLE_NAME}`,
+          WS_CONNS_BY_SYMBOL_INDEX: `${process.env.WS_CONNS_BY_SYMBOL_INDEX}`,
         },
       }
     );
@@ -116,7 +118,7 @@ export class KinesisStreamsSubStack extends cdk.NestedStack {
       new KinesisEventSource(resultsStream, {
         startingPosition: lambda.StartingPosition.LATEST,
         batchSize: 50,
-        maxBatchingWindow: cdk.Duration.seconds(5),
+        maxBatchingWindow: cdk.Duration.seconds(15),
         retryAttempts: 3,
       })
     );
