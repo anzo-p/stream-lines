@@ -6,7 +6,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 
-export class WebSocketApiGatewaySubStack extends cdk.NestedStack {
+export class WebSocketApiGatewayStack extends cdk.NestedStack {
   readonly webSocketApiGatewayStageProdArn: string;
   readonly webSocketApiGatewayConnectionsUrl: string;
 
