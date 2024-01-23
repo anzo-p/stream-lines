@@ -1,7 +1,7 @@
+use crate::config::{FeedType, WebSocketFeed};
 use aws_sdk_kinesis::Client as KinesisClient;
 use serde_json::Value;
 
-use crate::app_config::{FeedType, WebSocketFeed};
 use crate::errors::ProcessError;
 use crate::stream_producer::send_to_kinesis;
 use crate::types::{CryptoQuotationMessage, CryptoTradeMessage, StockQuotationMessage, StockTradeMessage};
@@ -16,15 +16,19 @@ pub async fn process_one(
         Some("q") => process_quotation_message(feed_type, item, kinesis_client).await,
         Some("t") => process_trade_message(feed_type, item, kinesis_client).await,
         Some("success") => {
-            println!("Received success message");
+            match item.get("msg").and_then(Value::as_str) {
+                Some("connected") => log::info!("Successfully connected to {} feed", &feed_type),
+                Some("authenticated") => log::info!("Successfully authenticated to {} feed", feed_type),
+                _ => log::info!("Unknown success message: {:?}", item),
+            }
             Ok(())
         }
         Some("subscription") => {
-            println!("Received subscription message");
+            log::info!("Successfully subscribed to feed {}", feed_type);
             Ok(())
         }
         _ => {
-            println!("Unknown message type");
+            log::info!("Unknown message type");
             Ok(())
         }
     }

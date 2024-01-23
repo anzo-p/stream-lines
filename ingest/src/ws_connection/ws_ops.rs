@@ -36,7 +36,7 @@ pub async fn acquire_connection(url_str: &str) -> Result<(), ProcessError> {
             }
             Err(e) => {
                 retry_count += 1;
-                eprintln!(
+                log::info!(
                     "{} - Error connecting/reconnecting to {}: {}. Attempt {} of {}.",
                     chrono::Local::now(),
                     url_str,
@@ -76,7 +76,7 @@ pub async fn read_from_connection(url_str: &str) -> Result<Option<Message>, Proc
                 String::from("Websocket connection closed, ")
             };
 
-            eprintln!("{} - {}attempting to reconnect...", chrono::Local::now(), error_message,);
+            log::info!("{} - {}attempting to reconnect...", chrono::Local::now(), error_message,);
             remove_connection(url_str).await;
             return attempt_reconnect(url_str).await;
         }
@@ -106,12 +106,12 @@ async fn connect_to_stream(url_str: &str) -> Result<(), ProcessError> {
     let mut connections = WEBSOCKET_CONNECTIONS.lock().await;
 
     if connections.contains_key(url_str) {
-        eprintln!("{} - Connection to {} already exists", chrono::Local::now(), url_str);
+        log::info!("{} - Connection to {} already exists", chrono::Local::now(), url_str);
         return Ok(());
     }
 
     let url = Url::parse(url_str).map_err(|e| ProcessError::UrlParseError(e))?;
-    eprintln!("{} - Connecting to {}", chrono::Local::now(), url_str);
+    log::info!("{} - Connecting to {}", chrono::Local::now(), url_str);
     let (ws_stream, _) = connect_async(&url)
         .await
         .map_err(|e| ProcessError::WebSocketConnectionError {
@@ -119,7 +119,7 @@ async fn connect_to_stream(url_str: &str) -> Result<(), ProcessError> {
             source: e,
         })?;
 
-    eprintln!("{} - Successfully connected to {}", chrono::Local::now(), url_str);
+    log::info!("{} - Successfully connected to {}", chrono::Local::now(), url_str);
     connections.insert(url_str.to_string(), Arc::new(Mutex::new(ws_stream)));
     Ok(())
 }
@@ -129,7 +129,7 @@ async fn auth_and_sub_by_url(url_str: &str) -> Result<(), ProcessError> {
     if let Some(feed) = app_config.feeds.iter().find(|f| f.url == url_str) {
         auth_and_sub_by_url_and_symbols(url_str, &feed.symbols).await
     } else {
-        eprintln!(
+        log::warn!(
             "{} - No such feed: '{}' to connect to in app config",
             chrono::Local::now(),
             url_str
@@ -161,20 +161,20 @@ async fn send_auth_message(url_str: &str) -> Result<(), ProcessError> {
 async fn remove_connection(url_str: &str) {
     let mut connections = WEBSOCKET_CONNECTIONS.lock().await;
     connections.remove(url_str);
-    eprintln!("{} - Removed connection to ws url {}", chrono::Local::now(), url_str);
+    log::info!("{} - Removed connection to ws url {}", chrono::Local::now(), url_str);
 }
 
 pub async fn remove_active_connections() {
-    eprintln!("Shutting down - closing all websockect connections");
+    log::info!("Shutting down - closing all websockect connections");
     let connections = WEBSOCKET_CONNECTIONS.lock().await;
 
     for (_, ws_stream) in connections.iter() {
         let mut ws_stream = ws_stream.lock().await;
 
         if let Err(e) = ws_stream.close(None).await {
-            eprintln!("Error sending close message: {:?}", e);
+            log::warn!("Error sending close message: {:?}", e);
         }
     }
-    eprintln!("Waiting few seconds for all connections to close...");
+    log::info!("Waiting few seconds for all connections to close...");
     sleep(Duration::from_secs(10)).await;
 }

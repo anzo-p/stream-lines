@@ -16,5 +16,5 @@ pub async fn launch_health_server() {
 
     warp::serve(health_check).run(socket_addr).await;
 
-    println!("Health server is running on {}", socket_addr);
+    log::info!("Health server is running on {}", socket_addr);
 }

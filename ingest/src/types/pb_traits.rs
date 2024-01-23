@@ -4,7 +4,8 @@ use crate::errors::ProcessError;
 use crate::protobuf::MarketDataProto;
 use crate::types::{
     crypto_quotation_to_protobuf, crypto_trade_to_protobuf, stock_quotation_to_protobuf, stock_trade_to_protobuf,
-    CryptoQuotationMessage, CryptoTradeMessage, StockQuotationMessage, StockTradeMessage, CryptoMarketDataMessage, StockMarketDataMessage
+    CryptoMarketDataMessage, CryptoQuotationMessage, CryptoTradeMessage, StockMarketDataMessage, StockQuotationMessage,
+    StockTradeMessage,
 };
 
 pub trait SerializeToProtobufMessage {

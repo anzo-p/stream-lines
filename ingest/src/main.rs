@@ -1,4 +1,4 @@
-mod app_config;
+mod config;
 mod errors;
 mod http;
 mod protobuf;
@@ -7,6 +7,7 @@ mod types;
 mod ws_connection;
 mod ws_feed_consumer;
 
+use log::info;
 use signal_hook::consts::signal::SIGTERM;
 use signal_hook::iterator::Signals;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -14,7 +15,7 @@ use std::sync::Arc;
 use std::thread;
 use tokio::time::{sleep, Duration};
 
-use crate::app_config::AppConfig;
+use crate::config::{logger, AppConfig};
 use crate::errors::ProcessError;
 use crate::http::launch_health_server;
 use crate::ws_connection::remove_active_connections;
@@ -46,7 +47,7 @@ async fn run_app(app_config: &AppConfig, running: Arc<AtomicBool>) {
         tasks.retain(|task| !task.is_finished());
 
         if tasks.is_empty() {
-            eprintln!("All feeds have stopped. Shutting down the application.");
+            info!("All feeds have stopped. Shutting down the application.");
             running.store(false, Ordering::SeqCst);
             break;
         }
@@ -57,6 +58,9 @@ async fn run_app(app_config: &AppConfig, running: Arc<AtomicBool>) {
 
 #[tokio::main]
 async fn main() -> Result<(), ProcessError> {
+    logger::init();
+    info!("Application starting.");
+
     let running = Arc::new(AtomicBool::new(true));
 
     setup_sigterm_handler(running.clone());
@@ -68,7 +72,7 @@ async fn main() -> Result<(), ProcessError> {
         run_app(&app_config, running.clone()).await;
     }
 
-    println!("Application shutting down gracefully.");
+    info!("Application shutting down.");
     remove_active_connections().await;
     Ok(())
 }

@@ -1,10 +1,20 @@
 use config::{Config, ConfigError, Environment};
 use serde::Deserialize;
+use std::fmt;
 
 #[derive(Clone, Debug, Deserialize)]
 pub enum FeedType {
     Stocks,
     Crypto,
+}
+
+impl fmt::Display for FeedType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            FeedType::Stocks => write!(f, "Stocks"),
+            FeedType::Crypto => write!(f, "Crypto"),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
