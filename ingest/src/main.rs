@@ -61,13 +61,7 @@ async fn main() -> Result<(), ProcessError> {
 
     setup_sigterm_handler(running.clone());
 
-    thread::spawn(move || {
-        tokio::runtime::Runtime::new()
-            .expect("Failed to create Tokio runtime for health server")
-            .block_on(async {
-                launch_health_server().await.expect("Failed to start health server");
-            });
-    });
+    tokio::spawn(launch_health_server());
 
     let app_config = load_app_config()?;
     while running.load(Ordering::SeqCst) {
