@@ -20,6 +20,10 @@ export class InfluxDBStack extends cdk.NestedStack {
 
     const influxContainerRepository = "control-tower-influxdb";
 
+    /*    
+    // this would be the way to create and grant access to an efs if you create it now
+    // for databases not advisable though, as data must retain, ie. we expect much data to exists already
+
     const influxDBFileSystem = new efs.FileSystem(
       this,
       "ControlTowerInfluxFileSystem",
@@ -36,6 +40,44 @@ export class InfluxDBStack extends cdk.NestedStack {
         uid: "1000",
         gid: "1000",
       },
+    });
+
+    // here efs commands its sg to allow access, for existing efs you must allow from the sg directly (down below)
+    influxDBFileSystem.connections.allowFrom(
+      influxdbService,
+      ec2.Port.tcp(2049),
+      "Allow access to EFS on port 2049"
+    );
+    */
+
+    const influxFileSystemSecurityGroup = new ec2.SecurityGroup(
+      this,
+      "ControlTowerInfluxDBEFSSecurityGroup",
+      {
+        vpc,
+        allowAllOutbound: true,
+      }
+    );
+
+    const influxDBFileSystem = efs.FileSystem.fromFileSystemAttributes(
+      this,
+      "ControlTowerInfluxFileSystem",
+      {
+        fileSystemId: "fs-0210b76a68f6092f8",
+        securityGroup: ec2.SecurityGroup.fromSecurityGroupId(
+          this,
+          "ControlTowerInfluxFileSystemSecurityGroup",
+          "sg-0f4c0d0a3f9f4f9d7"
+        ),
+      }
+    );
+
+    vpc.availabilityZones.forEach((_, index) => {
+      new efs.CfnMountTarget(this, `EfsMountTarget${index}`, {
+        fileSystemId: influxDBFileSystem.fileSystemId,
+        subnetId: vpc.isolatedSubnets[index].subnetId,
+        securityGroups: [influxFileSystemSecurityGroup.securityGroupId],
+      });
     });
 
     const ecsTaskExecutionRole = new iam.Role(
@@ -91,7 +133,7 @@ export class InfluxDBStack extends cdk.NestedStack {
           {
             name: "ControlTowerInfluxDBDataVolume",
             efsVolumeConfiguration: {
-              fileSystemId: influxDBFileSystem.fileSystemId,
+              fileSystemId: "fs-0210b76a68f6092f8",
               authorizationConfig: {
                 iam: "ENABLED",
               },
@@ -115,7 +157,7 @@ export class InfluxDBStack extends cdk.NestedStack {
       influxContainerRepository
     );
 
-    const myContainr = taskDefinition.addContainer("InfluxDBContainer", {
+    const influxDBContainer = taskDefinition.addContainer("InfluxDBContainer", {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, "2.0"),
       portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: 8086 }],
       memoryLimitMiB: 1024,
@@ -136,12 +178,12 @@ export class InfluxDBStack extends cdk.NestedStack {
           "curl --fail http://localhost:8086/health || exit 1",
         ],
         interval: cdk.Duration.seconds(30),
-        timeout: cdk.Duration.seconds(10),
+        timeout: cdk.Duration.seconds(15),
         retries: 3,
       },
     });
 
-    myContainr.addMountPoints({
+    influxDBContainer.addMountPoints({
       containerPath: "/var/lib/influxdb2",
       readOnly: false,
       sourceVolume: "ControlTowerInfluxDBDataVolume",
@@ -166,7 +208,7 @@ export class InfluxDBStack extends cdk.NestedStack {
       ),
     });
 
-    influxDBFileSystem.connections.allowFrom(
+    influxFileSystemSecurityGroup.connections.allowFrom(
       influxdbService,
       ec2.Port.tcp(2049),
       "Allow access to EFS on port 2049"
