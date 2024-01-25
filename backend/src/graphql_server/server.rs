@@ -1,5 +1,5 @@
-use std::env;
 use async_graphql::Request;
+use std::env;
 use std::net::SocketAddr;
 use warp::http::Response;
 use warp::hyper::Body;
@@ -7,10 +7,7 @@ use warp::{Filter, Reply};
 
 use crate::graphql_schema::MySchema;
 
-async fn graphql_handler(
-    schema: MySchema,
-    req: Request,
-) -> Result<Response<Body>, warp::Rejection> {
+async fn graphql_handler(schema: MySchema, req: Request) -> Result<Response<Body>, warp::Rejection> {
     let response = schema.execute(req).await;
     Ok(warp::reply::json(&response).into_response())
 }

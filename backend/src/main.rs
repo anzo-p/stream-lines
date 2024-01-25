@@ -1,7 +1,7 @@
-mod influxdb_conn;
 mod errors;
 mod graphql_schema;
 mod graphql_server;
+mod influxdb_conn;
 
 use crate::influxdb_conn::create_influxdb_client;
 use std::env;
@@ -15,7 +15,7 @@ use crate::graphql_server::start_server;
 #[tokio::main]
 async fn main() {
     let address_str = env::var("GRAPHQL_SERVER_ADDRESS").unwrap_or_else(|_| "127.0.0.1".to_string());
-    let port_str = env::var("GRAPHQL_SERVER_PORT").unwrap_or_else(|_| "8080".to_string());
+    let port_str = env::var("GRAPHQL_SERVER_PORT").unwrap_or_else(|_| "3030".to_string());
 
     let ip = IpAddr::from_str(&address_str).expect("Unable to parse IP address");
     let port = port_str.parse::<u16>().expect("Unable to parse port number");

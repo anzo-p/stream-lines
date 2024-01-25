@@ -2,7 +2,7 @@ use async_graphql::{Context, EmptyMutation, EmptySubscription, Object, Schema};
 use influxdb2::Client as InfluxClient;
 
 use crate::graphql_schema::windowed_quotation::{
-    WindowedQuotationData, WindowedQuotationQueryInput, WindowedQuotationRoot,
+    WindowedQuotationData, WindowedQuotationQueryInput, WindowedQuotationQueryInputLastHour, WindowedQuotationRoot,
 };
 
 pub struct QueryRoot {
@@ -18,6 +18,17 @@ impl QueryRoot {
     ) -> Result<Vec<WindowedQuotationData>, async_graphql::Error> {
         let windowed_quotation_root = WindowedQuotationRoot::new(&self.influx_client);
         windowed_quotation_root.get_windowed_quotation_data(ctx, input).await
+    }
+
+    async fn get_windowed_quotation_data_last_hour(
+        &self,
+        ctx: &Context<'_>,
+        input: WindowedQuotationQueryInputLastHour,
+    ) -> Result<Vec<WindowedQuotationData>, async_graphql::Error> {
+        let windowed_quotation_root = WindowedQuotationRoot::new(&self.influx_client);
+        windowed_quotation_root
+            .get_windowed_quotation_data_last_hour(ctx, input)
+            .await
     }
 }
 

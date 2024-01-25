@@ -1,7 +1,7 @@
-use std::env;
 use async_graphql::{Context, Error, InputObject, Object, SimpleObject};
 use influxdb2::models::Query;
 use influxdb2::FromDataPoint;
+use std::env;
 use std::string::String;
 
 #[derive(SimpleObject, FromDataPoint, Default)]
@@ -27,6 +27,11 @@ pub struct WindowedQuotationQueryInput {
     pub end_time: i64,
 }
 
+#[derive(InputObject)]
+pub struct WindowedQuotationQueryInputLastHour {
+    pub symbol: String,
+}
+
 pub struct WindowedQuotationRoot {
     influx_client: influxdb2::Client,
     inxlux_bucket: String,
@@ -35,7 +40,7 @@ pub struct WindowedQuotationRoot {
 impl WindowedQuotationRoot {
     pub fn new(client: &influxdb2::Client) -> Self {
         let influx_bucket =
-        env::var("INFLUXDB_BUCKET").map_err(|_| "INFLUXDB_BUCKET environment variable not found".to_string());
+            env::var("INFLUXDB_BUCKET").map_err(|_| "INFLUXDB_BUCKET environment variable not found".to_string());
 
         WindowedQuotationRoot {
             influx_client: client.clone(),
@@ -52,20 +57,39 @@ impl WindowedQuotationRoot {
         ctx: &Context<'_>,
         input: WindowedQuotationQueryInput,
     ) -> Result<Vec<WindowedQuotationData>, Error> {
+        let query = query_influx(&self.inxlux_bucket, &input.symbol, input.start_time, input.end_time);
 
-        let query_str = format!(
-            "from(bucket: \"{}\")
-                |> range(start: {} , stop: {})
-                |> filter(fn: (r) => r.symbol == \"{}\")
-                ",
-            self.inxlux_bucket, input.start_time, input.end_time, input.symbol
-        );
-
-        let query = Query::new(query_str);
-
-        match self.influx_client.query::<>(Some(query)).await {
+        match self.influx_client.query(Some(query)).await {
             Ok(fetch) if !fetch.is_empty() => Ok(fetch),
             _ => Ok(vec![]),
         }
     }
+
+    pub async fn get_windowed_quotation_data_last_hour(
+        &self,
+        ctx: &Context<'_>,
+        input: WindowedQuotationQueryInputLastHour,
+    ) -> Result<Vec<WindowedQuotationData>, Error> {
+        let query = query_influx(
+            &self.inxlux_bucket,
+            &input.symbol,
+            chrono::Utc::now().timestamp() - (60 * 60),
+            chrono::Utc::now().timestamp(),
+        );
+
+        match self.influx_client.query(Some(query)).await {
+            Ok(fetch) if !fetch.is_empty() => Ok(fetch),
+            _ => Ok(vec![]),
+        }
+    }
+}
+
+fn query_influx(bucket: &str, symbol: &str, start_time: i64, end_time: i64) -> Query {
+    Query::new(format!(
+        "from(bucket: \"{}\")
+        |> range(start: {} , stop: {})
+        |> filter(fn: (r) => r.symbol == \"{}\")
+        ",
+        bucket, start_time, end_time, symbol
+    ))
 }
