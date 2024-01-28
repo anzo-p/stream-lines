@@ -7,15 +7,15 @@ WORKDIR /ingest
 COPY ./Cargo.lock ./Cargo.toml ./
 
 # Cache dependencies
-RUN cargo build --release
-RUN rm -f src/*.rs
+RUN cargo build --release && \
+    rm -f src/*.rs
 
 COPY ./src ./src
 
-RUN rm -f ./target/release/deps/ingest*
-RUN cargo build --release
+RUN rm -f ./target/release/deps/ingest* && \
+    cargo build --release
 
-FROM debian:bullseye-slim
+FROM arm64v8/debian:bullseye-slim
 
 # OpenSSL
 RUN apt-get update &&  \
