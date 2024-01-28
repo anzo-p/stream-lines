@@ -17,7 +17,7 @@ use tokio::time::{sleep, Duration};
 
 use crate::config::{logger, AppConfig};
 use crate::errors::ProcessError;
-use crate::http::launch_health_server;
+//use crate::http::launch_health_server;
 use crate::ws_connection::remove_active_connections;
 use crate::ws_feed_consumer::run_one_feed;
 
@@ -65,7 +65,7 @@ async fn main() -> Result<(), ProcessError> {
 
     setup_sigterm_handler(running.clone());
 
-    tokio::spawn(launch_health_server());
+    //tokio::spawn(launch_health_server());
 
     let app_config = load_app_config()?;
     while running.load(Ordering::SeqCst) {
