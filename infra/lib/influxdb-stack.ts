@@ -14,6 +14,7 @@ export class InfluxDBStack extends cdk.NestedStack {
     vpc: ec2.Vpc,
     ecsCluster: ecs.Cluster,
     influxDBAdminAlbListener: elbv2.ApplicationListener,
+    executionRole: iam.Role,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
@@ -80,49 +81,12 @@ export class InfluxDBStack extends cdk.NestedStack {
       });
     });
 
-    const ecsTaskExecutionRole = new iam.Role(
-      this,
-      "ECSTaskExecutionRoleForInflux",
-      {
-        assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
-        roleName: "ECSTaskExecutionRole",
-        path: "/",
-      }
-    );
-
-    ecsTaskExecutionRole.addToPolicy(
-      new iam.PolicyStatement({
-        effect: iam.Effect.ALLOW,
-        actions: [
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-        ],
-        resources: [
-          `arn:aws:ecr:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:repository/${influxContainerRepository}`,
-        ],
-      })
-    );
-
-    ecsTaskExecutionRole.addToPolicy(
-      new iam.PolicyStatement({
-        effect: iam.Effect.ALLOW,
-        actions: [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-        ],
-        resources: ["arn:aws:logs:*:*:*"],
-      })
-    );
-
     const taskDefinition = new ecs.FargateTaskDefinition(
       this,
       "InfluxDBTaskDefinition",
       {
         family: "InfluxDBTaskDefinition",
-        executionRole: ecsTaskExecutionRole,
+        executionRole,
         runtimePlatform: {
           operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
           cpuArchitecture: ecs.CpuArchitecture.ARM64,
@@ -172,15 +136,6 @@ export class InfluxDBStack extends cdk.NestedStack {
         DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: `${process.env.INFLUXDB_INIT_ADMIN_TOKEN}`,
       },
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: "influxdb" }),
-      healthCheck: {
-        command: [
-          "CMD-SHELL",
-          "curl --fail http://localhost:8086/health || exit 1",
-        ],
-        interval: cdk.Duration.seconds(30),
-        timeout: cdk.Duration.seconds(15),
-        retries: 3,
-      },
     });
 
     influxDBContainer.addMountPoints({
@@ -192,8 +147,9 @@ export class InfluxDBStack extends cdk.NestedStack {
     const influxdbService = new ecs.FargateService(this, "InfluxDBEcsService", {
       cluster: ecsCluster,
       taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       desiredCount: 1,
+      assignPublicIp: true,
     });
 
     influxdbService.registerLoadBalancerTargets({
@@ -204,6 +160,14 @@ export class InfluxDBStack extends cdk.NestedStack {
         influxDBAdminAlbListener,
         {
           protocol: elbv2.ApplicationProtocol.HTTP,
+          healthCheck: {
+            path: "/health",
+            interval: cdk.Duration.seconds(30),
+            timeout: cdk.Duration.seconds(15),
+            healthyThresholdCount: 3,
+            unhealthyThresholdCount: 3,
+            healthyHttpCodes: "200",
+          },
         }
       ),
     });
