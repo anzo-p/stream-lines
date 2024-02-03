@@ -1,5 +1,4 @@
 use async_graphql::Request;
-use log::info;
 use std::env;
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
@@ -37,12 +36,8 @@ fn parse_port_from_env() -> u16 {
 }
 
 fn cors() -> Cors {
-    let allowed_origins_str = env::var("CORS_ALLOWED_ORIGINS").expect("Unable to parse allowed origins");
-
-    let allowed_origins: Vec<String> = allowed_origins_str.split(',').map(|s| s.trim().to_string()).collect();
-
     warp::cors()
-        .allow_origins(allowed_origins.iter().map(|s| s.as_str()))
+        .allow_any_origin()
         .allow_methods(vec!["POST"])
         .allow_headers(vec!["Content-Type", "Authorization"])
         .allow_credentials(true)
