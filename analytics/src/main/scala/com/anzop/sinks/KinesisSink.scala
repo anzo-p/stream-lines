@@ -1,4 +1,4 @@
-package sinks
+package com.anzop.sinks
 
 import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.connector.kinesis.sink.{KinesisStreamsSink, PartitionKeyGenerator}

@@ -1,4 +1,4 @@
-package helpers
+package com.anzop.helpers
 
 object Extensions {
   implicit class EnvOps(env: Map[String, String]) {

@@ -1,11 +1,11 @@
-package helpers
+package com.anzop.helpers
 
+import com.anzop.types.{MarketDataContent, MarketDataMessage}
 import org.apache.flink.api.common.eventtime.{SerializableTimestampAssigner, WatermarkStrategy}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.scala._
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
-import types.{MarketDataContent, MarketDataMessage}
 
 import java.time.Duration
 import scala.concurrent.duration.DurationInt
@@ -27,13 +27,15 @@ object StreamHelpers {
       if (statusCode != 200) {
         throw new RuntimeException(s"Failed to connect to InfluxDB: Received status code $statusCode")
       }
+
       statusCode
     }
 
     Try(Await.result(checkFuture, 15.seconds)) match {
       case Success(_) =>
-      case Failure(e) =>
+      case Failure(e) => {
         throw new RuntimeException(s"Failed to connect to InfluxDB: ${e.getMessage}", e)
+      }
     }
   }
 

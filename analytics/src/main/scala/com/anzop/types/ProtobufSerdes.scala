@@ -1,4 +1,4 @@
-package types
+package com.anzop.types
 
 import market_data.crypto_quotation.CryptoQuotationProto
 import market_data.crypto_trade.CryptoTradeProto
@@ -7,7 +7,8 @@ import market_data.money.MoneyProto
 import market_data.stock_quotation.StockQuotationProto
 import market_data.stock_trade.StockTradeProto
 import market_data.trade_unit.{CryptoTradeUnitProto, StockTradeUnitProto}
-import types.TimeExtensions._
+import TimeExtensions._
+import com.anzop.types
 
 import java.time.OffsetDateTime
 
@@ -117,6 +118,8 @@ object ProtobufSerdes {
               .map(_.toJavaOffsetDateTime)
               .getOrElse(throw new IllegalArgumentException("Ingest timestamp is required for message type"))
           )
+
+        case _ => throw new IllegalArgumentException("Cannot process messageType")
       }
     )
 

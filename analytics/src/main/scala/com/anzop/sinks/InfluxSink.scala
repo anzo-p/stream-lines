@@ -1,11 +1,11 @@
-package sinks
+package com.anzop.sinks
 
-import appconfig.InfluxDetails
+import com.anzop.appconfig.InfluxDetails
+import com.anzop.results.DataSerializer
 import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunction}
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.{CloseableHttpClient, HttpClients}
-import results.DataSerializer
 
 import java.io.IOException
 import scala.util.Try

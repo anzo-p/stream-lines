@@ -1,4 +1,4 @@
-package appconfig
+package com.anzop.appconfig
 
 import com.typesafe.config.{Config, ConfigFactory}
 import org.apache.flink.streaming.api.windowing.time.Time

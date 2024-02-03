@@ -1,6 +1,6 @@
-package appconfig
+package com.anzop.appconfig
 
-import helpers.Extensions.EnvOps
+import com.anzop.helpers.Extensions.EnvOps
 
 import java.net.URL
 

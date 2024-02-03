@@ -1,10 +1,10 @@
-package processors
+package com.anzop.processors
 
+import com.anzop.results.WindowedQuotationVolumes
+import com.anzop.types.{CryptoQuotation, Quotation, StockQuotation}
 import org.apache.flink.streaming.api.scala.function.WindowFunction
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
-import results.WindowedQuotationVolumes
-import types.{CryptoQuotation, Quotation, StockQuotation}
 
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.UUID

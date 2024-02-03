@@ -1,17 +1,18 @@
-import appconfig.{InfluxDetails, KinesisProps, StreamConfig, WindowConfig}
-import helpers.StreamHelpers
+package com.anzop
+
+import com.anzop.appconfig.{InfluxDetails, KinesisProps, StreamConfig, WindowConfig}
+import com.anzop.helpers.StreamHelpers
+import com.anzop.processors.QuotationWindow
+import com.anzop.results.WindowedQuotationVolumes
+import com.anzop.sinks.{KinesisSink, ResultSink}
+import com.anzop.types.{CryptoQuotation, MarketDataMessage, StockQuotation}
 import org.apache.flink.connector.kinesis.sink.KinesisStreamsSink
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows
-import processors._
-import results.WindowedQuotationVolumes
-import sinks.{KinesisSink, ResultSink}
-import types._
 
 import java.util.Properties
 
 object FlinkApp {
-
   private def flinkStream(influxDetails: InfluxDetails, kinesisProps: Properties): Unit = {
     val env = StreamConfig.createExecutionEnvironment()
 
@@ -52,6 +53,7 @@ object FlinkApp {
     val kinesisSink: KinesisStreamsSink[WindowedQuotationVolumes] =
       KinesisSink.make(kinesisProps, new WindowedQuotationVolumes.JsonSerializerSchema())
 
+    windowedStockQuotationVolumes.sinkTo(kinesisSink)
     windowedCryptoQuotationVolumes.sinkTo(kinesisSink)
 
     env.execute("Flink Kinesis Example")
