@@ -6,6 +6,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.scala._
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.time.Duration
 import scala.concurrent.duration.DurationInt
@@ -14,6 +15,7 @@ import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 object StreamHelpers {
+  val logger: Logger = LoggerFactory.getLogger(getClass)
 
   def checkInfluxDB(): Unit = {
     implicit val ec = scala.concurrent.ExecutionContext.global
@@ -28,12 +30,14 @@ object StreamHelpers {
         throw new RuntimeException(s"Failed to connect to InfluxDB: Received status code $statusCode")
       }
 
+      logger.info("InfluxDB discovered")
       statusCode
     }
 
     Try(Await.result(checkFuture, 15.seconds)) match {
       case Success(_) =>
       case Failure(e) => {
+        logger.info(s"Failed to connect to InfluxDB: ${e.getMessage}")
         throw new RuntimeException(s"Failed to connect to InfluxDB: ${e.getMessage}", e)
       }
     }

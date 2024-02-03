@@ -6,11 +6,14 @@ import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunc
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.{CloseableHttpClient, HttpClients}
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.io.IOException
 import scala.util.Try
 
 trait InfluxSink[T] extends RichSinkFunction[T] {
+  val logger: Logger = LoggerFactory.getLogger(getClass)
+
   lazy val httpClient: CloseableHttpClient = HttpClients.createDefault()
 
   def influxDetails: InfluxDetails
@@ -21,7 +24,7 @@ trait InfluxSink[T] extends RichSinkFunction[T] {
   override def close(): Unit = {
     super.close()
     Try(httpClient.close()).recover {
-      case e: IOException => println(s"Error closing HTTP client: ${e.getMessage}")
+      case e: IOException => logger.error(s"Error closing HTTP client: ${e.getMessage}")
     }
   }
 }
@@ -37,13 +40,15 @@ class ResultSink[T](val influxDetails: InfluxDetails, val serializer: DataSerial
       val response = httpClient.execute(httpPost)
       response.getStatusLine.getStatusCode match {
         case 204 =>
+          logger.info(s"Successfully storing ${value.getClass.getSimpleName} results to influxDB")
+
         case _ =>
-          println(
+          logger.warn(
             s"Unexpected response from influx - code: ${response.getStatusLine.getStatusCode}, message: ${response.getStatusLine.getReasonPhrase}")
       }
     }.recover {
       case e: Exception => {
-        println(s"error while sending data to influx: ${e.getMessage}")
+        logger.error(s"Error while sending data to influx: ${e.getMessage}")
       }
     }
   }
