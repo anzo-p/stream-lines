@@ -13,8 +13,8 @@ export class InfluxDBStack extends cdk.NestedStack {
     id: string,
     vpc: ec2.Vpc,
     ecsCluster: ecs.Cluster,
-    influxDBAdminAlbListener: elbv2.ApplicationListener,
     executionRole: iam.Role,
+    influxDBAdminAlbListener: elbv2.ApplicationListener,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);

@@ -1,6 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { AlbStack } from "./alb-stack";
+import { AnalyticsStack } from "./analytics-stack";
 import { EcsClusterStack } from "./ecs-cluster-stack";
 import { EcsTaskExecutionRoleStack } from "./ecr-exec-task-role";
 import { InfluxDBStack } from "./influxdb-stack";
@@ -46,8 +47,8 @@ export class ControlTowerStack extends cdk.Stack {
       "InfluxDbStack",
       vpcStack.vpc,
       ecsCluster.ecsCluster,
-      albStack.influxDBAdminAlbListener,
-      taskExecRoleStack.role
+      taskExecRoleStack.role,
+      albStack.influxDBAlbListener
     );
 
     new IngestStack(
@@ -55,6 +56,14 @@ export class ControlTowerStack extends cdk.Stack {
       "IngestStack",
       ecsCluster.ecsCluster,
       taskExecRoleStack.role
+    );
+
+    new AnalyticsStack(
+      this,
+      "AnalyticsStack",
+      ecsCluster.ecsCluster,
+      taskExecRoleStack.role,
+      albStack.influxDBAlbDns
     );
   }
 }

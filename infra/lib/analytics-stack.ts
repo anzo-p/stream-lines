@@ -5,28 +5,29 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 
-export class IngestStack extends cdk.NestedStack {
+export class AnalyticsStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
+    influxDns: string,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
 
-    const ingestContainerRepository = "control-tower-ingest";
+    const analyticsContainerRepository = "control-tower-analytics";
 
-    const sg = new ec2.SecurityGroup(this, "IngestSecurityGroup", {
+    const sg = new ec2.SecurityGroup(this, "AnalyticsSecurityGroup", {
       vpc: ecsCluster.vpc,
       allowAllOutbound: true,
     });
 
     const taskDefinition = new ecs.FargateTaskDefinition(
       this,
-      "IngestTaskDefinition",
+      "AnalyticsTaskDefinition",
       {
-        family: "IngestTaskDefinition",
+        family: "AnalyticsTaskDefinition",
         executionRole,
         runtimePlatform: {
           operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
@@ -40,26 +41,31 @@ export class IngestStack extends cdk.NestedStack {
     const ecrRepository = ecr.Repository.fromRepositoryName(
       this,
       "ECRRepository",
-      ingestContainerRepository
+      analyticsContainerRepository
     );
 
-    taskDefinition.addContainer("IngestContainer", {
+    console.log("influx dns", influxDns);
+
+    taskDefinition.addContainer("AnalyticsContainer", {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, "latest"),
       memoryLimitMiB: 512,
       cpu: 256,
       environment: {
-        ALPACA_API_KEY: `${process.env.INGEST_ALPACA_API_KEY}`,
-        ALPACA_API_SECRET: `${process.env.INGEST_ALPACA_API_SECRET}`,
         AWS_ACCESS_KEY_ID: `${process.env.AWS_ACCESS_KEY_ID}`,
         AWS_SECRET_ACCESS_KEY: `${process.env.AWS_SECRET_ACCESS_KEY}`,
         AWS_REGION: `${process.env.AWS_REGION}`,
+        CHECKPOINT_PATH: `${process.env.FLINK_CHECKPOINTS_PATH},`,
+        INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
+        INFLUXDB_BUCKET: `${process.env.INFLUXDB_INIT_BUCKET}`,
+        INFLUXDB_WRITE_TOKEN: `${process.env.INFLUXDB_WRITE_TOKEN}`,
+        INFLUXDB_URL: `http://${influxDns}:80`,
         KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`,
-        MAX_WS_READS_PER_SEC: `${process.env.INGEST_MAX_WS_READS_PER_SEC}`,
+        KINESIS_DOWNSTREAM_NAME: `${process.env.KINESIS_RESULTS_DOWNSTREAM}`,
       },
-      logging: ecs.LogDrivers.awsLogs({ streamPrefix: "ingest" }),
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: "analytics" }),
     });
 
-    new ecs.FargateService(this, "IngestEcsService", {
+    new ecs.FargateService(this, "AnalyticsEcsService", {
       cluster: ecsCluster,
       taskDefinition,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },

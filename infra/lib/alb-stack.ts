@@ -4,7 +4,8 @@ import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import { Construct } from "constructs";
 
 export class AlbStack extends cdk.NestedStack {
-  readonly influxDBAdminAlbListener: elbv2.ApplicationListener;
+  readonly influxDBAlbDns: string;
+  readonly influxDBAlbListener: elbv2.ApplicationListener;
 
   constructor(
     scope: Construct,
@@ -22,8 +23,9 @@ export class AlbStack extends cdk.NestedStack {
         internetFacing: true,
       }
     );
+    this.influxDBAlbDns = influxDBAdminAlb.loadBalancerDnsName;
 
-    this.influxDBAdminAlbListener = influxDBAdminAlb.addListener(
+    this.influxDBAlbListener = influxDBAdminAlb.addListener(
       "InfluxDBAlbListener",
       {
         port: 80,
