@@ -1,10 +1,10 @@
-import * as cdk from "aws-cdk-lib";
-import * as iam from "aws-cdk-lib/aws-iam";
-import * as kinesis from "aws-cdk-lib/aws-kinesis";
-import { KinesisEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
-import * as lambda from "aws-cdk-lib/aws-lambda";
-import * as s3 from "aws-cdk-lib/aws-s3";
-import { Construct } from "constructs";
+import * as cdk from 'aws-cdk-lib';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import * as kinesis from 'aws-cdk-lib/aws-kinesis';
+import { KinesisEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import { Construct } from 'constructs';
 
 export class KinesisStreamsSubStack extends cdk.NestedStack {
   constructor(
@@ -16,91 +16,91 @@ export class KinesisStreamsSubStack extends cdk.NestedStack {
   ) {
     super(scope, id, props);
 
-    new kinesis.Stream(this, "MarketDataUpStream", {
-      streamName: "control-tower-market-data-upstream",
+    new kinesis.Stream(this, 'MarketDataUpStream', {
+      streamName: 'control-tower-market-data-upstream',
       shardCount: 2,
-      retentionPeriod: cdk.Duration.hours(24),
+      retentionPeriod: cdk.Duration.hours(24)
     });
 
-    const resultsStream = new kinesis.Stream(this, "ResultsDownStream", {
-      streamName: "control-tower-results-downstream",
+    const resultsStream = new kinesis.Stream(this, 'ResultsDownStream', {
+      streamName: 'control-tower-results-downstream',
       shardCount: 2,
-      retentionPeriod: cdk.Duration.hours(24),
+      retentionPeriod: cdk.Duration.hours(24)
     });
 
     const roleResultsStreamPusherLambda = new iam.Role(
       this,
-      "LambdaRoleResultsStreamPusher",
+      'LambdaRoleResultsStreamPusher',
       {
-        assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
+        assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
         managedPolicies: [
           iam.ManagedPolicy.fromAwsManagedPolicyName(
-            "service-role/AWSLambdaBasicExecutionRole"
-          ),
-        ],
+            'service-role/AWSLambdaBasicExecutionRole'
+          )
+        ]
       }
     );
 
     roleResultsStreamPusherLambda.addToPolicy(
       new iam.PolicyStatement({
         actions: [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
+          'logs:CreateLogGroup',
+          'logs:CreateLogStream',
+          'logs:PutLogEvents'
         ],
         effect: iam.Effect.ALLOW,
-        resources: ["arn:aws:logs:*:*:*"],
+        resources: ['arn:aws:logs:*:*:*']
       })
     );
 
     roleResultsStreamPusherLambda.addToPolicy(
       new iam.PolicyStatement({
-        actions: ["dynamodb:Query", "dynamodb:DeleteItem"],
+        actions: ['dynamodb:Query', 'dynamodb:DeleteItem'],
         effect: iam.Effect.ALLOW,
         resources: [
           `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:table/${process.env.WS_CONNS_TABLE_NAME}`,
-          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:table/${process.env.WS_CONNS_TABLE_NAME}/index/${process.env.WS_CONNS_BY_SYMBOL_INDEX}`,
-        ],
+          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:table/${process.env.WS_CONNS_TABLE_NAME}/index/${process.env.WS_CONNS_BY_SYMBOL_INDEX}`
+        ]
       })
     );
 
     roleResultsStreamPusherLambda.addToPolicy(
       new iam.PolicyStatement({
         actions: [
-          "kinesis:DescribeStream",
-          "kinesis:GetRecord",
-          "kinesis:GetRecords",
-          "kinesis:GetShardIterator",
-          "kinesis:ListShards",
-          "kinesis:SubscribeToShard",
+          'kinesis:DescribeStream',
+          'kinesis:GetRecord',
+          'kinesis:GetRecords',
+          'kinesis:GetShardIterator',
+          'kinesis:ListShards',
+          'kinesis:SubscribeToShard'
         ],
         effect: iam.Effect.ALLOW,
         resources: [
-          `arn:aws:kinesis:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:stream/${resultsStream.streamName}`,
-        ],
+          `arn:aws:kinesis:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:stream/${resultsStream.streamName}`
+        ]
       })
     );
 
     roleResultsStreamPusherLambda.addToPolicy(
       new iam.PolicyStatement({
-        actions: ["execute-api:ManageConnections"],
-        resources: [webSocketApiGatewayStageProdArn],
+        actions: ['execute-api:ManageConnections'],
+        resources: [webSocketApiGatewayStageProdArn]
       })
     );
 
     const bucketResultStreamPusherLambda = s3.Bucket.fromBucketName(
       this,
-      "LambdaCodeBucket",
+      'LambdaCodeBucket',
       `${process.env.S3_BUCKET_LAMBDAS}`
     );
 
     const resultsStreamPusherLambda = new lambda.Function(
       this,
-      "ResultsStreamPusher",
+      'ResultsStreamPusher',
       {
-        functionName: "KinesisResultsStreamPusher",
+        functionName: 'KinesisResultsStreamPusher',
         runtime: lambda.Runtime.NODEJS_20_X,
-        handler: "index.handler",
+        handler: 'index.handler',
         code: lambda.Code.fromBucket(
           bucketResultStreamPusherLambda,
           `${process.env.S3_KEY_RESULTS_PUSHER}`
@@ -109,8 +109,8 @@ export class KinesisStreamsSubStack extends cdk.NestedStack {
         environment: {
           API_GW_CONNECTIONS_URL: `${webSocketApiGatewayConnectionsUrl}`,
           WS_CONNS_TABLE_NAME: `${process.env.WS_CONNS_TABLE_NAME}`,
-          WS_CONNS_BY_SYMBOL_INDEX: `${process.env.WS_CONNS_BY_SYMBOL_INDEX}`,
-        },
+          WS_CONNS_BY_SYMBOL_INDEX: `${process.env.WS_CONNS_BY_SYMBOL_INDEX}`
+        }
       }
     );
 
@@ -119,7 +119,7 @@ export class KinesisStreamsSubStack extends cdk.NestedStack {
         startingPosition: lambda.StartingPosition.LATEST,
         batchSize: 50,
         maxBatchingWindow: cdk.Duration.seconds(15),
-        retryAttempts: 3,
+        retryAttempts: 3
       })
     );
   }
