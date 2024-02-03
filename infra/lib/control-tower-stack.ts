@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { AlbStack } from './alb-stack';
 import { AnalyticsStack } from './analytics-stack';
+import { BackendStack } from './backend-stack';
 import { EcsClusterStack } from './ecs-cluster-stack';
 import { EcsTaskExecutionRoleStack } from './ecr-exec-task-role';
 import { InfluxDBStack } from './influxdb-stack';
@@ -63,6 +64,15 @@ export class ControlTowerStack extends cdk.Stack {
       'AnalyticsStack',
       ecsCluster.ecsCluster,
       taskExecRoleStack.role,
+      albStack.influxDBAlbDns
+    );
+
+    new BackendStack(
+      this,
+      'BackendStack',
+      ecsCluster.ecsCluster,
+      taskExecRoleStack.role,
+      albStack.backendAlbListener,
       albStack.influxDBAlbDns
     );
   }

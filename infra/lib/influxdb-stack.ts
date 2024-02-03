@@ -14,7 +14,7 @@ export class InfluxDBStack extends cdk.NestedStack {
     vpc: ec2.Vpc,
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
-    influxDBAdminAlbListener: elbv2.ApplicationListener,
+    influxDBAlbListener: elbv2.ApplicationListener,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
@@ -154,20 +154,17 @@ export class InfluxDBStack extends cdk.NestedStack {
       containerName: 'InfluxDBContainer',
       containerPort: 8086,
       newTargetGroupId: 'InfluxDBTargetGroup',
-      listener: ecs.ListenerConfig.applicationListener(
-        influxDBAdminAlbListener,
-        {
-          protocol: elbv2.ApplicationProtocol.HTTP,
-          healthCheck: {
-            path: '/health',
-            interval: cdk.Duration.seconds(30),
-            timeout: cdk.Duration.seconds(15),
-            healthyThresholdCount: 3,
-            unhealthyThresholdCount: 3,
-            healthyHttpCodes: '200'
-          }
+      listener: ecs.ListenerConfig.applicationListener(influxDBAlbListener, {
+        protocol: elbv2.ApplicationProtocol.HTTP,
+        healthCheck: {
+          path: '/health',
+          interval: cdk.Duration.seconds(30),
+          timeout: cdk.Duration.seconds(15),
+          healthyThresholdCount: 3,
+          unhealthyThresholdCount: 3,
+          healthyHttpCodes: '200'
         }
-      )
+      })
     });
 
     influxFileSystemSecurityGroup.connections.allowFrom(
