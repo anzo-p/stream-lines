@@ -1,4 +1,5 @@
 use async_graphql::Request;
+use log::info;
 use std::env;
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
@@ -17,11 +18,12 @@ pub async fn start_server(schema: MySchema) {
         .and(warp::body::json())
         .and_then(move |req| graphql_handler(schema.clone(), req));
 
-    let routes = graphql_route.with(cors()).or(health_route);
+    let cors = cors();
+    let routes = graphql_route.with(cors).or(health_route);
+    let ip = parse_ip_from_env();
+    let port = parse_port_from_env();
 
-    warp::serve(routes)
-        .run(SocketAddr::new(parse_ip_from_env(), parse_port_from_env()))
-        .await;
+    warp::serve(routes).run(SocketAddr::new(ip, port)).await;
 }
 
 fn parse_ip_from_env() -> IpAddr {
