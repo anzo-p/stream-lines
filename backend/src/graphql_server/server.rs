@@ -17,12 +17,9 @@ pub async fn start_server(schema: MySchema) {
         .and(warp::body::json())
         .and_then(move |req| graphql_handler(schema.clone(), req));
 
-    let cors = cors();
-    let routes = graphql_route.with(cors).or(health_route);
-    let ip = parse_ip_from_env();
-    let port = parse_port_from_env();
+    let routes = graphql_route.with(cors()).or(health_route);
 
-    warp::serve(routes).run(SocketAddr::new(ip, port)).await;
+    warp::serve(routes).run(SocketAddr::new(parse_ip_from_env(), parse_port_from_env())).await;
 }
 
 fn parse_ip_from_env() -> IpAddr {

@@ -2,7 +2,7 @@ use influxdb2::Client;
 use std::env;
 
 pub async fn create_influxdb_client() -> Result<Client, String> {
-    let db_url_str = env::var("INFLUXDB_URL").unwrap_or_else(|_| "http://localhost:8086".to_string());
+    let db_url_str = env::var("INFLUXDB_URL").map_err(|_| "INFLUXDB_URL environment variable not found".to_string())?;
 
     let influxdb_url =
         url::Url::parse(&db_url_str).map_err(|_| "Unable to parse INFLUXDB_URL environment variable".to_string())?;
