@@ -22,7 +22,7 @@ export class ControlTowerStack extends cdk.Stack {
       'ApiGatewayStack'
     );
 
-    new KinesisStreamsStack(
+    const kinesisStack = new KinesisStreamsStack(
       this,
       'KinesisStack',
       wsApigatewayStack.webSocketApiGatewayStageProdArn,
@@ -43,7 +43,7 @@ export class ControlTowerStack extends cdk.Stack {
       [ecsCluster.influxDBRepositoryName, ecsCluster.ingestRepositoryName]
     );
 
-    new InfluxDBStack(
+    const influxStack = new InfluxDBStack(
       this,
       'InfluxDbStack',
       vpcStack.vpc,
@@ -52,22 +52,25 @@ export class ControlTowerStack extends cdk.Stack {
       albStack.influxDBAlbListener
     );
 
-    new IngestStack(
+    const ingestStack = new IngestStack(
       this,
       'IngestStack',
       ecsCluster.ecsCluster,
       taskExecRoleStack.role
     );
+    ingestStack.addDependency(kinesisStack);
 
-    new AnalyticsStack(
+    const analyticsStack = new AnalyticsStack(
       this,
       'AnalyticsStack',
       ecsCluster.ecsCluster,
       taskExecRoleStack.role,
       albStack.influxDBAlbDns
     );
+    analyticsStack.addDependency(kinesisStack);
+    analyticsStack.addDependency(influxStack);
 
-    new BackendStack(
+    const backendStack = new BackendStack(
       this,
       'BackendStack',
       ecsCluster.ecsCluster,
@@ -75,5 +78,7 @@ export class ControlTowerStack extends cdk.Stack {
       albStack.backendAlbListener,
       albStack.influxDBAlbDns
     );
+    backendStack.addDependency(wsApigatewayStack);
+    backendStack.addDependency(influxStack);
   }
 }

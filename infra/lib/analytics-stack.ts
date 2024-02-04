@@ -59,8 +59,8 @@ export class AnalyticsStack extends cdk.NestedStack {
         INFLUXDB_BUCKET: `${process.env.INFLUXDB_INIT_BUCKET}`,
         INFLUXDB_WRITE_TOKEN: `${process.env.INFLUXDB_WRITE_TOKEN}`,
         INFLUXDB_URL: `http://${influxDns}:80`,
-        KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`,
-        KINESIS_DOWNSTREAM_NAME: `${process.env.KINESIS_RESULTS_DOWNSTREAM}`
+        KINESIS_DOWNSTREAM_NAME: `${process.env.KINESIS_RESULTS_DOWNSTREAM}`,
+        KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`
       },
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'analytics' })
     });
