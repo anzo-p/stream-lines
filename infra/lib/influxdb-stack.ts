@@ -49,7 +49,7 @@ export class InfluxDBStack extends cdk.NestedStack {
     );
     */
 
-    const influxFileSystemSecurityGroup = new ec2.SecurityGroup(
+    const influxDBFileSystemSecurityGroup = new ec2.SecurityGroup(
       this,
       'ControlTowerInfluxDBEFSSecurityGroup',
       {
@@ -62,11 +62,11 @@ export class InfluxDBStack extends cdk.NestedStack {
       this,
       'ControlTowerInfluxFileSystem',
       {
-        fileSystemId: 'fs-0210b76a68f6092f8',
+        fileSystemId: `${process.env.INFLUXDB_FILE_SYSTEM_ID}`,
         securityGroup: ec2.SecurityGroup.fromSecurityGroupId(
           this,
-          'ControlTowerInfluxFileSystemSecurityGroup',
-          'sg-0f4c0d0a3f9f4f9d7'
+          'InfluxDBFileSystemSecurityGroup',
+          influxDBFileSystemSecurityGroup.securityGroupId
         )
       }
     );
@@ -75,7 +75,7 @@ export class InfluxDBStack extends cdk.NestedStack {
       new efs.CfnMountTarget(this, `EfsMountTarget${index}`, {
         fileSystemId: influxDBFileSystem.fileSystemId,
         subnetId: vpc.isolatedSubnets[index].subnetId,
-        securityGroups: [influxFileSystemSecurityGroup.securityGroupId]
+        securityGroups: [influxDBFileSystemSecurityGroup.securityGroupId]
       });
     });
 
@@ -93,9 +93,9 @@ export class InfluxDBStack extends cdk.NestedStack {
         cpu: 512,
         volumes: [
           {
-            name: 'ControlTowerInfluxDBDataVolume',
+            name: 'InfluxDBDataVolume',
             efsVolumeConfiguration: {
-              fileSystemId: 'fs-0210b76a68f6092f8',
+              fileSystemId: `${process.env.INFLUXDB_FILE_SYSTEM_ID}`,
               authorizationConfig: {
                 iam: 'ENABLED'
               },
@@ -139,7 +139,7 @@ export class InfluxDBStack extends cdk.NestedStack {
     influxDBContainer.addMountPoints({
       containerPath: '/var/lib/influxdb2',
       readOnly: false,
-      sourceVolume: 'ControlTowerInfluxDBDataVolume'
+      sourceVolume: 'InfluxDBDataVolume'
     });
 
     const influxdbService = new ecs.FargateService(this, 'InfluxDBEcsService', {
@@ -167,7 +167,7 @@ export class InfluxDBStack extends cdk.NestedStack {
       })
     });
 
-    influxFileSystemSecurityGroup.connections.allowFrom(
+    influxDBFileSystemSecurityGroup.connections.allowFrom(
       influxdbService,
       ec2.Port.tcp(2049),
       'Allow access to EFS on port 2049'

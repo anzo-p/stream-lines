@@ -6,7 +6,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 
-export class KinesisStreamsSubStack extends cdk.NestedStack {
+export class KinesisStreamsStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,

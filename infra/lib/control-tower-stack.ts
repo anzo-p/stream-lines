@@ -7,7 +7,7 @@ import { EcsClusterStack } from './ecs-cluster-stack';
 import { EcsTaskExecutionRoleStack } from './ecr-exec-task-role';
 import { InfluxDBStack } from './influxdb-stack';
 import { IngestStack } from './ingest-stack';
-import { KinesisStreamsSubStack } from './kinesis-stack';
+import { KinesisStreamsStack } from './kinesis-stack';
 import { VpcStack } from './vpc-stack';
 import { WebSocketApiGatewayStack } from './api-gateway-stack';
 
@@ -22,7 +22,7 @@ export class ControlTowerStack extends cdk.Stack {
       'ApiGatewayStack'
     );
 
-    new KinesisStreamsSubStack(
+    new KinesisStreamsStack(
       this,
       'KinesisStack',
       wsApigatewayStack.webSocketApiGatewayStageProdArn,
