@@ -15,8 +15,9 @@ val awsSdkVersion      = "1.12.429"
 val apacheFlinkVersion = "1.17.2"
 val apacheHttpVersion  = "4.5.14"
 val awsKinesisVersion  = "4.0.0-1.16"
-val jacksonVersion     = "2.15.3"
+val jacksonVersion     = "2.13.4"
 val logbackVersion     = "1.4.12"
+val slf4jVersion       = "2.0.5"
 val typesafeVersion    = "1.4.2"
 
 libraryDependencies ++= Seq(
@@ -29,9 +30,11 @@ libraryDependencies ++= Seq(
   "org.apache.flink"               % "flink-s3-fs-hadoop"                  % apacheFlinkVersion,
   "org.apache.flink"               %% "flink-streaming-scala"              % apacheFlinkVersion,
   "org.apache.httpcomponents"      % "httpclient"                          % apacheHttpVersion,
+  "com.fasterxml.jackson.core"     % "jackson-core"                        % jacksonVersion,
+  "com.fasterxml.jackson.core"     % "jackson-databind"                    % jacksonVersion,
   "com.fasterxml.jackson.module"   %% "jackson-module-scala"               % jacksonVersion,
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310"             % jacksonVersion,
-  "org.slf4j"                      % "slf4j-api"                           % "2.0.5",
+  "org.slf4j"                      % "slf4j-api"                           % slf4jVersion,
   "ch.qos.logback"                 % "logback-classic"                     % logbackVersion,
   "com.thesamet.scalapb"           %% "scalapb-runtime"                    % scalapb.compiler.Version.scalapbVersion % "protobuf"
 )

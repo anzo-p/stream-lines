@@ -1,0 +1,7 @@
+version: '3'
+
+services:
+  scala-app:
+    build: .
+    env_file:
+      - .env

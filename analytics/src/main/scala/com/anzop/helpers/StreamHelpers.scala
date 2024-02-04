@@ -1,5 +1,6 @@
 package com.anzop.helpers
 
+import com.anzop.helpers.Extensions.EnvOps
 import com.anzop.types.{MarketDataContent, MarketDataMessage}
 import org.apache.flink.api.common.eventtime.{SerializableTimestampAssigner, WatermarkStrategy}
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -20,7 +21,7 @@ object StreamHelpers {
   def checkInfluxDB(): Unit = {
     implicit val ec = scala.concurrent.ExecutionContext.global
     val httpClient  = HttpClients.createDefault()
-    val url         = sys.env.getOrElse("INFLUXDB_URL", "http://localhost:8086/health")
+    val url         = sys.env.getOrThrow("INFLUXDB_URL", "INFLUXDB_URL is not set")
     val httpGet     = new HttpGet(url)
 
     val checkFuture = Future {

@@ -26,7 +26,7 @@ object KinesisSink {
 
   def loggingKinesisSink[T]: SinkFunction[T] = new SinkFunction[T] {
     override def invoke(value: T, context: SinkFunction.Context): Unit = {
-      logger.info(s"Successfully storing ${value.getClass.getSimpleName} results to influxDB")
+      logger.info(s"Successfully storing ${value.getClass.getSimpleName} results to Kinesis")
     }
   }
 }
