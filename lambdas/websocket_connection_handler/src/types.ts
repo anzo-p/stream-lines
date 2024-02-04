@@ -1,7 +1,7 @@
-export type ReceivedMessage = {
+export type SubscriptionMessage = {
   subscribeTo: string[];
 };
 
-export function isReceivedMessage(obj: any): obj is ReceivedMessage {
+export function isSubscriptionMessage(obj: any): obj is SubscriptionMessage {
   return obj && Array.isArray(obj.subscribeTo);
 }

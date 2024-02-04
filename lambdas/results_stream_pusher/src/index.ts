@@ -1,10 +1,13 @@
 import { ApiGatewayManagementApiClient, PostToConnectionCommand } from '@aws-sdk/client-apigatewaymanagementapi';
 import { KinesisStreamEvent, KinesisStreamHandler } from 'aws-lambda';
 import { queryConnectionIdsBySymbol, removeConnection } from './db';
+import { Measurement, isMeasurement } from './types';
 
 const apiGwClient = new ApiGatewayManagementApiClient({
   endpoint: process.env.API_GW_CONNECTIONS_URL
 });
+
+const subscribersMessages: Record<string, Measurement[]> = {};
 
 export const handler: KinesisStreamHandler = async (event: KinesisStreamEvent) => {
   for (const record of event.Records) {
@@ -21,20 +24,38 @@ export const handler: KinesisStreamHandler = async (event: KinesisStreamEvent) =
 };
 
 const processMessage = async (message: any) => {
-  const symbol: string = message?.symbol;
-  if (!symbol) return;
+  if (!isMeasurement(message)) {
+    console.error(`Invalid message from kinesis: ${JSON.stringify(message)}`);
+    return;
+  }
 
-  const connectionIds = await queryConnectionIdsBySymbol(symbol);
+  const connectionIds = await queryConnectionIdsBySymbol(message.symbol);
   connectionIds.forEach(async (item) => {
     const connectionId = item.connectionId.S;
     if (connectionId) {
-      const messages = [message];
-      await sendMessage(connectionId, messages);
+      await poolOrFlushMessages(connectionId, message);
     }
   });
+
+  for (const [connectionId, messages] of Object.entries(subscribersMessages)) {
+    await sendMessage(connectionId, messages);
+  }
 };
 
-const sendMessage = async (connectionId: string, messages: any[]) => {
+const poolOrFlushMessages = async (connectionId: string, message: Measurement) => {
+  if (!subscribersMessages[connectionId]) {
+    subscribersMessages[connectionId] = [];
+  }
+
+  subscribersMessages[connectionId].push(message);
+
+  if (subscribersMessages[connectionId].length >= 3) {
+    await sendMessage(connectionId, subscribersMessages[connectionId]);
+    subscribersMessages[connectionId] = [];
+  }
+};
+
+const sendMessage = async (connectionId: string, messages: Measurement[]) => {
   try {
     await apiGwClient
       .send(
