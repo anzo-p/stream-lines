@@ -1,33 +1,33 @@
-import type { WindowedQuotation } from '../types/CryptoQuotation';
-import { readCryptoQuotationFromJson } from '../types/CryptoQuotation';
+import { decompress } from '$lib/helpers/bitwise';
+import type { WindowedQuotation } from '../types/WindowedQuotation';
+import { readQuotationFromJson } from '../types/WindowedQuotation';
 
 export function initializeWebSocket(url: string, onDataCallback: (data: any) => void) {
     if (import.meta.env.SSR) {
         return {
-            setOnNewDataCallback: (callback: (data: any) => void) => {},
+            setOnNewDataCallback: (_: (data: any) => void) => {},
+            subscribeTo: (_: string[]) => {},
             closeWebSocket: () => {}
         };
     }
 
+    let onNewData: (data: any) => void = onDataCallback;
+
     const ws = new WebSocket(url);
 
-    let onNewData: (data: any) => void = onDataCallback;
+    const subscribeTo = (symbols: string[]) => {
+        ws.send(JSON.stringify({ subscribeTo: symbols }));
+    };
 
     ws.onopen = () => {
         setTimeout(() => {
-            ws.send(JSON.stringify({ type: 'Hello from client' }));
+            ws.send(JSON.stringify({ message: 'Hello from client' }));
         }, 3000);
     };
 
     ws.onmessage = (event: MessageEvent) => {
         try {
-            const jsonData = JSON.parse(event.data);
-            const potentialQuotation = readCryptoQuotationFromJson(jsonData);
-            if (potentialQuotation !== null) {
-                onNewData(potentialQuotation as unknown as WindowedQuotation);
-            } else {
-                console.log('Received data is not a CryptoQuotation:', potentialQuotation);
-            }
+            handleMessage(event, onNewData);
         } catch (error) {
             console.error('Error parsing WebSocket data:', error);
         }
@@ -45,8 +45,30 @@ export function initializeWebSocket(url: string, onDataCallback: (data: any) => 
         setOnNewDataCallback: (callback: (data: any) => void) => {
             onNewData = callback;
         },
+        subscribeTo,
         closeWebSocket: () => {
             ws.close();
         }
     };
+}
+
+function handleMessage(event: MessageEvent, cb: (data: any) => void): void {
+    try {
+        const message = decompress(event.data);
+        const jsonData = JSON.parse(message);
+        console.log('Received data:', jsonData);
+
+        if (Array.isArray(jsonData)) {
+            for (const data of jsonData) {
+                const potentialQuotation = readQuotationFromJson(data);
+                if (potentialQuotation !== null) {
+                    cb(potentialQuotation as unknown as WindowedQuotation);
+                } else {
+                    console.log('Received data is not a CryptoQuotation:', potentialQuotation);
+                }
+            }
+        }
+    } catch (err) {
+        throw new Error(`Error parsing WebSocket data:, ${err}`);
+    }
 }

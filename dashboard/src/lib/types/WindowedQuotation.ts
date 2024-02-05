@@ -19,16 +19,16 @@ export type WindowedQuotation = {
     windowStartTime: number;
 };
 
-export function readCryptoQuotationFromJson(data: any): WindowedQuotation | null {
+export function readQuotationFromJson(data: any): WindowedQuotation | null {
     const camelCaseData = _.mapKeys(data, (_, key) => camelCase(key));
-    if (validateCryptoQuotation(camelCaseData)) {
+    if (validateQuotation(camelCaseData)) {
         return camelCaseData;
     } else {
         return null;
     }
 }
 
-function validateCryptoQuotation(data: any): data is WindowedQuotation {
+function validateQuotation(data: any): data is WindowedQuotation {
     return (
         typeof data === 'object' &&
         typeof data.askPriceAtWindowEnd === 'number' &&

@@ -3,19 +3,29 @@
     import { writable, get } from 'svelte/store';
 
     import { fetchWindowedQuotations } from '$lib/services/graphql/windowedQuotation';
-    import type { WindowedQuotation } from '../types/CryptoQuotation';
-    import type { ScaledPoint } from '../types/ScaledPoint';
     import { scaleTime, scaleTo } from '../helpers/scaling';
     import { getEpoch, getEpochNow } from '../helpers/time';
-
-    import { listStore, addItem, addItems } from '../../store/store';
+    import { listStore, addItem, addItems, filteredList } from '../../store/store';
     import { graphqlStore, websocketStore } from '../../store/resourcesStore';
+    import type { ScaledPoint } from '../types/ScaledPoint';
+    import type { WindowedQuotation } from '../types/WindowedQuotation';
 
     const graphql = $graphqlStore;
     const websocket = $websocketStore;
 
     let maxVolume = 1372138756.745597; // Initial max volume
     const recentValues = writable<number[]>([]);
+
+    async function hydrate(symbol: string) {
+        const initialData = (await fetchWindowedQuotations(
+            graphql,
+            symbol,
+            getEpoch({ hours: 6 }),
+            getEpochNow()
+        )) as WindowedQuotation[];
+
+        addItems(initialData);
+    }
 
     onMount(async () => {
         try {
@@ -64,7 +74,7 @@
         }));
     }
 
-    $: scaledData = scaleData($listStore);
+    $: scaledData = scaleData($filteredList);
 
     $: pointsString = scaledData
         .filter((item) => !isNaN(item.x) && !isNaN(item.y) && item.x !== null && item.y !== null)
@@ -74,18 +84,38 @@
 
     //$: console.log('pointString', pointsString);
 
-    /*
-        we need a symbol selector
-        but this selection must apply to ingest as well
-        when selecting symbols once must be guided to realize the cap of 30 simultaneously active limit from alpaca
-        adjusting over this will lead to gaps on some other symbols
-        this action should be warned and confirmed
-        also the presently active ones ans their total count must be visible
-        otherwise free to select within those currently active
-        when changing symbol of focus, websocket must be un/subbed to feed only on those
-    */
+    let dropdownOptions = [
+        'AAPL',
+        'AMD',
+        'AMZN',
+        'COIN',
+        'GOOG',
+        'INTC',
+        'MSFT',
+        'TSLA',
+        'BTC/USD',
+        'ETH/USD'
+    ];
+    let selectedOption = 'ETH/USD';
+
+    function handleSelect(event: any) {
+        selectedOption = event.target.value;
+        hydrate(selectedOption);
+        websocket!.subscribeTo([selectedOption]);
+        listStore.selectSymbols([selectedOption]);
+    }
 </script>
 
-<svg width="600" height="300" viewBox="0 0 600 300">
-    <polyline points={pointsString} fill="none" stroke="blue" stroke-width="1" />
-</svg>
+<div class="diagram">
+    <svg width="600" height="300" viewBox="0 0 600 300">
+        <polyline points={pointsString} fill="none" stroke="blue" stroke-width="1" />
+    </svg>
+
+    <select bind:value={selectedOption} on:change={handleSelect}>
+        {#each dropdownOptions as option (option)}
+            <option value={option}>{option}</option>
+        {/each}
+    </select>
+
+    <p>You selected: {selectedOption}</p>
+</div>

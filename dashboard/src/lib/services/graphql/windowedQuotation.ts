@@ -1,5 +1,5 @@
 import { gql, GraphQLClient } from 'graphql-request';
-import type { WindowedQuotation } from '../../types/CryptoQuotation';
+import type { WindowedQuotation } from '../../types/WindowedQuotation';
 
 export async function fetchWindowedQuotations(
     client: GraphQLClient,
@@ -20,8 +20,8 @@ export async function fetchWindowedQuotations(
         );
         return result.getWindowedQuotationData;
     } catch (err) {
-        console.error('Error fetching CryptoQuotations:', err);
-        throw new Error('Error fetching CryptoQuotations: ' + err);
+        console.error('Error fetching WindowedQuotation:', err);
+        throw new Error('Error fetching WindowedQuotation: ' + err);
     }
 }
 
