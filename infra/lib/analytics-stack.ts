@@ -35,8 +35,8 @@ export class AnalyticsStack extends cdk.NestedStack {
           operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
           cpuArchitecture: ecs.CpuArchitecture.ARM64
         },
-        memoryLimitMiB: 512,
-        cpu: 256
+        memoryLimitMiB: 1024,
+        cpu: 512
       }
     );
 
@@ -48,8 +48,8 @@ export class AnalyticsStack extends cdk.NestedStack {
 
     taskDefinition.addContainer('AnalyticsContainer', {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      memoryLimitMiB: 512,
-      cpu: 256,
+      memoryLimitMiB: 1024,
+      cpu: 512,
       environment: {
         AWS_ACCESS_KEY_ID: `${process.env.AWS_ACCESS_KEY_ID}`,
         AWS_SECRET_ACCESS_KEY: `${process.env.AWS_SECRET_ACCESS_KEY}`,
