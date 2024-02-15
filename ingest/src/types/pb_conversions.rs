@@ -13,7 +13,7 @@ use crate::types::{
 };
 
 pub fn crypto_quotation_to_protobuf(msg: &CryptoQuotationMessage) -> Result<MarketDataProto, ProcessError> {
-    let timestamp = datetime_to_protobuf_timestamp(msg.market_timestamp)?;
+    let market_timestamp = datetime_to_protobuf_timestamp(msg.market_timestamp)?;
     let bid = create_crypto_trade_unit_proto(msg.bid_price.clone(), msg.bid_size.to_f64().unwrap())?;
     let ask = create_crypto_trade_unit_proto(msg.ask_price.clone(), msg.ask_size.to_f64().unwrap())?;
 
@@ -21,29 +21,27 @@ pub fn crypto_quotation_to_protobuf(msg: &CryptoQuotationMessage) -> Result<Mark
         symbol: msg.symbol.clone(),
         bid: Some(bid),
         ask: Some(ask),
-        market_timestamp: Some(timestamp),
     };
 
-    create_market_data_proto(market_data_proto::MessageType::Cqm(crypto_quotation))
+    create_market_data_proto(market_data_proto::MessageType::Cqm(crypto_quotation), market_timestamp)
 }
 
 pub fn crypto_trade_to_protobuf(msg: &CryptoTradeMessage) -> Result<MarketDataProto, ProcessError> {
-    let timestamp = datetime_to_protobuf_timestamp(msg.market_timestamp)?;
+    let market_timestamp = datetime_to_protobuf_timestamp(msg.market_timestamp)?;
     let settle = create_crypto_trade_unit_proto(msg.price.clone(), msg.size.to_f64().unwrap())?;
 
     let crypto_trade = CryptoTradeProto {
         symbol: msg.symbol.clone(),
         trade_id: msg.trade_id.clone(),
         settle: Some(settle),
-        market_timestamp: Some(timestamp),
         tks: msg.tks.clone(),
     };
 
-    create_market_data_proto(market_data_proto::MessageType::Ctm(crypto_trade))
+    create_market_data_proto(market_data_proto::MessageType::Ctm(crypto_trade), market_timestamp)
 }
 
 pub fn stock_quotation_to_protobuf(msg: &StockQuotationMessage) -> Result<MarketDataProto, ProcessError> {
-    let timestamp = datetime_to_protobuf_timestamp(msg.market_timestamp)?;
+    let market_timestamp = datetime_to_protobuf_timestamp(msg.market_timestamp)?;
     let bid = create_stock_trade_unit_proto(&msg.bid_exchange, msg.bid_price.clone(), msg.bid_size.to_f64().unwrap())?;
     let ask = create_stock_trade_unit_proto(&msg.ask_exchange, msg.ask_price.clone(), msg.ask_size.to_f64().unwrap())?;
 
@@ -52,15 +50,14 @@ pub fn stock_quotation_to_protobuf(msg: &StockQuotationMessage) -> Result<Market
         bid: Some(bid),
         ask: Some(ask),
         conditions: msg.conditions.clone(),
-        market_timestamp: Some(timestamp),
         tape: msg.tape.clone(),
     };
 
-    create_market_data_proto(market_data_proto::MessageType::Sqm(stock_quotation))
+    create_market_data_proto(market_data_proto::MessageType::Sqm(stock_quotation), market_timestamp)
 }
 
 pub fn stock_trade_to_protobuf(msg: &StockTradeMessage) -> Result<MarketDataProto, ProcessError> {
-    let timestamp = datetime_to_protobuf_timestamp(msg.market_timestamp)?;
+    let market_timestamp = datetime_to_protobuf_timestamp(msg.market_timestamp)?;
     let settle = create_stock_trade_unit_proto(&msg.exchange, msg.price.clone(), msg.size.to_f64().unwrap())?;
 
     let stock_trade = StockTradeProto {
@@ -68,11 +65,10 @@ pub fn stock_trade_to_protobuf(msg: &StockTradeMessage) -> Result<MarketDataProt
         trade_id: msg.trade_id.clone(),
         settle: Some(settle),
         conditions: msg.conditions.clone(),
-        market_timestamp: Some(timestamp),
         tape: msg.tape.clone(),
     };
 
-    create_market_data_proto(market_data_proto::MessageType::Stm(stock_trade))
+    create_market_data_proto(market_data_proto::MessageType::Stm(stock_trade), market_timestamp)
 }
 
 fn datetime_to_protobuf_timestamp(dt: DateTime<FixedOffset>) -> Result<Timestamp, ProcessError> {
@@ -118,8 +114,12 @@ fn create_stock_trade_unit_proto(
     })
 }
 
-fn create_market_data_proto(message: market_data_proto::MessageType) -> Result<MarketDataProto, ProcessError> {
+fn create_market_data_proto(
+    message: market_data_proto::MessageType,
+    market_timestamp: Timestamp,
+) -> Result<MarketDataProto, ProcessError> {
     Ok(MarketDataProto {
+        market_timestamp: Some(market_timestamp),
         ingest_timestamp: Some(Timestamp::from(SystemTime::now())),
         message_type: Some(message),
     })
