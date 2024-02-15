@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package market_data;
 
-import "google/protobuf/timestamp.proto";
-
 import "trade_unit.proto";
 
 message StockTradeProto {
@@ -11,6 +9,5 @@ message StockTradeProto {
     int64 tradeId = 2;
     market_data.StockTradeUnitProto settle = 3;
     repeated string conditions = 4;
-    google.protobuf.Timestamp market_timestamp = 5;
-    string tape = 6;
+    string tape = 5;
 }

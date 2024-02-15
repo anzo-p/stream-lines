@@ -10,11 +10,12 @@ import "stock_quotation.proto";
 import "stock_trade.proto";
 
 message MarketDataProto {
-    google.protobuf.Timestamp ingest_timestamp = 7;
+    google.protobuf.Timestamp market_timestamp = 1;
+    google.protobuf.Timestamp ingest_timestamp = 2;
     oneof message_type {
-        market_data.CryptoQuotationProto cqm = 1;
-        market_data.CryptoTradeProto ctm = 2;
-        market_data.StockQuotationProto sqm = 3;
-        market_data.StockTradeProto stm = 4;
+        market_data.CryptoQuotationProto cqm = 3;
+        market_data.CryptoTradeProto ctm = 4;
+        market_data.StockQuotationProto sqm = 5;
+        market_data.StockTradeProto stm = 6;
     }
 }

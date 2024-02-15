@@ -2,15 +2,12 @@ syntax = "proto3";
 
 package market_data;
 
-import "google/protobuf/timestamp.proto";
-
 import "trade_unit.proto";
 
 message StockQuotationProto {
     string symbol = 1;
     market_data.StockTradeUnitProto bid = 2;
     market_data.StockTradeUnitProto ask = 3;
-    google.protobuf.Timestamp market_timestamp = 4;
-    repeated string conditions = 5;
-    string tape = 6;
+    repeated string conditions = 4;
+    string tape = 5;
 }

@@ -2,13 +2,10 @@ syntax = "proto3";
 
 package market_data;
 
-import "google/protobuf/timestamp.proto";
-
 import "trade_unit.proto";
 
 message CryptoQuotationProto {
     string symbol = 1;
     market_data.CryptoTradeUnitProto bid = 2;
     market_data.CryptoTradeUnitProto ask = 3;
-    google.protobuf.Timestamp market_timestamp = 4;
 }
