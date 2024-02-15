@@ -2,6 +2,14 @@ package com.anzop.types
 
 import java.time.OffsetDateTime
 
+final case class MarketDataMessage(messageType: MarketDataContent)
+
+abstract class MarketDataContent {
+  val symbol: String
+  def marketTimestamp: OffsetDateTime
+  def ingestTimestamp: OffsetDateTime
+}
+
 final case class Money(amount: BigDecimal, currency: String)
 
 trait TradeUnit {
@@ -13,17 +21,14 @@ final case class CryptoTradeUnit(price: Money, lotSize: Double) extends TradeUni
 
 final case class StockTradeUnit(exchange: String, price: Money, lotSize: Double) extends TradeUnit
 
-abstract class MarketDataContent {
-  val symbol: String
-  def marketTimestamp: OffsetDateTime
-  def ingestTimestamp: OffsetDateTime
-}
-
-final case class MarketDataMessage(ingestTimestamp: OffsetDateTime, messageType: MarketDataContent)
-
 trait Quotation {
   def bid: TradeUnit
   def ask: TradeUnit
+}
+
+trait Trade {
+  def tradeId: Long
+  def settle: TradeUnit
 }
 
 final case class CryptoQuotation(
@@ -54,6 +59,7 @@ final case class CryptoTrade(
     ingestTimestamp: OffsetDateTime,
     tks: String
   ) extends MarketDataContent
+    with Trade
 
 final case class StockTrade(
     symbol: String,
@@ -64,3 +70,4 @@ final case class StockTrade(
     ingestTimestamp: OffsetDateTime,
     tape: String
   ) extends MarketDataContent
+    with Trade
