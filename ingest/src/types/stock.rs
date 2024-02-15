@@ -56,3 +56,58 @@ pub struct StockTradeMessage {
     #[serde(rename = "z")]
     pub tape: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_deserialize_stock_trade_message() {
+        let json_value = json!({
+            "T":"t",
+            "S":"AAPL",
+            "i":1,
+            "x":"NASDAQ",
+            "p":123.45,
+            "s":100,
+            "c":["A","B"],
+            "t":"2021-01-01T00:00:00-00:00",
+            "z":"A"
+        });
+
+        let message: StockTradeMessage = serde_json::from_value(json_value).unwrap();
+
+        assert_eq!(message.message_type, "t");
+        assert_eq!(message.symbol, "AAPL");
+        assert_eq!(message.trade_id, 1);
+        assert_eq!(message.exchange, "NASDAQ");
+        assert_eq!(message.price.units, 123);
+        assert_eq!(message.price.nanos, 45 * 10 * 1_000_000);
+        assert_eq!(message.price.currency, "USD");
+        assert_eq!(message.size, Decimal::new(100, 0));
+        assert_eq!(message.conditions, vec!["A", "B"]);
+        assert_eq!(message.market_timestamp.to_rfc3339(), "2021-01-01T00:00:00+00:00");
+        assert_eq!(message.tape, "A");
+    }
+
+    #[test]
+    fn test_deserialize_stock_trade_message_integer_price() {
+        let json_value = json!({
+            "T":"t",
+            "S":"AAPL",
+            "i":1,
+            "x":"NASDAQ",
+            "p":123,
+            "s":100,
+            "c":["A","B"],
+            "t":"2021-01-01T00:00:00-00:00",
+            "z":"A"
+        });
+
+        let message: StockTradeMessage = serde_json::from_value(json_value).unwrap();
+
+        assert_eq!(message.price.units, 123);
+        assert_eq!(message.price.nanos, 0);
+    }
+}

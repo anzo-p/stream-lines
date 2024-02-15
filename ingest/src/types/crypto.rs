@@ -44,3 +44,57 @@ pub struct CryptoTradeMessage {
     // unknown for now
     pub tks: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_deserialize_crypto_trade_message_fractional_amount_and_lot_size() {
+        let json_value = json!({
+            "T":"t",
+            "S":"ETH/USD", // forget USD, read as just ETH
+            "i":1,
+            "p":12345.67,  // the price paid in USD
+            "s":0.000001,  // cryptos commonly sell in fractions, otherwise would largely not be affordable
+            "t":"2021-01-01T00:00:00Z",
+            "tks":""
+        });
+
+        let message: CryptoTradeMessage = serde_json::from_value(json_value).unwrap();
+
+        assert_eq!(message.message_type, "t");
+        assert_eq!(message.symbol, "ETH/USD");
+        assert_eq!(message.trade_id, 1);
+        assert_eq!(message.price.units, 12345);
+        assert_eq!(message.price.nanos, 67 * 10 * 1_000_000);
+        assert_eq!(message.price.currency, "USD");
+        assert_eq!(message.size, Decimal::new(1, 6));
+        assert_eq!(message.market_timestamp.to_rfc3339(), "2021-01-01T00:00:00+00:00");
+    }
+
+    #[test]
+    fn test_deserialize_crypto_trade_message_integer_amount_and_lot_size() {
+        let json_value = json!({
+            "T":"t",
+            "S":"ETH/USD",
+            "i":1,
+            "p":12345,
+            "s":1,
+            "t":"2021-01-01T00:00:00Z",
+            "tks":""
+        });
+
+        let message: CryptoTradeMessage = serde_json::from_value(json_value).unwrap();
+
+        assert_eq!(message.message_type, "t");
+        assert_eq!(message.symbol, "ETH/USD");
+        assert_eq!(message.trade_id, 1);
+        assert_eq!(message.price.units, 12345);
+        assert_eq!(message.price.nanos, 00);
+        assert_eq!(message.price.currency, "USD");
+        assert_eq!(message.size, Decimal::new(1, 0));
+        assert_eq!(message.market_timestamp.to_rfc3339(), "2021-01-01T00:00:00+00:00");
+    }
+}

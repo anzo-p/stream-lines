@@ -5,7 +5,7 @@ use std::fmt;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MoneyMessage {
     pub units: i64,
-    pub nanos: f64,
+    pub nanos: i32,
     pub currency: String,
 }
 
@@ -37,7 +37,7 @@ impl<'de> Visitor<'de> for MoneyMessageVisitor {
         E: de::Error,
     {
         let units = value.trunc() as i64;
-        let nanos = (value.fract() * 1_000_000_000.0).round();
+        let nanos = (value.fract() * 1_000_000_000.0).round() as i32;
 
         Ok(MoneyMessage {
             units,
@@ -52,8 +52,91 @@ impl<'de> Visitor<'de> for MoneyMessageVisitor {
     {
         Ok(MoneyMessage {
             units: value,
-            nanos: 0.0,
+            nanos: 0,
             currency: "USD".to_string(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_deserialize_money_message_integer_string_form() {
+        let json_value = json!(123);
+
+        let money_message: MoneyMessage = deserialize_money_message(&json_value).unwrap();
+
+        assert_eq!(money_message.units, 123);
+        assert_eq!(money_message.nanos, 0);
+        assert_eq!(money_message.currency, "USD");
+    }
+
+    #[test]
+    fn test_deserialize_money_message_floating_string_form() {
+        let json_value = json!(123.45);
+
+        let money_message: MoneyMessage = deserialize_money_message(&json_value).unwrap();
+
+        assert_eq!(money_message.units, 123);
+        assert_eq!(money_message.nanos, 45 * 10 * 1_000_000);
+        assert_eq!(money_message.currency, "USD");
+    }
+
+    #[test]
+    fn test_deserialize_money_message_integer_string_negative_form() {
+        let json_value = json!(-123);
+
+        let money_message: MoneyMessage = deserialize_money_message(&json_value).unwrap();
+
+        assert_eq!(money_message.units, -123);
+        assert_eq!(money_message.nanos, 0);
+        assert_eq!(money_message.currency, "USD");
+    }
+
+    #[test]
+    fn test_deserialize_money_message_floating_string_negative_form() {
+        let json_value = json!(-123.45);
+
+        let money_message: MoneyMessage = deserialize_money_message(&json_value).unwrap();
+
+        assert_eq!(money_message.units, -123);
+        assert_eq!(money_message.nanos, -45 * 10 * 1_000_000);
+        assert_eq!(money_message.currency, "USD");
+    }
+
+    #[test]
+    fn test_deserialize_money_message_floating_string_precision_limit() {
+        let json_value = json!(0.000000001);
+
+        let money_message: MoneyMessage = deserialize_money_message(&json_value).unwrap();
+
+        assert_eq!(money_message.units, 0);
+        assert_eq!(money_message.nanos, 1);
+        assert_eq!(money_message.currency, "USD");
+    }
+
+    #[test]
+    fn test_deserialize_money_message_nano_rounds_up() {
+        let json_value = json!(0.0000000005);
+
+        let money_message: MoneyMessage = deserialize_money_message(&json_value).unwrap();
+
+        assert_eq!(money_message.units, 0);
+        assert_eq!(money_message.nanos, 1);
+        assert_eq!(money_message.currency, "USD");
+    }
+
+    #[test]
+    fn test_deserialize_money_message_nano_rounds_down() {
+        let json_value = json!(0.0000000004);
+
+        let money_message: MoneyMessage = deserialize_money_message(&json_value).unwrap();
+
+        assert_eq!(money_message.units, 0);
+        assert_eq!(money_message.nanos, 0);
+        assert_eq!(money_message.currency, "USD");
     }
 }
