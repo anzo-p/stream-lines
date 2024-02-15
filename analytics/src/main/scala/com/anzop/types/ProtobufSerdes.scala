@@ -8,17 +8,19 @@ import market_data.stock_quotation.StockQuotationProto
 import market_data.stock_trade.StockTradeProto
 import market_data.trade_unit.{CryptoTradeUnitProto, StockTradeUnitProto}
 import TimeExtensions._
+import com.anzop.helpers.Monetary
 import com.anzop.types
 
 import java.time.OffsetDateTime
 
 object ProtobufSerdes {
 
-  private def fromProtobuf(proto: MoneyProto): Money =
-    Money(
-      amount   = proto.units + proto.nanos,
-      currency = proto.currency
-    )
+  private def fromProtobuf(proto: MoneyProto): Money = {
+    Monetary.toDecimal(proto.units, proto.nanos) match {
+      case Right(value) => Money(value, proto.currency)
+      case Left(error)  => throw new IllegalArgumentException(error)
+    }
+  }
 
   private def fromProtobuf(proto: CryptoTradeUnitProto): CryptoTradeUnit =
     CryptoTradeUnit(

@@ -39,6 +39,11 @@ libraryDependencies ++= Seq(
   "com.thesamet.scalapb"           %% "scalapb-runtime"                    % scalapb.compiler.Version.scalapbVersion % "protobuf"
 )
 
+libraryDependencies ++= Seq(
+  "org.apache.flink" % "flink-test-utils" % apacheFlinkVersion % Test,
+  "org.scalatest"    %% "scalatest"       % "3.2.18"           % "test"
+)
+
 Compile / PB.targets := Seq(
   scalapb.gen() -> (Compile / sourceManaged).value / "scalapb"
 )
