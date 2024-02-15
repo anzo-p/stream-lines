@@ -2,8 +2,11 @@ syntax = "proto3";
 
 package market_data;
 
+// this is the same money structure as in googleapi common/types/v1/money.proto
+// move into that one as rust protobuf support matures
+
 message MoneyProto {
     int64 units = 1;
-    double nanos = 2;
+    int32 nanos = 2;
     string currency = 3;
 }
