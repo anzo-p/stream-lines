@@ -12,33 +12,42 @@ export function initializeWebSocket(url: string, onDataCallback: (data: any) => 
     }
 
     let onNewData: (data: any) => void = onDataCallback;
+    let ws: WebSocket;
+    let reconnectInterval = import.meta.env.VITE_WEBSOCKET_RECONNECT_INTERVAL || 30000;
 
-    const ws = new WebSocket(url);
+    const reConnect = () => {
+        ws = new WebSocket(url);
+
+        ws.onopen = () => {
+            setTimeout(() => {
+                ws.send(JSON.stringify({ message: 'Hello from client' }));
+            }, 3000);
+        };
+
+        ws.onmessage = (event: MessageEvent) => {
+            try {
+                handleMessage(event, onNewData);
+            } catch (error) {
+                console.error('Error parsing WebSocket data:', error);
+            }
+        };
+
+        ws.onerror = (error: Event) => {
+            console.error('WebSocket Error:', error);
+        };
+
+        ws.onclose = () => {
+            console.log(`WebSocket attempting reconnect in ${reconnectInterval}.`);
+            setTimeout(reConnect, reconnectInterval);
+        };
+    };
+
+    reConnect();
 
     const subscribeTo = (symbols: string[]) => {
-        ws.send(JSON.stringify({ subscribeTo: symbols }));
-    };
-
-    ws.onopen = () => {
-        setTimeout(() => {
-            ws.send(JSON.stringify({ message: 'Hello from client' }));
-        }, 3000);
-    };
-
-    ws.onmessage = (event: MessageEvent) => {
-        try {
-            handleMessage(event, onNewData);
-        } catch (error) {
-            console.error('Error parsing WebSocket data:', error);
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ subscribeTo: symbols }));
         }
-    };
-
-    ws.onerror = (error: Event) => {
-        console.error('WebSocket Error:', error);
-    };
-
-    ws.onclose = () => {
-        console.log('WebSocket connection closed');
     };
 
     return {
@@ -56,7 +65,7 @@ function handleMessage(event: MessageEvent, cb: (data: any) => void): void {
     try {
         const message = decompress(event.data);
         const jsonData = JSON.parse(message);
-        console.log('Received data:', jsonData);
+        //console.log('Received data:', jsonData);
 
         if (Array.isArray(jsonData)) {
             for (const data of jsonData) {
