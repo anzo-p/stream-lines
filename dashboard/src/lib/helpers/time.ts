@@ -47,3 +47,7 @@ export function normalizeEpoch(t: number): number {
 
     return t;
 }
+
+export function getDateFromEpoch(epoch: number): Date {
+    return new Date(normalizeEpoch(epoch));
+}
