@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { makePolyLinePoints, makeScaledPoints, type RenderGeometry } from '$lib/helpers/svg/polyline';
-    import { autoMagnitude, makeVerticalTicks, type VerticalTick } from '$lib/helpers/svg/ticks';
+    import { makeScaledPoints, type RenderGeometry } from '$lib/helpers/svg/polyline';
+    import { makeRulerAndLineString } from '$lib/helpers/svg/prepare';
+    import type { VerticalTick } from '$lib/helpers/svg/ticks';
     import type { ScaledPoint } from '$lib/types/ScaledPoint';
     import type { WindowedQuotation } from '$lib/types/WindowedQuotation';
 
@@ -8,36 +9,18 @@
     export let svgGeometry: RenderGeometry;
 
     let verticalTicks: VerticalTick[];
-    let scaledPoints: ScaledPoint[];
     let polylinePointString: string;
 
-    $: scaledPoints = makeScaledPoints({
-        data,
-        getPrice: (item) => item.askPriceAtWindowEnd,
-        getMeasurement: (item) => item.askPriceAtWindowEnd,
-        getTime: (item) => item.windowEndTime,
-        geometry: svgGeometry
-    });
-
-    $: polylinePointString = makePolyLinePoints(scaledPoints);
-
     $: {
-        let priceMinimum = Infinity;
-        let priceMaximum = -Infinity;
-
-        scaledPoints.forEach((point) => {
-            priceMinimum = Math.min(priceMinimum, point.measurement as number);
-            priceMaximum = Math.max(priceMaximum, point.measurement as number);
+        const scaledPoints: ScaledPoint[] = makeScaledPoints({
+            data,
+            getMeasurement: (item) => item.askPriceAtWindowEnd,
+            getPrice: (item) => item.askPriceAtWindowEnd,
+            getTime: (item) => item.windowEndTime,
+            geometry: svgGeometry
         });
 
-        verticalTicks = makeVerticalTicks({
-            height: svgGeometry.height,
-            topOffset: svgGeometry.offsets.top,
-            bottomOffset: svgGeometry.offsets.bottom,
-            minValue: priceMinimum * 0.98,
-            maxValue: priceMaximum * 1.02,
-            makeScale: autoMagnitude
-        });
+        ({ verticalTicks, polylinePointString } = makeRulerAndLineString(svgGeometry, scaledPoints));
     }
 </script>
 

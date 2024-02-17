@@ -55,10 +55,10 @@
 
 <div class="diagram">
     <div class="non-interactive">
-        <QuotationChart data={$filteredList} {svgGeometry} />
+        <HorizontalRuler {svgGeometry} totalUnits={24} tickInterval={4} />
     </div>
     <div class="non-interactive">
-        <HorizontalRuler {svgGeometry} totalUnits={24} tickInterval={4} />
+        <QuotationChart data={$filteredList} {svgGeometry} />
     </div>
     <div class="measurement-chart">
         <MeasurementChart data={$filteredList} {svgGeometry} />

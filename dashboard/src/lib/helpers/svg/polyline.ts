@@ -19,14 +19,14 @@ export type RenderGeometry = {
 
 export function makeScaledPoints<T>({
     data,
-    getPrice,
     getMeasurement,
+    getPrice,
     getTime,
     geometry
 }: {
     data: T[];
-    getPrice: Extractor<T>;
     getMeasurement: Extractor<T>;
+    getPrice: Extractor<T>;
     getTime: Extractor<T>;
     geometry: RenderGeometry;
 }): ScaledPoint[] {

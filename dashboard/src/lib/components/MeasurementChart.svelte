@@ -1,14 +1,18 @@
 <script lang="ts">
-    import { makePolyLinePoints, makeScaledPoints, type RenderGeometry } from '$lib/helpers/svg/polyline';
-    import { autoMagnitude, makeVerticalTicks, type VerticalTick } from '$lib/helpers/svg/ticks';
+    import { makeScaledPoints, type RenderGeometry } from '$lib/helpers/svg/polyline';
+    import { makeRulerAndLineString } from '$lib/helpers/svg/prepare';
+    import type { VerticalTick } from '$lib/helpers/svg/ticks';
     import type { ScaledPoint } from '$lib/types/ScaledPoint';
     import type { WindowedQuotation } from '$lib/types/WindowedQuotation';
 
     export let data: WindowedQuotation[];
     export let svgGeometry: RenderGeometry;
 
-    let verticalTicks: VerticalTick[];
+    type VisibleScaledPoint = ScaledPoint & { visible: boolean };
+
     let scaledPoints: ScaledPoint[];
+    let visibleScaledPoints: VisibleScaledPoint[];
+    let verticalTicks: VerticalTick[];
     let polylinePointString: string;
 
     let hoveredX: number | null = null;
@@ -39,36 +43,19 @@
         }
     }
 
-    $: scaledPoints = makeScaledPoints({
-        data: data,
-        getPrice: (item) => item.askPriceAtWindowEnd,
-        getMeasurement: (item) => item.sumAskVolume,
-        getTime: (item) => item.windowEndTime,
-        geometry: svgGeometry
-    });
-
-    $: polylinePointString = makePolyLinePoints(scaledPoints);
-
     $: {
-        let rulerMinimum = Infinity;
-        let rulerMaximum = -Infinity;
-
-        scaledPoints.forEach((point) => {
-            rulerMinimum = Math.min(rulerMinimum, point.measurement as number);
-            rulerMaximum = Math.max(rulerMaximum, point.measurement as number);
+        scaledPoints = makeScaledPoints({
+            data,
+            getMeasurement: (item) => item.sumAskVolume,
+            getPrice: (item) => item.askPriceAtWindowEnd,
+            getTime: (item) => item.windowEndTime,
+            geometry: svgGeometry
         });
 
-        verticalTicks = makeVerticalTicks({
-            height: svgGeometry.height,
-            topOffset: svgGeometry.offsets.top,
-            bottomOffset: svgGeometry.offsets.bottom,
-            minValue: rulerMinimum * 0.98,
-            maxValue: rulerMaximum * 1.02,
-            makeScale: autoMagnitude
-        });
+        ({ verticalTicks, polylinePointString } = makeRulerAndLineString(svgGeometry, scaledPoints));
     }
 
-    $: visibleDataPoints = scaledPoints.map((point) => ({
+    $: visibleScaledPoints = scaledPoints.map((point: ScaledPoint) => ({
         ...point,
         visible: hoveredX !== null && Math.abs(point.x - hoveredX) < 1
     }));
@@ -108,20 +95,20 @@
 
         <polyline points={polylinePointString} fill="none" stroke="blue" stroke-width="2" />
 
-        {#each visibleDataPoints as { x, y, visible }}
+        {#each visibleScaledPoints as { x, y, visible }}
             {#if y !== undefined && !isNaN(y)}
-                <circle cx={x} cy={y} r="5" class="data-point" style="opacity: {visible ? 1 : 0};" />
+                <circle cx={x} cy={y} r="5" class="nearest-point" style="opacity: {visible ? 1 : 0};" />
             {/if}
         {/each}
     </svg>
 </div>
 
 <style>
-    .data-point {
+    .nearest-point {
         fill: blue;
         opacity: 0;
     }
-    .data-point:hover {
+    .nearest-point:hover {
         opacity: 1;
     }
     .tooltip {
