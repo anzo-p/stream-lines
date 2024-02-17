@@ -1,125 +1,50 @@
 <script lang="ts">
     import { onMount } from 'svelte';
 
-    import { fetchWindowedQuotations } from '$lib/services/graphql/windowedQuotation';
-    import { scaleTime, scaleTo } from '../helpers/scaling';
-    import { getDateFromEpoch, getEpoch, getEpochNow, normalizeEpoch } from '../helpers/time';
     import { listStore, addItem, addItems, filteredList } from '../../store/store';
     import { graphqlServiceProvider, websocketServiceProvider } from '../../store/servicesStore';
-    import type { ScaledPoint } from '../types/ScaledPoint';
-    import type { WindowedQuotation } from '../types/WindowedQuotation';
+    import type { RenderGeometry, RenderOffsets } from '$lib/helpers/svg/polyline';
+    import { makePolyLinePoints, makeScaledPoints } from '$lib/helpers/svg/polyline';
+    import type { HorizontalTick, VerticalTick } from '$lib/helpers/svg/ticks';
+    import { autoMagnitude, makeHorizontalTicks, makeVerticalTicks } from '$lib/helpers/svg/ticks';
+    import { getEpoch, getEpochNow } from '$lib/helpers/time';
+    import { fetchWindowedQuotations } from '$lib/services/graphql/windowedQuotation';
+    import type { ScaledPoint } from '$lib/types/ScaledPoint';
+    import type { WindowedQuotation } from '$lib/types/WindowedQuotation';
 
     const graphqlService = $graphqlServiceProvider;
     const websocketService = $websocketServiceProvider;
 
-    let svgWidth = 900;
-    let svgHeight = 440;
-    let topOffset = 50;
-    let bottomOffset = 50;
-    let leftOffset = 50;
-    let rightOffset = 50;
+    const svgGeometry: RenderGeometry = {
+        width: 900,
+        height: 440,
+        offsets: { top: 50, bottom: 50, left: 50, right: 50 } as RenderOffsets
+    };
 
-    type HorizontalTick = { x: number; label: string };
-    type VerticalTick = { y: number; label: string };
-
-    let horizontalTickPositions: HorizontalTick[] = makeHorizontalTicks({
-        width: svgWidth,
-        startOffset: leftOffset,
+    const horizontalTicks: HorizontalTick[] = makeHorizontalTicks({
+        width: svgGeometry.width,
+        startOffset: svgGeometry.offsets.left,
+        totalUnits: 24,
+        tickInterval: 4,
         labelTemplate: ':00'
     });
     let measurementTicks: VerticalTick[];
     let priceTicks: VerticalTick[];
 
     let dropdownOptions = ['AAPL', 'AMD', 'AMZN', 'COIN', 'GOOG', 'INTC', 'MSFT', 'TSLA', 'BTC/USD', 'ETH/USD'];
-    let selectedSymbol = 'ETH/USD';
+    let selectedTicker = 'ETH/USD';
 
     let hoveredX: number | null = null;
     let tooltip: HTMLDivElement;
 
-    function makeHorizontalTicks({
-        width,
-        startOffset,
-        totalUnits = 24,
-        tickInterval = 4,
-        labelTemplate
-    }: {
-        width: number;
-        startOffset: number;
-        totalUnits?: number;
-        tickInterval?: number;
-        labelTemplate: string;
-    }) {
-        const ticks: HorizontalTick[] = [];
-        const tickCount = totalUnits / tickInterval;
-        const spacing = (width - 2 * startOffset) / tickCount;
-
-        for (let i = 0; i <= tickCount; i++) {
-            const x = startOffset + i * spacing;
-            const hour = i * tickInterval;
-            const label = `${hour}${labelTemplate}`;
-            ticks.push({ x, label });
-        }
-
-        return ticks;
-    }
-
-    interface ScaleUnit {
-        unit: number;
-        postfix: string;
-    }
-
-    type ScaleUnitRule = (range: number) => ScaleUnit;
-
-    const autoMagnitude: ScaleUnitRule = (range: number): ScaleUnit => {
-        if (range > 1e9) return { unit: 1e9, postfix: ' b' };
-        if (range > 1e6) return { unit: 1e6, postfix: ' m' };
-        if (range > 1e3) return { unit: 1e3, postfix: ' k' };
-        return { unit: 1, postfix: '' };
-    };
-
-    function makeVerticalTicks({
-        height,
-        topOffset,
-        bottomOffset,
-        minValue,
-        maxValue,
-        makeScale
-    }: {
-        height: number;
-        topOffset: number;
-        bottomOffset: number;
-        minValue: number;
-        maxValue: number;
-        makeScale: ScaleUnitRule;
-    }): VerticalTick[] {
-        const ticks: VerticalTick[] = [];
-        const range = maxValue - minValue;
-
-        const { unit, postfix: tickLabel } = makeScale(range);
-
-        const startValue = Math.ceil(minValue / unit) * unit;
-        const tickCount = Math.min(5, range / unit);
-        const newUnit = (maxValue - startValue) / tickCount;
-        const usableHeight = height - topOffset - bottomOffset;
-        const scale = usableHeight / (maxValue - minValue);
-
-        for (let i = 0; i <= tickCount; i++) {
-            const value = startValue + i * newUnit;
-            const y = height - bottomOffset - (value - minValue) * scale;
-            const label = `${(value / unit).toFixed(0)}${tickLabel}`;
-            ticks.push({ y, label });
-        }
-
-        return ticks;
-    }
-
-    async function loadMeasurements(symbol: string): Promise<WindowedQuotation[]> {
-        return await fetchWindowedQuotations(graphqlService, symbol, getEpoch({ hours: 1 }), getEpochNow());
+    async function loadMeasurements(ticker: string): Promise<WindowedQuotation[]> {
+        // this of course should fetch based on user selection
+        return await fetchWindowedQuotations(graphqlService, ticker, getEpoch({ hours: 1 }), getEpochNow());
     }
 
     onMount(async () => {
         try {
-            const initialData: WindowedQuotation[] = await loadMeasurements(selectedSymbol);
+            const initialData: WindowedQuotation[] = await loadMeasurements(selectedTicker);
             addItems(initialData);
 
             websocketService!.setOnNewDataCallback((newData: WindowedQuotation) => {
@@ -130,53 +55,16 @@
         }
     });
 
-    async function hydrate(symbol: string) {
-        const initialData: WindowedQuotation[] = await loadMeasurements(symbol);
+    async function hydrate(ticker: string) {
+        const initialData: WindowedQuotation[] = await loadMeasurements(ticker);
         addItems(initialData);
     }
 
     function handleSelect(event: any) {
-        selectedSymbol = event.target.value;
-        hydrate(selectedSymbol);
-        listStore.selectSymbols([selectedSymbol]);
-        websocketService!.subscribeTo([selectedSymbol]);
-    }
-
-    type Extractor<T> = (item: T) => number;
-
-    function generateMeasurementPoints<T>({
-        data,
-        getPrice,
-        getMeasurement,
-        getTime
-    }: {
-        data: T[];
-        getPrice: Extractor<T>;
-        getMeasurement: Extractor<T>;
-        getTime: Extractor<T>;
-    }): ScaledPoint[] {
-        data = data.filter((item) => getPrice(item) > 0 && getMeasurement(item) > 0);
-
-        const minValue: number = data.reduce((min, item) => Math.min(min, getMeasurement(item)), Infinity);
-        const maxValue: number = data.reduce((max, item) => Math.max(max, getMeasurement(item)), -Infinity);
-        const sourceRange: [number, number] = [minValue * 0.98, maxValue * 1.02];
-        const destinationRange: [number, number] = [0, svgHeight - (topOffset + bottomOffset)];
-
-        return data.map((point: T) => {
-            const price = getPrice(point);
-            const measurement = getMeasurement(point);
-            const endTime = normalizeEpoch(getTime(point));
-            const x = scaleTime(endTime, svgWidth - (leftOffset + rightOffset));
-            const y = scaleTo(measurement, sourceRange, destinationRange);
-
-            return {
-                x: x + leftOffset,
-                y: y + topOffset,
-                stringTime: getDateFromEpoch(endTime),
-                price,
-                measurement
-            };
-        });
+        selectedTicker = event.target.value;
+        hydrate(selectedTicker);
+        listStore.selectTickers([selectedTicker]);
+        websocketService!.subscribeTo([selectedTicker]);
     }
 
     function snapToPolyLinePoint(event: MouseEvent) {
@@ -203,31 +91,25 @@
         }
     }
 
-    $: scaledMeasurements = generateMeasurementPoints({
+    $: scaledMeasurements = makeScaledPoints({
         data: $filteredList,
         getPrice: (item) => item.askPriceAtWindowEnd,
         getMeasurement: (item) => item.sumAskVolume,
-        getTime: (item) => item.windowEndTime
+        getTime: (item) => item.windowEndTime,
+        geometry: svgGeometry
     });
 
-    $: scaledPrice = generateMeasurementPoints({
+    $: scaledPrice = makeScaledPoints({
         data: $filteredList,
         getPrice: (item) => item.askPriceAtWindowEnd,
         getMeasurement: (item) => item.askPriceAtWindowEnd,
-        getTime: (item) => item.windowEndTime
+        getTime: (item) => item.windowEndTime,
+        geometry: svgGeometry
     });
 
-    $: measurementPointsString = scaledMeasurements
-        .filter((item) => !isNaN(item.x) && !isNaN(item.y) && item.x !== null && item.y !== null)
-        .sort((a, b) => a.x - b.x)
-        .map((item) => `${item.x},${item.y}`)
-        .join(' ');
+    $: measurementPointsString = makePolyLinePoints(scaledMeasurements);
 
-    $: pricePointsString = scaledPrice
-        .filter((item) => !isNaN(item.x) && !isNaN(item.y) && item.x !== null && item.y !== null)
-        .sort((a, b) => a.x - b.x)
-        .map((item) => `${item.x},${item.y}`)
-        .join(' ');
+    $: pricePointsString = makePolyLinePoints(scaledPrice);
 
     $: {
         let measuredMinimum = Infinity;
@@ -246,18 +128,18 @@
         });
 
         measurementTicks = makeVerticalTicks({
-            height: svgHeight,
-            topOffset,
-            bottomOffset,
+            height: svgGeometry.height,
+            topOffset: svgGeometry.offsets.top,
+            bottomOffset: svgGeometry.offsets.bottom,
             minValue: measuredMinimum * 0.98,
             maxValue: measuredMaximum * 1.02,
             makeScale: autoMagnitude
         });
 
         priceTicks = makeVerticalTicks({
-            height: svgHeight,
-            topOffset,
-            bottomOffset,
+            height: svgGeometry.height,
+            topOffset: svgGeometry.offsets.top,
+            bottomOffset: svgGeometry.offsets.bottom,
             minValue: priceMinimum * 0.98,
             maxValue: priceMaximum * 1.02,
             makeScale: autoMagnitude
@@ -272,44 +154,61 @@
 
 <div class="diagram">
     <div>
-        <svg width={svgWidth} height={svgHeight} xmlns="http://www.w3.org/2000/svg" on:mousemove={snapToPolyLinePoint}>
+        <svg
+            width={svgGeometry.width}
+            height={svgGeometry.height}
+            xmlns="http://www.w3.org/2000/svg"
+            on:mousemove={snapToPolyLinePoint}
+        >
             <line
                 id="timeScale"
-                x1={leftOffset}
-                y1={svgHeight - topOffset}
-                x2={svgWidth - rightOffset}
-                y2={svgHeight - topOffset}
+                x1={svgGeometry.offsets.left}
+                y1={svgGeometry.height - svgGeometry.offsets.top}
+                x2={svgGeometry.width - svgGeometry.offsets.right}
+                y2={svgGeometry.height - svgGeometry.offsets.top}
                 stroke="black"
             />
             <line
                 id="measurementScale"
-                x1={leftOffset}
-                y1={bottomOffset}
-                x2={leftOffset}
-                y2={svgHeight - topOffset}
+                x1={svgGeometry.offsets.left}
+                y1={svgGeometry.offsets.bottom}
+                x2={svgGeometry.offsets.left}
+                y2={svgGeometry.height - svgGeometry.offsets.top}
                 stroke="black"
             />
             <line
                 id="priceScale"
-                x1={svgWidth - leftOffset}
-                y1={bottomOffset}
-                x2={svgWidth - leftOffset}
-                y2={svgHeight - topOffset}
+                x1={svgGeometry.width - svgGeometry.offsets.left}
+                y1={svgGeometry.offsets.bottom}
+                x2={svgGeometry.width - svgGeometry.offsets.left}
+                y2={svgGeometry.height - svgGeometry.offsets.top}
                 stroke="black"
             />
 
             <g id="timeTicks" font-size="10" text-anchor="middle">
-                {#each horizontalTickPositions.slice(1, -1) as { x, label }}
-                    <line x1={x} y1={svgHeight - topOffset - 5} x2={x} y2={svgHeight - topOffset + 5} stroke="black" />
-                    <text {x} y={svgHeight - topOffset + 15}>{label}</text>
+                {#each horizontalTicks.slice(1, -1) as { x, label }}
+                    <line
+                        x1={x}
+                        y1={svgGeometry.height - svgGeometry.offsets.top - 5}
+                        x2={x}
+                        y2={svgGeometry.height - svgGeometry.offsets.top + 5}
+                        stroke="black"
+                    />
+                    <text {x} y={svgGeometry.height - svgGeometry.offsets.top + 15}>{label}</text>
                 {/each}
             </g>
 
             <g id="measurementTicks" font-size="10" text-anchor="end">
                 {#each measurementTicks as { y, label }}
                     {#if y !== undefined && !isNaN(y)}
-                        <line x1={rightOffset - 5} y1={y} x2={rightOffset + 5} y2={y} stroke="black" />
-                        <text x={rightOffset - 10} y={y + 3}>{label}</text>
+                        <line
+                            x1={svgGeometry.offsets.right - 5}
+                            y1={y}
+                            x2={svgGeometry.offsets.right + 5}
+                            y2={y}
+                            stroke="black"
+                        />
+                        <text x={svgGeometry.offsets.right - 10} y={y + 3}>{label}</text>
                     {/if}
                 {/each}
             </g>
@@ -318,13 +217,13 @@
                 {#each priceTicks.slice(1) as { y, label }}
                     {#if y !== undefined && !isNaN(y)}
                         <line
-                            x1={svgWidth - leftOffset - 5}
+                            x1={svgGeometry.width - svgGeometry.offsets.left - 5}
                             y1={y}
-                            x2={svgWidth - leftOffset + 5}
+                            x2={svgGeometry.width - svgGeometry.offsets.left + 5}
                             y2={y}
                             stroke="black"
                         />
-                        <text x={svgWidth - leftOffset + 30} y={y + 3}>{label}</text>
+                        <text x={svgGeometry.width - svgGeometry.offsets.left + 40} y={y + 3}>{label}</text>
                     {/if}
                 {/each}
             </g>
@@ -343,7 +242,7 @@
     </div>
 
     <label for="tickerSelect">ticker </label>
-    <select id="tickerSelect" bind:value={selectedSymbol} on:change={handleSelect}>
+    <select id="tickerSelect" bind:value={selectedTicker} on:change={handleSelect}>
         {#each dropdownOptions as option (option)}
             <option value={option}>{option}</option>
         {/each}

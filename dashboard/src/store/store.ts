@@ -9,7 +9,7 @@ export const listStore = {
     subscribe: sortedList.subscribe,
     addItems,
     addItem,
-    selectSymbols: selectedSymbols.set
+    selectTickers: selectedSymbols.set
 };
 
 export function addItems(items: WindowedQuotation[]): void {
@@ -23,12 +23,9 @@ export function addItem(item: WindowedQuotation): void {
     addItems([item]);
 }
 
-export const filteredList = derived(
-    [sortedList, selectedSymbols],
-    ([$sortedList, $selectedSymbols]) => {
-        return $sortedList.filter((item) => $selectedSymbols.includes(item.symbol));
-    }
-);
+export const filteredList = derived([sortedList, selectedSymbols], ([$sortedList, $selectedSymbols]) => {
+    return $sortedList.filter((item) => $selectedSymbols.includes(item.symbol));
+});
 
 function sortList() {
     const newItems = Array.from(map.values()).sort((a, b) => b.windowEndTime - a.windowEndTime);
