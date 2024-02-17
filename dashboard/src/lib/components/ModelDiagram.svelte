@@ -79,6 +79,7 @@
 <style>
     .diagram {
         align-items: center;
+        background-color: #01161e;
         display: flex;
         flex-direction: column;
     }

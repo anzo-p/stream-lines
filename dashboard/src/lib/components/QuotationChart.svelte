@@ -24,17 +24,16 @@
     }
 </script>
 
-<svg width={svgGeometry.width} height={svgGeometry.height} xmlns="http://www.w3.org/2000/svg">
+<svg class="ruler" width={svgGeometry.width} height={svgGeometry.height} xmlns="http://www.w3.org/2000/svg">
     <line
-        id="priceScale"
+        id="ruler-scale"
         x1={svgGeometry.width - svgGeometry.offsets.left}
         y1={svgGeometry.offsets.bottom}
         x2={svgGeometry.width - svgGeometry.offsets.left}
         y2={svgGeometry.height - svgGeometry.offsets.top}
-        stroke="lightgray"
     />
 
-    <g id="priceTicks" font-size="10" text-anchor="end">
+    <g id="ruler-ticks">
         {#each verticalTicks.slice(1) as { y, label }}
             {#if y !== undefined && !isNaN(y)}
                 <line
@@ -42,12 +41,20 @@
                     y1={y}
                     x2={svgGeometry.width - svgGeometry.offsets.left + 5}
                     y2={y}
-                    stroke="lightgray"
                 />
                 <text x={svgGeometry.width - svgGeometry.offsets.left + 40} y={y + 3}>{label}</text>
             {/if}
         {/each}
     </g>
 
-    <polyline points={polylinePointString} fill="none" stroke="green" stroke-width="2" />
+    <polyline points={polylinePointString} fill="none" stroke="#E0CA3C" stroke-width="2" />
 </svg>
+
+<style>
+    .ruler {
+        font: 'Lucida Grande';
+        font-size: 12px;
+        text-anchor: end;
+        stroke: #b09d1c;
+    }
+</style>

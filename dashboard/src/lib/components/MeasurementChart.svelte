@@ -65,51 +65,51 @@
     <div class="tooltip" bind:this={tooltip}>Tooltip content</div>
 
     <svg
+        class="ruler"
         width={svgGeometry.width}
         height={svgGeometry.height}
         xmlns="http://www.w3.org/2000/svg"
         on:mousemove={describeDataOnX}
     >
         <line
-            id="measurementScale"
+            id="ruler-scale"
             x1={svgGeometry.offsets.left}
             y1={svgGeometry.offsets.bottom}
             x2={svgGeometry.offsets.left}
             y2={svgGeometry.height - svgGeometry.offsets.top}
-            stroke="lightgray"
         />
-        <g id="measurementTicks" font-size="10" text-anchor="end">
+        <g id="ruler-ticks">
             {#each verticalTicks as { y, label }}
                 {#if y !== undefined && !isNaN(y)}
-                    <line
-                        x1={svgGeometry.offsets.right - 5}
-                        y1={y}
-                        x2={svgGeometry.offsets.right + 5}
-                        y2={y}
-                        stroke="lightgray"
-                    />
+                    <line x1={svgGeometry.offsets.right - 5} y1={y} x2={svgGeometry.offsets.right + 5} y2={y} />
                     <text x={svgGeometry.offsets.right - 10} y={y + 3}>{label}</text>
                 {/if}
             {/each}
         </g>
 
-        <polyline points={polylinePointString} fill="none" stroke="blue" stroke-width="2" />
+        <polyline points={polylinePointString} fill="none" stroke="#0faebd" stroke-width="2" />
 
         {#each visibleScaledPoints as { x, y, visible }}
             {#if y !== undefined && !isNaN(y)}
-                <circle cx={x} cy={y} r="5" class="nearest-point" style="opacity: {visible ? 1 : 0};" />
+                <circle cx={x} cy={y} r="5" class="data-point" style="opacity: {visible ? 1 : 0};" />
             {/if}
         {/each}
     </svg>
 </div>
 
 <style>
-    .nearest-point {
-        fill: blue;
+    .data-point {
+        fill: #55e4f1;
         opacity: 0;
     }
-    .nearest-point:hover {
+    .data-point:hover {
         opacity: 1;
+    }
+    .ruler {
+        font: 'Lucida Grande';
+        font-size: 12px;
+        text-anchor: end;
+        stroke: #0c8b97;
     }
     .tooltip {
         background-color: black;

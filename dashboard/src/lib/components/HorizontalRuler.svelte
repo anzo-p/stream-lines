@@ -15,26 +15,33 @@
     });
 </script>
 
-<svg width={svgGeometry.width} height={svgGeometry.height} xmlns="http://www.w3.org/2000/svg">
+<svg class="ruler" width={svgGeometry.width} height={svgGeometry.height} xmlns="http://www.w3.org/2000/svg">
     <line
-        id="timeScale"
+        id="time-scale"
         x1={svgGeometry.offsets.left}
         y1={svgGeometry.height - svgGeometry.offsets.top}
         x2={svgGeometry.width - svgGeometry.offsets.right}
         y2={svgGeometry.height - svgGeometry.offsets.top}
-        stroke="lightgray"
     />
 
-    <g id="timeTicks" font-size="10" text-anchor="middle">
+    <g id="time-ticks">
         {#each horizontalTicks.slice(1, -1) as { x, label }}
             <line
                 x1={x}
                 y1={svgGeometry.height - svgGeometry.offsets.top - 5}
                 x2={x}
                 y2={svgGeometry.height - svgGeometry.offsets.top + 5}
-                stroke="lightgray"
             />
             <text {x} y={svgGeometry.height - svgGeometry.offsets.top + 15}>{label}</text>
         {/each}
     </g>
 </svg>
+
+<style>
+    .ruler {
+        font: 'Lucida Grande';
+        font-size: 12px;
+        text-anchor: middle;
+        stroke: grey;
+    }
+</style>
