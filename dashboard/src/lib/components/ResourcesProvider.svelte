@@ -1,9 +1,9 @@
 <script lang="ts">
     import { setContext } from 'svelte';
-    import { graphqlStore, websocketStore } from '../store/resourcesStore';
+    import { graphqlServiceProvider, websocketServiceProvider } from '../../store/servicesStore';
 
-    setContext('graphql', graphqlStore);
-    setContext('websocket', websocketStore);
+    setContext('graphql', graphqlServiceProvider);
+    setContext('websocket', websocketServiceProvider);
 </script>
 
 <div>
