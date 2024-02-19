@@ -1,11 +1,13 @@
 import * as cdk from 'aws-cdk-lib';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import { Construct } from 'constructs';
 
 export class AlbStack extends cdk.NestedStack {
   readonly backendAlbListener: elbv2.ApplicationListener;
-  readonly influxDBAlbDns: string;
   readonly influxDBAlbListener: elbv2.ApplicationListener;
 
   constructor(
@@ -16,32 +18,58 @@ export class AlbStack extends cdk.NestedStack {
   ) {
     super(scope, id, props);
 
+    const hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
+      domainName: 'anzop.net'
+    });
+
+    const influx_alb_certificate = acm.Certificate.fromCertificateArn(
+      this,
+      'Certificate',
+      `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_INFLUX_ALB_CERT}`
+    );
+
+    const backend_alb_certificate = acm.Certificate.fromCertificateArn(
+      this,
+      'BackendCertificate',
+      `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_BACKEND_ALB_CERT}`
+    );
+
+    const influxDBAlb = new elbv2.ApplicationLoadBalancer(this, 'InfluxDBAlb', {
+      vpc,
+      internetFacing: true
+    });
+
+    new route53.ARecord(this, 'InfluxAlbAliasRecord', {
+      zone: hostedZone,
+      recordName: `${process.env.INFLUXDB_SUBDOMAIN}`,
+      target: route53.RecordTarget.fromAlias(
+        new targets.LoadBalancerTarget(influxDBAlb)
+      )
+    });
+
+    this.influxDBAlbListener = influxDBAlb.addListener('InfluxDBAlbListener', {
+      port: 443,
+      protocol: elbv2.ApplicationProtocol.HTTPS,
+      certificates: [influx_alb_certificate]
+    });
+
     const backendAlb = new elbv2.ApplicationLoadBalancer(this, 'BackendAlb', {
       vpc,
       internetFacing: true
     });
 
-    this.backendAlbListener = backendAlb.addListener('BackendAlbListener', {
-      port: 80,
-      protocol: elbv2.ApplicationProtocol.HTTP
+    new route53.ARecord(this, 'BackendAlbAliasRecord', {
+      zone: hostedZone,
+      recordName: `${process.env.BACKEND_SUBDOMAIN}`,
+      target: route53.RecordTarget.fromAlias(
+        new targets.LoadBalancerTarget(backendAlb)
+      )
     });
 
-    const influxDBAdminAlb = new elbv2.ApplicationLoadBalancer(
-      this,
-      'InfluxDBAlb',
-      {
-        vpc,
-        internetFacing: true
-      }
-    );
-    this.influxDBAlbDns = influxDBAdminAlb.loadBalancerDnsName;
-
-    this.influxDBAlbListener = influxDBAdminAlb.addListener(
-      'InfluxDBAlbListener',
-      {
-        port: 80,
-        protocol: elbv2.ApplicationProtocol.HTTP
-      }
-    );
+    this.backendAlbListener = backendAlb.addListener('BackendAlbListener', {
+      port: 443,
+      protocol: elbv2.ApplicationProtocol.HTTPS,
+      certificates: [backend_alb_certificate]
+    });
   }
 }

@@ -64,8 +64,7 @@ export class ControlTowerStack extends cdk.Stack {
       this,
       'AnalyticsStack',
       ecsCluster.ecsCluster,
-      taskExecRoleStack.role,
-      albStack.influxDBAlbDns
+      taskExecRoleStack.role
     );
     analyticsStack.addDependency(kinesisStack);
     analyticsStack.addDependency(influxStack);
@@ -75,8 +74,7 @@ export class ControlTowerStack extends cdk.Stack {
       'BackendStack',
       ecsCluster.ecsCluster,
       taskExecRoleStack.role,
-      albStack.backendAlbListener,
-      albStack.influxDBAlbDns
+      albStack.backendAlbListener
     );
     backendStack.addDependency(wsApigatewayStack);
     backendStack.addDependency(influxStack);

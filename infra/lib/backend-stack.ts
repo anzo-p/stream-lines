@@ -13,7 +13,6 @@ export class BackendStack extends cdk.NestedStack {
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
     backendAlbListener: elbv2.ApplicationListener,
-    influxDns: string,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
@@ -55,7 +54,7 @@ export class BackendStack extends cdk.NestedStack {
         INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
         INFLUXDB_BUCKET: `${process.env.INFLUXDB_INIT_BUCKET}`,
         INFLUXDB_READ_TOKEN: `${process.env.INFLUXDB_READ_TOKEN}`,
-        INFLUXDB_URL: `http://${influxDns}:80`
+        INFLUXDB_URL: `${process.env.INFLUXDB_URL}`
       },
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'backend' })
     });

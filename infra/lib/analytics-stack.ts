@@ -11,7 +11,6 @@ export class AnalyticsStack extends cdk.NestedStack {
     id: string,
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
-    influxDns: string,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
@@ -58,7 +57,7 @@ export class AnalyticsStack extends cdk.NestedStack {
         INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
         INFLUXDB_BUCKET: `${process.env.INFLUXDB_INIT_BUCKET}`,
         INFLUXDB_WRITE_TOKEN: `${process.env.INFLUXDB_WRITE_TOKEN}`,
-        INFLUXDB_URL: `http://${influxDns}:80`,
+        INFLUXDB_URL: `${process.env.INFLUXDB_URL}`,
         KINESIS_DOWNSTREAM_NAME: `${process.env.KINESIS_RESULTS_DOWNSTREAM}`,
         KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`
       },
