@@ -1,42 +1,32 @@
-name: Control Tower Ingest CI/CD
+name: Control Tower Analytics CI/CD
 
 on:
   push:
     branches:
       - main
     paths:
-      - "ingest/**"
+      - "analytics/**"
   pull_request:
     branches:
       - main
     paths:
-      - "ingest/**"
+      - "analytics/**"
   workflow_dispatch:
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out code
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
+      - name: Set up Java
+        uses: actions/setup-java@v2
         with:
-          toolchain: stable
-          override: true
-
-      - name: Install Protocol Buffers Compiler
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-
-      - name: Build clean Rust project
-        run: |
-          cd ingest
-          cargo clean
-          cargo build --release
+          distribution: "temurin"
+          java-version: "11"
+          architecture: "x64"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -56,10 +46,11 @@ jobs:
 
       - name: Build, tag, and push image to Amazon ECR
         run: |
-          cd ingest
+          cd analytics
+          sbt clean compile universal:packageBin
           docker buildx create --use
           docker buildx build --platform linux/arm64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG . --push
         env:
           ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
-          ECR_REPOSITORY: control-tower-ingest
+          ECR_REPOSITORY: control-tower-analytics
           IMAGE_TAG: latest
