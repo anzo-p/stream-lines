@@ -1,7 +1,7 @@
-package com.anzop.processors
+package net.anzop.processors
 
-import com.anzop.results.WindowedQuotationVolumes
-import com.anzop.types.{Money, StockQuotation, StockTradeUnit}
+import net.anzop.results.WindowedQuotationVolumes
+import net.anzop.types.{Money, StockQuotation, StockTradeUnit}
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
 import org.scalatest.BeforeAndAfterAll

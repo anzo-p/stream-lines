@@ -1,4 +1,4 @@
-package com.anzop.types
+package net.anzop.types
 
 import market_data.market_data.MarketDataProto
 import org.apache.flink.api.common.typeinfo.TypeInformation

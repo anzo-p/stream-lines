@@ -1,7 +1,6 @@
-package com.anzop.types
+package net.anzop.types
 
-import com.anzop.helpers.Monetary
-import com.anzop.types.TimeExtensions._
+import TimeExtensions._
 import market_data.crypto_quotation.CryptoQuotationProto
 import market_data.crypto_trade.CryptoTradeProto
 import market_data.market_data.MarketDataProto
@@ -9,6 +8,7 @@ import market_data.money.MoneyProto
 import market_data.stock_quotation.StockQuotationProto
 import market_data.stock_trade.StockTradeProto
 import market_data.trade_unit.{CryptoTradeUnitProto, StockTradeUnitProto}
+import net.anzop.helpers.Monetary
 
 import java.time.OffsetDateTime
 

@@ -1,7 +1,7 @@
-package com.anzop.appconfig
+package net.anzop.appconfig
 
-import com.anzop.helpers.Extensions.EnvOps
-import com.anzop.types.{MarketDataDeserializer, MarketDataMessage}
+import net.anzop.helpers.Extensions.EnvOps
+import net.anzop.types.{MarketDataDeserializer, MarketDataMessage}
 import org.apache.flink.configuration.{Configuration, MemorySize, TaskManagerOptions}
 import org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackend
 import org.apache.flink.runtime.state.storage.FileSystemCheckpointStorage

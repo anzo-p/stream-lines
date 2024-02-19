@@ -6,7 +6,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "analytics",
     version := "0.1",
-    Compile / mainClass := Some("com.anzop.FlinkApp")
+    Compile / mainClass := Some("net.anzop.FlinkApp")
   )
   .enablePlugins(JavaAppPackaging)
 //.enablePlugins(DockerPlugin)

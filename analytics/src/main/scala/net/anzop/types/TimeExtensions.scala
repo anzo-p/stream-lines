@@ -1,4 +1,4 @@
-package com.anzop.types
+package net.anzop.types
 
 import scala.concurrent.duration.Duration
 

@@ -1,7 +1,7 @@
-package com.anzop.results
+package net.anzop.results
 
-import com.anzop.processors.WindowedVolumesMeasurement
 import com.fasterxml.jackson.annotation.JsonProperty
+import net.anzop.processors.WindowedVolumesMeasurement
 import org.apache.flink.api.common.serialization.SerializationSchema
 
 import java.nio.charset.StandardCharsets

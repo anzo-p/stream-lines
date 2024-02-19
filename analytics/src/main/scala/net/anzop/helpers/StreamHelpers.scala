@@ -1,7 +1,7 @@
-package com.anzop.helpers
+package net.anzop.helpers
 
-import com.anzop.helpers.Extensions.EnvOps
-import com.anzop.types.{MarketDataContent, MarketDataMessage}
+import Extensions.EnvOps
+import net.anzop.types.{MarketDataContent, MarketDataMessage}
 import org.apache.flink.api.common.eventtime.{SerializableTimestampAssigner, WatermarkStrategy}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.scala._

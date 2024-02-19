@@ -1,4 +1,4 @@
-package com.anzop.processors
+package net.anzop.processors
 
 import com.fasterxml.jackson.annotation.JsonValue
 

@@ -1,7 +1,8 @@
-package com.anzop.processors
+package net.anzop.processors
 
-import com.anzop.results.WindowedQuotationVolumes
-import com.anzop.types.{CryptoQuotation, Quotation, StockQuotation}
+import net.anzop.results
+import net.anzop.results.WindowedQuotationVolumes
+import net.anzop.types.{CryptoQuotation, Quotation, StockQuotation}
 import org.apache.flink.streaming.api.scala.function.WindowFunction
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
@@ -25,7 +26,7 @@ class QuotationWindow[T <: Quotation] private (measurementType: WindowedVolumesM
     val bidPriceAtWindowEnd: BigDecimal = input.last.bid.price.amount
     val askPriceAtWindowEnd: BigDecimal = input.last.ask.price.amount
     out.collect(
-      WindowedQuotationVolumes(
+      results.WindowedQuotationVolumes(
         measureId = UUID.randomUUID(),
         measurementType,
         symbol          = key,

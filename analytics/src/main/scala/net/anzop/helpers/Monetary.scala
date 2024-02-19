@@ -1,4 +1,4 @@
-package com.anzop.helpers
+package net.anzop.helpers
 
 import java.math.{MathContext, RoundingMode}
 

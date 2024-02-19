@@ -1,7 +1,7 @@
-package com.anzop.sinks
+package net.anzop.sinks
 
-import com.anzop.appconfig.InfluxDetails
-import com.anzop.results.DataSerializer
+import net.anzop.appconfig.InfluxDetails
+import net.anzop.results.DataSerializer
 import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunction}
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity

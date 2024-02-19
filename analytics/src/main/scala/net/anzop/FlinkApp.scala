@@ -1,13 +1,13 @@
-package com.anzop
+package net.anzop
 
 import com.amazonaws.services.kinesis.model.{AccessDeniedException, LimitExceededException, ResourceNotFoundException}
-import com.anzop.appconfig.{InfluxDetails, KinesisProps, StreamConfig, WindowConfig}
-import com.anzop.helpers.StreamHelpers
-import com.anzop.processors.QuotationWindow
-import com.anzop.results.WindowedQuotationVolumes
-import com.anzop.sinks.KinesisSink.loggingKinesisSink
-import com.anzop.sinks.{KinesisSink, ResultSink}
-import com.anzop.types.{CryptoQuotation, MarketDataMessage, StockQuotation}
+import net.anzop.sinks.KinesisSink.loggingKinesisSink
+import net.anzop.appconfig.{InfluxDetails, KinesisProps, StreamConfig, WindowConfig}
+import net.anzop.helpers.StreamHelpers
+import net.anzop.processors.QuotationWindow
+import net.anzop.results.WindowedQuotationVolumes
+import net.anzop.sinks.{KinesisSink, ResultSink}
+import net.anzop.types.{CryptoQuotation, MarketDataMessage, StockQuotation}
 import org.apache.flink.connector.kinesis.sink.KinesisStreamsSink
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows
