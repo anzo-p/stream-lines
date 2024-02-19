@@ -28,7 +28,7 @@ export class IngestStack extends cdk.NestedStack {
         executionRole,
         runtimePlatform: {
           operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
-          cpuArchitecture: ecs.CpuArchitecture.ARM64
+          cpuArchitecture: ecs.CpuArchitecture.X86_64
         },
         memoryLimitMiB: 512,
         cpu: 256
