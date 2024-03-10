@@ -40,5 +40,8 @@ pub fn handle_process_error(e: &ProcessError) {
         ProcessError::WebSocketCommunicationError(e) => {
             eprintln!("WebSocket communication error occurred: {}", e)
         }
+        ProcessError::WebSocketFeedError(msg) => {
+            eprintln!("WebSocket auth error: {}", msg);
+        }
     }
 }

@@ -27,6 +27,8 @@ pub async fn process_one(
             log::info!("Successfully subscribed to feed {}", feed_type);
             Ok(())
         }
+        Some("error") => Err(ProcessError::WebSocketFeedError(item.to_string())),
+
         _ => {
             log::info!("Unknown message type");
             Ok(())

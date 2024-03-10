@@ -16,6 +16,7 @@ pub enum ProcessError {
         source: tokio_tungstenite::tungstenite::Error,
     },
     WebSocketCommunicationError(tokio_tungstenite::tungstenite::Error),
+    WebSocketFeedError(String),
 }
 
 impl fmt::Display for ProcessError {
@@ -38,6 +39,7 @@ impl fmt::Display for ProcessError {
             ProcessError::WebSocketCommunicationError(e) => {
                 write!(f, "WebSocket communication error occurred: {}", e)
             }
+            ProcessError::WebSocketFeedError(msg) => write!(f, "WebSocket auth error: {}", msg)
         }
     }
 }
