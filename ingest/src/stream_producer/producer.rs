@@ -4,11 +4,17 @@ use aws_sdk_kinesis::Client;
 use std::env;
 
 use crate::errors::ProcessError;
+use crate::helpers::retry_with_backoff;
 
 pub async fn create_kinesis_client() -> Result<Client, ProcessError> {
     let config = aws_config::load_defaults(BehaviorVersion::v2023_11_09()).await;
     let client = Client::new(&config);
-    check_kinesis(client.clone()).await?;
+
+    if let Err(e) = retry_with_backoff(|| check_kinesis(client.clone()), "check_kinesis()").await {
+        log::error!("Failed to acquire Kinesis client: {}", e);
+        return Err(e);
+    }
+
     Ok(client)
 }
 

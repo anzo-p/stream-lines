@@ -9,12 +9,9 @@ use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, Web
 use url::Url;
 
 use crate::errors::ProcessError;
+use crate::helpers::retry_with_backoff;
 use crate::load_app_config;
 use crate::ws_feed_consumer::{AuthMessage, SubMessage};
-
-const INITIAL_BACKOFF: u64 = 1;
-const MAX_BACKOFF: u64 = 64;
-const BACKOFF_FACTOR: u64 = 2;
 
 type MyWebSocketStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
@@ -23,37 +20,20 @@ lazy_static! {
         Mutex::new(HashMap::new());
 }
 
-pub async fn acquire_connection(url_str: &str) -> Result<(), ProcessError> {
-    let mut retry_count = 0;
-    let mut backoff = INITIAL_BACKOFF;
-    let max_retries = 5;
-
-    while retry_count <= max_retries {
-        match connect_to_stream(url_str).await {
-            Ok(_) => {
-                auth_and_sub_by_url(url_str).await?;
-                return Ok(());
-            }
-            Err(e) => {
-                retry_count += 1;
-                log::info!(
-                    "{} - Error connecting/reconnecting to {}: {}. Attempt {} of {}.",
-                    chrono::Local::now(),
-                    url_str,
-                    e,
-                    retry_count + 1,
-                    max_retries
-                );
-                sleep(Duration::from_secs(backoff)).await;
-                backoff = std::cmp::min(backoff * BACKOFF_FACTOR, MAX_BACKOFF);
-            }
-        }
+pub async fn acquire_websocket_connection(url_str: &str) -> Result<(), ProcessError> {
+    if let Err(e) = retry_with_backoff(
+        || connect_to_stream(url_str),
+        &format!("connect_to_stream({})", url_str),
+    )
+    .await
+    {
+        log::error!("Failed to connect to {}, reason: {}", url_str, e);
+        return Err(e);
     }
 
-    Err(ProcessError::MaxRetriesReached(format!(
-        "Failed to connect to {} after {} attempts",
-        url_str, max_retries
-    )))
+    auth_and_sub_by_url(url_str).await?;
+
+    return Ok(());
 }
 
 pub async fn read_from_connection(url_str: &str) -> Result<Option<Message>, ProcessError> {
@@ -84,7 +64,7 @@ pub async fn read_from_connection(url_str: &str) -> Result<Option<Message>, Proc
 }
 
 async fn attempt_reconnect(url_str: &str) -> Result<Option<Message>, ProcessError> {
-    match acquire_connection(url_str).await {
+    match acquire_websocket_connection(url_str).await {
         Ok(_) => Ok(None),
         Err(e) => Err(e),
     }

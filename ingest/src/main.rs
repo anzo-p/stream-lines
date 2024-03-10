@@ -1,5 +1,6 @@
 mod config;
 mod errors;
+mod helpers;
 mod http;
 mod protobuf;
 mod stream_producer;
@@ -39,7 +40,7 @@ async fn run_app(app_config: &AppConfig, running: Arc<AtomicBool>) {
     let mut tasks = Vec::new();
 
     for feed in feeds {
-        let task = tokio::spawn(run_one_feed(feed, 5));
+        let task = tokio::spawn(run_one_feed(feed.clone()));
         tasks.push(task);
     }
 
