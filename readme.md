@@ -3,16 +3,41 @@
 The App literally draws an SVG Polyline onto a dashboard out of a stream of data consumed from a websocket, processed in a Flink DataStream, and then streamed onto that dashboard in a Web App. AWS infra included. Polyglot by choice.
 
 ```mermaid
-stateDiagram-v2
-  [*] --> Ingest
-  Ingest --> Upstream_Kinesis
-  Upstream_Kinesis --> Analytics
-  Analytics --> InfluxDB: query path
-  InfluxDB --> Backend
-  Backend --> Dashboard: GraphQL
-  Analytics --> Downstream_Kinesis: real-time path
-  Downstream_Kinesis --> ApiGateway
-  ApiGateway --> Dashboard: WebSocket
+%%{init: {"flowchart": {"htmlLabels": false}} }%%
+flowchart LR
+  alpaca[/"WebSocket feed"/]
+  ingest("`**Ingest**
+  Rust`")
+  influxdb[(InfluxDB)]
+  kinesisUpstream["AWS Kinesis"]
+  kinesisDownstream["AWS Kinesis"]
+  analytics("`**Analytics**
+  Scala
+  Apache Flink`")
+  backend("`**Backend**
+  Rust
+  GraphQL`")
+  apigateway["AWS API Gateway
+  WebSocket
+  AWS Lambda
+  TypeScript"]
+  dashboard["`**Dashboard**
+  TypeScript
+  Svelte`"]
+
+  alpaca --> ingest
+  ingest --> kinesisUpstream
+  kinesisUpstream --> analytics
+    analytics --> influxdb
+  subgraph "query path"
+    influxdb --> backend
+  end
+    backend --> dashboard
+  analytics --> kinesisDownstream
+  subgraph "real-time path"
+    kinesisDownstream --> apigateway
+  end
+  apigateway --> dashboard
 ```
 
 ### Ingest
@@ -23,10 +48,10 @@ Consumes a websocket from an external provider. In this case market data feed fr
 
 Compute any interesting values ot of that data stream. These could quickly and easily become many DataStreams and even Flink Apps that feed input to each others to do further, deeper computations.
 
-Importantly Analytics ouputs into two places
+Importantly Analytics ouputs into two paths:
 
-- InxfluxDB - for diagrams to initialize themselves upon queries from this data
-- Downstream Kinesis - for updates to those diagrams without the need to re-fetch full dataset all the time.
+- InxfluxDB - for diagrams to initialize themselves upon queries
+- Downstream Kinesis - for updates to diagrams without having to re-fetch full dataset.
 
 The term 'analytics' is misleading. Must come up with a better name. In reality any linear algorithm should do, with a little remodeling if necessary.
 
