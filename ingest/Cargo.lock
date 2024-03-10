@@ -1135,6 +1135,7 @@ dependencies = [
  "prost",
  "prost-build",
  "prost-types",
+ "rand",
  "rust_decimal",
  "serde",
  "serde_json",
