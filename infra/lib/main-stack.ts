@@ -3,6 +3,7 @@ import { Construct } from 'constructs';
 import { AlbStack } from './alb-stack';
 import { AnalyticsStack } from './analytics-stack';
 import { BackendStack } from './backend-stack';
+import { DashboardStack } from './dashboard-stack';
 import { EcsClusterStack } from './ecs-cluster-stack';
 import { EcsTaskExecutionRoleStack } from './ecr-exec-task-role';
 import { InfluxDBStack } from './influxdb-stack';
@@ -78,5 +79,15 @@ export class ControlTowerStack extends cdk.Stack {
     );
     backendStack.addDependency(wsApigatewayStack);
     backendStack.addDependency(influxStack);
+
+    const dashboardStack = new DashboardStack(
+      this,
+      'DashboardStack',
+      ecsCluster.ecsCluster,
+      taskExecRoleStack.role,
+      albStack.dashboardAlbListener
+    );
+    dashboardStack.addDependency(wsApigatewayStack);
+    dashboardStack.addDependency(backendStack);
   }
 }

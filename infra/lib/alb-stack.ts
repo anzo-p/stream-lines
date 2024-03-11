@@ -8,6 +8,7 @@ import { Construct } from 'constructs';
 
 export class AlbStack extends cdk.NestedStack {
   readonly backendAlbListener: elbv2.ApplicationListener;
+  readonly dashboardAlbListener: elbv2.ApplicationListener;
   readonly influxDBAlbListener: elbv2.ApplicationListener;
 
   constructor(
@@ -22,10 +23,16 @@ export class AlbStack extends cdk.NestedStack {
       domainName: 'anzop.net'
     });
 
-    const alb_certificate = acm.Certificate.fromCertificateArn(
+    const backend_alb_certificate = acm.Certificate.fromCertificateArn(
       this,
-      'Certificate',
-      `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_CERT}`
+      'BackendCertificate',
+      `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_BACKEND_CERT}`
+    );
+
+    const webapp_alb_certificate = acm.Certificate.fromCertificateArn(
+      this,
+      'WebAppCertificate',
+      `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_WEBAPP_CERT}`
     );
 
     const influxDBAlb = new elbv2.ApplicationLoadBalancer(this, 'InfluxDBAlb', {
@@ -44,7 +51,7 @@ export class AlbStack extends cdk.NestedStack {
     this.influxDBAlbListener = influxDBAlb.addListener('InfluxDBAlbListener', {
       port: 443,
       protocol: elbv2.ApplicationProtocol.HTTPS,
-      certificates: [alb_certificate]
+      certificates: [backend_alb_certificate]
     });
 
     const backendAlb = new elbv2.ApplicationLoadBalancer(this, 'BackendAlb', {
@@ -63,7 +70,33 @@ export class AlbStack extends cdk.NestedStack {
     this.backendAlbListener = backendAlb.addListener('BackendAlbListener', {
       port: 443,
       protocol: elbv2.ApplicationProtocol.HTTPS,
-      certificates: [alb_certificate]
+      certificates: [backend_alb_certificate]
     });
+
+    const dashboardAlb = new elbv2.ApplicationLoadBalancer(
+      this,
+      'DashboardAlb',
+      {
+        vpc,
+        internetFacing: true
+      }
+    );
+
+    new route53.ARecord(this, 'DashboardAlbAliasRecord', {
+      zone,
+      recordName: `${process.env.DASHBOARD_SUBDOMAIN}`,
+      target: route53.RecordTarget.fromAlias(
+        new targets.LoadBalancerTarget(dashboardAlb)
+      )
+    });
+
+    this.dashboardAlbListener = dashboardAlb.addListener(
+      'DashboardAlbListener',
+      {
+        port: 443,
+        protocol: elbv2.ApplicationProtocol.HTTPS,
+        certificates: [webapp_alb_certificate]
+      }
+    );
   }
 }
