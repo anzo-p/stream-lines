@@ -35,12 +35,11 @@ export function normalizeEpoch(t: number): number {
         { magnitude: 1000000000000000000, factor: 1000000 },
         { magnitude: 1000000000000000, factor: 1000 },
         { magnitude: 1000000000000, factor: 1 },
-        { magnitude: 1000000000, factor: 0.001 },
-        { magnitude: 1000000, factor: 0.000001 }
+        { magnitude: 1000000000, factor: 0.001 }
     ];
 
     for (const { magnitude, factor } of magnituedes) {
-        if (t > magnitude) {
+        if (t >= magnitude) {
             return t / factor;
         }
     }
