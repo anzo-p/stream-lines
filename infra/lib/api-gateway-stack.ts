@@ -1,8 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as apigw2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as apigw2_integr from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 
@@ -125,5 +128,37 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
       `https://${webSocketApiGateway.apiId}.execute-api.` +
       `${process.env.AWS_REGION}.amazonaws.com/` +
       `${webSocketApiGatewayStageProd.stageName}`;
+
+    const apigwCustomDomain = new apigw2.DomainName(
+      this,
+      'WebSocketApiGatewayDomainName',
+      {
+        domainName: `${process.env.WS_API_DOMAIN_NAME}`,
+        certificate: acm.Certificate.fromCertificateArn(
+          this,
+          'Certificate',
+          `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_CERT}`
+        )
+      }
+    );
+
+    new apigw2.ApiMapping(this, 'WebSocketApiMapping', {
+      api: webSocketApiGateway,
+      domainName: apigwCustomDomain,
+      stage: webSocketApiGatewayStageProd
+    });
+
+    new route53.ARecord(this, 'WebSocketApiGatewayAliasRecord', {
+      zone: route53.HostedZone.fromLookup(this, 'HostedZone', {
+        domainName: 'anzop.net'
+      }),
+      recordName: `${process.env.WS_API_SUBDOMAIN}`,
+      target: route53.RecordTarget.fromAlias(
+        new targets.ApiGatewayv2DomainProperties(
+          apigwCustomDomain.regionalDomainName,
+          apigwCustomDomain.regionalHostedZoneId
+        )
+      )
+    });
   }
 }
