@@ -1,11 +1,18 @@
-FROM node:21.5.0
+FROM node:20 as builder
 
 WORKDIR /usr/src/app
 
-COPY build/ ./build/
 COPY package*.json ./
 
 RUN npm ci --omit=dev
+
+COPY build/ ./build/
+
+FROM node:21-alpine
+
+WORKDIR /usr/src/app
+
+COPY --from=builder /usr/src/app .
 
 EXPOSE 3000
 
