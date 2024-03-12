@@ -1,0 +1,35 @@
+name: "Setup AWS and ECR"
+
+description: "Configure AWS credentials and login to Amazon ECR"
+
+inputs:
+  awsAccessKeyId:
+    description: "AWS Access Key ID"
+    required: true
+  awsSecretAccessKey:
+    description: "AWS Secret Access Key"
+    required: true
+  awsRegion:
+    description: "AWS Region"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ inputs.awsAccessKeyId }}
+        aws-secret-access-key: ${{ inputs.awsSecretAccessKey }}
+        aws-region: ${{ inputs.awsRegion }}
+
+    - name: Login to Amazon ECR
+      id: ecr-login
+      uses: aws-actions/amazon-ecr-login@v1
+      with:
+        mask-password: true
+
+outputs:
+  registry:
+    description: "Amazon ECR registry URL"
+    value: ${{ steps.ecr-login.outputs.registry }}

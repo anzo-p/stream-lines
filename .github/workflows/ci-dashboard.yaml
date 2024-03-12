@@ -32,18 +32,13 @@ jobs:
           npm install
           npm run build
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+      - name: Setup AWS and ECR
+        id: aws-ecr
+        uses: ./.github/actions/aws-ecr
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: ecr-login
-        uses: aws-actions/amazon-ecr-login@v1
-        with:
-          mask-password: true
+          awsAccessKeyId: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          awsSecretAccessKey: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          awsRegion: ${{ secrets.AWS_REGION }}
 
       - name: Build, tag, and push image to Amazon ECR
         run: |
@@ -51,6 +46,6 @@ jobs:
           docker buildx create --use
           docker buildx build --platform linux/arm64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG . --push
         env:
-          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          ECR_REGISTRY: ${{ steps.aws-ecr.outputs.registry }}
           ECR_REPOSITORY: stream-lines-dashboard
           IMAGE_TAG: latest
