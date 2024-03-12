@@ -1,0 +1,56 @@
+name: Stream Lines Dashboard CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "dashboard/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "dashboard/**"
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
+
+      - name: Install dependencies and build Svelte app
+        run: |
+          cd dashboard
+          npm install
+          npm run build
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          mask-password: true
+
+      - name: Build, tag, and push image to Amazon ECR
+        run: |
+          cd dashboard
+          docker buildx create --use
+          docker buildx build --platform linux/arm64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG . --push
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          ECR_REPOSITORY: stream-lines-dashboard
+          IMAGE_TAG: latest
