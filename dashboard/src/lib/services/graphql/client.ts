@@ -2,7 +2,7 @@ import { GraphQLClient } from 'graphql-request';
 
 let client: GraphQLClient | null = null;
 if (!client) {
-    client = new GraphQLClient(import.meta.env.VITE_DATABASE_URL);
+    client = new GraphQLClient('https://sl-otto.anzop.net/graphql');
 }
 
 export const graphQLClient = client;

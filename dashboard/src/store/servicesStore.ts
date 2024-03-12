@@ -6,4 +6,4 @@ export const graphqlServiceProvider = writable(graphQLClient);
 
 export const websocketServiceProvider = import.meta.env.SSR
     ? writable(null)
-    : writable(initializeWebSocket(import.meta.env.VITE_LIVE_FEED_URL, () => {}));
+    : writable(initializeWebSocket('wss://sl-gav.anzop.net/', () => {}));

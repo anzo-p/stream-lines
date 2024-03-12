@@ -13,7 +13,7 @@ export function initializeWebSocket(url: string, onDataCallback: (data: any) => 
 
     let onNewData: (data: any) => void = onDataCallback;
     let ws: WebSocket;
-    let reconnectInterval = import.meta.env.VITE_WEBSOCKET_RECONNECT_INTERVAL || 30000;
+    let reconnectInterval = import.meta.env.VITE_WEBSOCKET_RECONNECT_INTERVAL || 10000;
 
     const reConnect = () => {
         ws = new WebSocket(url);

@@ -43,15 +43,6 @@ export class DashboardStack extends cdk.NestedStack {
       portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: 3000 }],
       memoryLimitMiB: 512,
       cpu: 256,
-      environment: {
-        AWS_ACCESS_KEY_ID: `${process.env.AWS_ACCESS_KEY_ID}`,
-        AWS_SECRET_ACCESS_KEY: `${process.env.AWS_SECRET_ACCESS_KEY}`,
-        AWS_REGION: `${process.env.AWS_REGION}`,
-        VITE_DATABASE_UR: `${process.env.DASHBOARD_APIGW_URL}`,
-        VITE_LIVE_FEED_URL: `${process.env.DASHBOARD_FEED_URL}`,
-        VITE_WEBSOCKET_RECONNECT_INTERVAL:
-          process.env.DASHBOARD_WS_RECONN_INTERVAL!
-      },
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'dashboard' })
     });
 
