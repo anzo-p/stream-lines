@@ -1,4 +1,4 @@
-name: Control Tower Ingest CI/CD
+name: Stream Lines Ingest CI/CD
 
 on:
   push:
@@ -53,5 +53,5 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         env:
           ECR_REGISTRY: ${{ steps.aws-ecr.outputs.registry }}
-          ECR_REPOSITORY: control-tower-ingest
+          ECR_REPOSITORY: stream-lines-ingest
           IMAGE_TAG: latest
