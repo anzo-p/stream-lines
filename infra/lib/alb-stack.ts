@@ -98,5 +98,17 @@ export class AlbStack extends cdk.NestedStack {
         certificates: [webapp_alb_certificate]
       }
     );
+
+    dashboardAlb.addListener('DashboardAlbListenerRedirectToHttps', {
+      port: 80,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      defaultAction: elbv2.ListenerAction.redirect({
+        protocol: 'HTTPS',
+        host: '#{host}',
+        path: '/#{path}',
+        port: '443',
+        permanent: true
+      })
+    });
   }
 }
