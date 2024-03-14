@@ -15,7 +15,7 @@ COPY ./src ./src
 RUN rm -f ./target/release/deps/backend* && \
     cargo build --release
 
-FROM arm64v8/debian:bullseye-slim
+FROM debian:bullseye-20240211-slim
 
 # OpenSSL
 RUN apt-get update &&  \
@@ -23,5 +23,7 @@ RUN apt-get update &&  \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /backend/target/release/backend .
+
+EXPOSE 3030
 
 CMD ["./backend"]

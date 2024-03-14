@@ -1,0 +1,52 @@
+name: Stream Lines Backend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Build clean Rust project
+        run: |
+          cd backend
+          cargo clean
+          cargo build --release
+
+      - name: Setup AWS and ECR
+        id: aws-ecr
+        uses: ./.github/actions/aws-ecr
+        with:
+          awsAccessKeyId: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          awsSecretAccessKey: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          awsRegion: ${{ secrets.AWS_REGION }}
+
+      - name: Build, tag, and push image to Amazon ECR
+        run: |
+          cd backend
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        env:
+          ECR_REGISTRY: ${{ steps.aws-ecr.outputs.registry }}
+          ECR_REPOSITORY: stream-lines-backend
+          IMAGE_TAG: latest
