@@ -9,7 +9,7 @@ import { Construct } from 'constructs';
 export class AlbStack extends cdk.NestedStack {
   readonly backendAlbListener: elbv2.ApplicationListener;
   readonly dashboardAlbListener: elbv2.ApplicationListener;
-  readonly influxDBAlbListener: elbv2.ApplicationListener;
+  readonly influxDbAlbListener: elbv2.ApplicationListener;
 
   constructor(
     scope: Construct,
@@ -23,35 +23,35 @@ export class AlbStack extends cdk.NestedStack {
       domainName: 'anzop.net'
     });
 
-    const backend_alb_certificate = acm.Certificate.fromCertificateArn(
+    const backendAlbCertificate = acm.Certificate.fromCertificateArn(
       this,
       'BackendCertificate',
       `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_BACKEND_CERT}`
     );
 
-    const webapp_alb_certificate = acm.Certificate.fromCertificateArn(
+    const webappAlbCertificate = acm.Certificate.fromCertificateArn(
       this,
       'WebAppCertificate',
       `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_WEBAPP_CERT}`
     );
 
-    const influxDBAlb = new elbv2.ApplicationLoadBalancer(this, 'InfluxDBAlb', {
+    const influxDbAlb = new elbv2.ApplicationLoadBalancer(this, 'InfluxDbAlb', {
       vpc,
       internetFacing: true
     });
 
-    new route53.ARecord(this, 'InfluxAlbAliasRecord', {
+    new route53.ARecord(this, 'InfluxDbAlbAliasRecord', {
       zone,
       recordName: `${process.env.INFLUXDB_SUBDOMAIN}`,
       target: route53.RecordTarget.fromAlias(
-        new targets.LoadBalancerTarget(influxDBAlb)
+        new targets.LoadBalancerTarget(influxDbAlb)
       )
     });
 
-    this.influxDBAlbListener = influxDBAlb.addListener('InfluxDBAlbListener', {
+    this.influxDbAlbListener = influxDbAlb.addListener('InfluxDbAlbListener', {
       port: 443,
       protocol: elbv2.ApplicationProtocol.HTTPS,
-      certificates: [backend_alb_certificate]
+      certificates: [backendAlbCertificate]
     });
 
     const backendAlb = new elbv2.ApplicationLoadBalancer(this, 'BackendAlb', {
@@ -70,7 +70,7 @@ export class AlbStack extends cdk.NestedStack {
     this.backendAlbListener = backendAlb.addListener('BackendAlbListener', {
       port: 443,
       protocol: elbv2.ApplicationProtocol.HTTPS,
-      certificates: [backend_alb_certificate]
+      certificates: [backendAlbCertificate]
     });
 
     const dashboardAlb = new elbv2.ApplicationLoadBalancer(
@@ -91,11 +91,11 @@ export class AlbStack extends cdk.NestedStack {
     });
 
     this.dashboardAlbListener = dashboardAlb.addListener(
-      'DashboardAlbListener',
+      'DashboardAlbListenerHttps',
       {
         port: 443,
         protocol: elbv2.ApplicationProtocol.HTTPS,
-        certificates: [webapp_alb_certificate]
+        certificates: [webappAlbCertificate]
       }
     );
 

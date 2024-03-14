@@ -8,7 +8,7 @@ export class VpcStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props?: cdk.NestedStackProps) {
     super(scope, id, props);
 
-    this.vpc = new ec2.Vpc(this, 'ControlTowerVpc', {
+    this.vpc = new ec2.Vpc(this, 'StreamLinesVpc', {
       maxAzs: 2,
       subnetConfiguration: [
         {

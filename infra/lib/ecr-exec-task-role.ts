@@ -2,7 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 
-export class EcsTaskExecutionRoleStack extends cdk.NestedStack {
+export class EcsTaskExecutionRole extends cdk.NestedStack {
   readonly role: iam.Role;
 
   constructor(
@@ -15,7 +15,7 @@ export class EcsTaskExecutionRoleStack extends cdk.NestedStack {
 
     const ecsTaskExecutionRole = new iam.Role(
       this,
-      'ECSTaskExecutionRoleForInflux',
+      'StreamLinesEcsTaskExecRole',
       {
         assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
         roleName: 'ECSTaskExecutionRole',

@@ -34,13 +34,15 @@ export class DashboardStack extends cdk.NestedStack {
 
     const ecrRepository = ecr.Repository.fromRepositoryName(
       this,
-      'ECRRepository',
+      'EcrRepository',
       'stream-lines-dashboard'
     );
 
+    const containerPort = parseInt(process.env.DASHBOARD_SERVER_PORT!);
+
     taskDefinition.addContainer('DashboardContainer', {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: 3000 }],
+      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort }],
       memoryLimitMiB: 512,
       cpu: 256,
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'dashboard' })
@@ -60,7 +62,7 @@ export class DashboardStack extends cdk.NestedStack {
 
     dashboardService.registerLoadBalancerTargets({
       containerName: 'DashboardContainer',
-      containerPort: 3000,
+      containerPort,
       newTargetGroupId: 'DashboardTargetGroup',
       listener: ecs.ListenerConfig.applicationListener(dashboardAlbListener, {
         protocol: elbv2.ApplicationProtocol.HTTP

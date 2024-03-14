@@ -39,18 +39,22 @@ export class BackendStack extends cdk.NestedStack {
 
     const ecrRepository = ecr.Repository.fromRepositoryName(
       this,
-      'ECRRepository',
+      'EcrRepository',
       'control-tower-backend'
     );
 
+    const containerPort = process.env.BACKEND_SERVER_PORT!;
+
     taskDefinition.addContainer('BackendContainer', {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: 3030 }],
+      portMappings: [
+        { protocol: ecs.Protocol.TCP, containerPort: parseInt(containerPort) }
+      ],
       memoryLimitMiB: 512,
       cpu: 256,
       environment: {
-        GRAPHQL_SERVER_ADDRESS: `${process.env.GRAPHQL_SERVER_ADDRESS}`,
-        GRAPHQL_SERVER_PORT: `${process.env.BACKEND_GRAPHQL_SERVER_PORT}`,
+        GRAPHQL_SERVER_ADDRESS: `${process.env.BACKEND_SERVER_ADDRESS}`,
+        GRAPHQL_SERVER_PORT: containerPort,
         INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
         INFLUXDB_BUCKET: `${process.env.INFLUXDB_INIT_BUCKET}`,
         INFLUXDB_READ_TOKEN: `${process.env.INFLUXDB_READ_TOKEN}`,

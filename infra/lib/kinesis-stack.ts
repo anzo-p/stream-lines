@@ -10,8 +10,8 @@ export class KinesisStreamsStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,
-    webSocketApiGatewayStageProdArn: string,
-    webSocketApiGatewayConnectionsUrl: string,
+    wsApiGatewayStageProdArn: string,
+    wsApiGatewayConnectionsUrl: string,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
@@ -30,7 +30,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
 
     const roleResultsStreamPusherLambda = new iam.Role(
       this,
-      'LambdaRoleResultsStreamPusher',
+      'KinesisStreamPusherRole',
       {
         assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
         managedPolicies: [
@@ -84,19 +84,19 @@ export class KinesisStreamsStack extends cdk.NestedStack {
     roleResultsStreamPusherLambda.addToPolicy(
       new iam.PolicyStatement({
         actions: ['execute-api:ManageConnections'],
-        resources: [webSocketApiGatewayStageProdArn]
+        resources: [wsApiGatewayStageProdArn]
       })
     );
 
     const bucketResultStreamPusherLambda = s3.Bucket.fromBucketName(
       this,
-      'LambdaCodeBucket',
+      'LambdaSourceBucket',
       `${process.env.S3_BUCKET_LAMBDAS}`
     );
 
     const resultsStreamPusherLambda = new lambda.Function(
       this,
-      'ResultsStreamPusher',
+      'StreamPusherLambda',
       {
         functionName: 'KinesisResultsStreamPusher',
         runtime: lambda.Runtime.NODEJS_20_X,
@@ -107,7 +107,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
         ),
         role: roleResultsStreamPusherLambda,
         environment: {
-          API_GW_CONNECTIONS_URL: `${webSocketApiGatewayConnectionsUrl}`,
+          API_GW_CONNECTIONS_URL: `${wsApiGatewayConnectionsUrl}`,
           WS_CONNS_TABLE_NAME: `${process.env.WS_CONNS_TABLE_NAME}`,
           WS_CONNS_BY_SYMBOL_INDEX: `${process.env.WS_CONNS_BY_SYMBOL_INDEX}`
         }

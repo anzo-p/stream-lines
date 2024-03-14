@@ -5,14 +5,14 @@ import { AnalyticsStack } from './analytics-stack';
 import { BackendStack } from './backend-stack';
 import { DashboardStack } from './dashboard-stack';
 import { EcsClusterStack } from './ecs-cluster-stack';
-import { EcsTaskExecutionRoleStack } from './ecr-exec-task-role';
-import { InfluxDBStack } from './influxdb-stack';
+import { EcsTaskExecutionRole } from './ecr-exec-task-role';
+import { InfluxDbStack } from './influxdb-stack';
 import { IngestStack } from './ingest-stack';
 import { KinesisStreamsStack } from './kinesis-stack';
 import { VpcStack } from './vpc-stack';
 import { WebSocketApiGatewayStack } from './api-gateway-stack';
 
-export class ControlTowerStack extends cdk.Stack {
+export class StreamLines extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -26,8 +26,8 @@ export class ControlTowerStack extends cdk.Stack {
     const kinesisStack = new KinesisStreamsStack(
       this,
       'KinesisStack',
-      wsApigatewayStack.webSocketApiGatewayStageProdArn,
-      wsApigatewayStack.webSocketApiGatewayConnectionsUrl
+      wsApigatewayStack.wsApiGatewayStageProdArn,
+      wsApigatewayStack.wsApiGatewayConnectionsUrl
     );
 
     const ecsCluster = new EcsClusterStack(
@@ -38,19 +38,19 @@ export class ControlTowerStack extends cdk.Stack {
 
     const albStack = new AlbStack(this, 'AlbStack', vpcStack.vpc);
 
-    const taskExecRoleStack = new EcsTaskExecutionRoleStack(
+    const taskExecRoleStack = new EcsTaskExecutionRole(
       this,
-      'EcsTaskExecutionRoleStack',
-      [ecsCluster.influxDBRepositoryName, ecsCluster.ingestRepositoryName]
+      'StreamLinesEcsTaskExecRole',
+      [ecsCluster.influxDbRepositoryName, ecsCluster.ingestRepositoryName]
     );
 
-    const influxStack = new InfluxDBStack(
+    const influxStack = new InfluxDbStack(
       this,
       'InfluxDbStack',
       vpcStack.vpc,
       ecsCluster.ecsCluster,
       taskExecRoleStack.role,
-      albStack.influxDBAlbListener
+      albStack.influxDbAlbListener
     );
 
     const ingestStack = new IngestStack(

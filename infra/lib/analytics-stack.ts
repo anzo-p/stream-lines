@@ -41,7 +41,7 @@ export class AnalyticsStack extends cdk.NestedStack {
 
     const ecrRepository = ecr.Repository.fromRepositoryName(
       this,
-      'ECRRepository',
+      'EcrRepository',
       'control-tower-analytics'
     );
 

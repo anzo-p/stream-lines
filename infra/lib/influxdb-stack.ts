@@ -7,83 +7,84 @@ import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 
-export class InfluxDBStack extends cdk.NestedStack {
+export class InfluxDbStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,
     vpc: ec2.Vpc,
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
-    influxDBAlbListener: elbv2.ApplicationListener,
+    influxDbAlbListener: elbv2.ApplicationListener,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
 
-    /*    
+    /*
     // this would be the way to create and grant access to an efs if you create it now
     // for databases not advisable though, as data must retain, ie. we expect much data to exists already
-
-    const influxDBFileSystem = new efs.FileSystem(
+    const influxDbFileSystem = new efs.FileSystem(
       this,
-      "ControlTowerInfluxFileSystem",
+      'StreamLinesInfluxDbFileSystem',
       {
         vpc,
-        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }
       }
     );
 
-    new efs.AccessPoint(this, "CTEfsAccessPoint", {
-      fileSystem: influxDBFileSystem,
-      path: "/var/lib/influxdb2",
+    new efs.AccessPoint(this, 'InfluxDbAccessPoint', {
+      fileSystem: influxDbFileSystem,
+      path: '/var/lib/influxdb2',
       posixUser: {
-        uid: "1000",
-        gid: "1000",
-      },
+        uid: '1000',
+        gid: '1000'
+      }
     });
 
-    // here efs commands its sg to allow access, for existing efs you must allow from the sg directly (down below)
-    influxDBFileSystem.connections.allowFrom(
+    // connections.allowFrom when creating an EFS now
+    influxDbFileSystem.connections.allowFrom(
       influxdbService,
       ec2.Port.tcp(2049),
-      "Allow access to EFS on port 2049"
+      'Allow access to EFS on port 2049'
     );
     */
 
-    const influxDBFileSystemSecurityGroup = new ec2.SecurityGroup(
+    const influxDbFileSystemSecurityGroup = new ec2.SecurityGroup(
       this,
-      'ControlTowerInfluxDBEFSSecurityGroup',
+      'StreamLinesInfluxDbEfsSecurityGroup',
       {
         vpc,
         allowAllOutbound: true
       }
     );
 
-    const influxDBFileSystem = efs.FileSystem.fromFileSystemAttributes(
+    const fileSystemId = process.env.INFLUXDB_FILE_SYSTEM_ID!;
+
+    const influxDbFileSystem = efs.FileSystem.fromFileSystemAttributes(
       this,
-      'ControlTowerInfluxFileSystem',
+      'StreamLinesInfluxDbDataFileSystem',
       {
-        fileSystemId: `${process.env.INFLUXDB_FILE_SYSTEM_ID}`,
+        fileSystemId,
         securityGroup: ec2.SecurityGroup.fromSecurityGroupId(
           this,
-          'InfluxDBFileSystemSecurityGroup',
-          influxDBFileSystemSecurityGroup.securityGroupId
+          'InfluxDbFileSystemSecurityGroup',
+          influxDbFileSystemSecurityGroup.securityGroupId
         )
       }
     );
 
     vpc.availabilityZones.forEach((_, index) => {
       new efs.CfnMountTarget(this, `EfsMountTarget${index}`, {
-        fileSystemId: influxDBFileSystem.fileSystemId,
+        fileSystemId: influxDbFileSystem.fileSystemId,
         subnetId: vpc.isolatedSubnets[index].subnetId,
-        securityGroups: [influxDBFileSystemSecurityGroup.securityGroupId]
+        securityGroups: [influxDbFileSystemSecurityGroup.securityGroupId]
       });
     });
 
     const taskDefinition = new ecs.FargateTaskDefinition(
       this,
-      'InfluxDBTaskDefinition',
+      'InfluxDbTaskDefinition',
       {
-        family: 'InfluxDBTaskDefinition',
+        family: 'InfluxDbTaskDefinition',
         executionRole,
         runtimePlatform: {
           operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
@@ -93,9 +94,9 @@ export class InfluxDBStack extends cdk.NestedStack {
         cpu: 512,
         volumes: [
           {
-            name: 'InfluxDBDataVolume',
+            name: 'InfluxDbDataVolume',
             efsVolumeConfiguration: {
-              fileSystemId: `${process.env.INFLUXDB_FILE_SYSTEM_ID}`,
+              fileSystemId,
               authorizationConfig: {
                 iam: 'ENABLED'
               },
@@ -106,7 +107,7 @@ export class InfluxDBStack extends cdk.NestedStack {
       }
     );
 
-    influxDBFileSystem.grant(
+    influxDbFileSystem.grant(
       taskDefinition.taskRole,
       'elasticfilesystem:ClientRootAccess',
       'elasticfilesystem:ClientMount',
@@ -115,13 +116,15 @@ export class InfluxDBStack extends cdk.NestedStack {
 
     const ecrRepository = ecr.Repository.fromRepositoryName(
       this,
-      'ECRRepository',
+      'StreamLinesEcrRepository',
       'control-tower-influxdb'
     );
 
-    const influxDBContainer = taskDefinition.addContainer('InfluxDBContainer', {
+    const containerPort = parseInt(process.env.INFLUX_SERVER_PORT!);
+
+    const influxDbContainer = taskDefinition.addContainer('InfluxDbContainer', {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: 8086 }],
+      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort }],
       memoryLimitMiB: 1024,
       cpu: 512,
       environment: {
@@ -136,13 +139,13 @@ export class InfluxDBStack extends cdk.NestedStack {
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'influxdb' })
     });
 
-    influxDBContainer.addMountPoints({
+    influxDbContainer.addMountPoints({
       containerPath: '/var/lib/influxdb2',
       readOnly: false,
-      sourceVolume: 'InfluxDBDataVolume'
+      sourceVolume: 'InfluxDbDataVolume'
     });
 
-    const influxdbService = new ecs.FargateService(this, 'InfluxDBEcsService', {
+    const influxdbService = new ecs.FargateService(this, 'InfluxDbEcsService', {
       cluster: ecsCluster,
       taskDefinition,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
@@ -151,10 +154,10 @@ export class InfluxDBStack extends cdk.NestedStack {
     });
 
     influxdbService.registerLoadBalancerTargets({
-      containerName: 'InfluxDBContainer',
-      containerPort: 8086,
-      newTargetGroupId: 'InfluxDBTargetGroup',
-      listener: ecs.ListenerConfig.applicationListener(influxDBAlbListener, {
+      containerName: 'InfluxDbContainer',
+      containerPort,
+      newTargetGroupId: 'InfluxDbTargetGroup',
+      listener: ecs.ListenerConfig.applicationListener(influxDbAlbListener, {
         protocol: elbv2.ApplicationProtocol.HTTP,
         healthCheck: {
           path: '/health',
@@ -167,7 +170,7 @@ export class InfluxDBStack extends cdk.NestedStack {
       })
     });
 
-    influxDBFileSystemSecurityGroup.connections.allowFrom(
+    influxDbFileSystemSecurityGroup.connections.allowFrom(
       influxdbService,
       ec2.Port.tcp(2049),
       'Allow access to EFS on port 2049'

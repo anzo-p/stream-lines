@@ -10,15 +10,15 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 
 export class WebSocketApiGatewayStack extends cdk.NestedStack {
-  readonly webSocketApiGatewayStageProdArn: string;
-  readonly webSocketApiGatewayConnectionsUrl: string;
+  readonly wsApiGatewayStageProdArn: string;
+  readonly wsApiGatewayConnectionsUrl: string;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     const roleWebSocketHandlerLambda = new iam.Role(
       this,
-      'LambdaRoleWebSocketHandler',
+      'WebSocketHandlerLambdaRole',
       {
         assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
         managedPolicies: [
@@ -54,13 +54,13 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
 
     const bucketWebSocketHandlerLambda = s3.Bucket.fromBucketName(
       this,
-      'LambdaCodeBucket',
+      'LambdaSourceBucket',
       `${process.env.S3_BUCKET_LAMBDAS}`
     );
 
     const webSocketHandlerLambda = new lambda.Function(
       this,
-      'WebSocketHandler',
+      'WebSocketHandlerLambda',
       {
         functionName: 'ApiGatewayWebSocketHandler',
         runtime: lambda.Runtime.NODEJS_20_X,
@@ -82,70 +82,62 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
       {
         connectRouteOptions: {
           integration: new apigw2_integr.WebSocketLambdaIntegration(
-            'WebSocketConnectionRoute',
+            'ConnectionRoute',
             webSocketHandlerLambda
           )
         },
         disconnectRouteOptions: {
           integration: new apigw2_integr.WebSocketLambdaIntegration(
-            'WebSocketDisconnectionRoute',
+            'DisconnectionRoute',
             webSocketHandlerLambda
           )
         },
         defaultRouteOptions: {
           integration: new apigw2_integr.WebSocketLambdaIntegration(
-            'WebSocketDefaultRoute',
+            'DefaultRoute',
             webSocketHandlerLambda
           )
         }
       }
     );
 
-    const webSocketApiGatewayStageProd = new apigw2.WebSocketStage(
-      this,
-      'WebSocketStageProd',
-      {
-        webSocketApi: webSocketApiGateway,
-        stageName: 'prod',
-        autoDeploy: true
-      }
-    );
+    const stageProd = new apigw2.WebSocketStage(this, 'StageProd', {
+      webSocketApi: webSocketApiGateway,
+      stageName: 'prod',
+      autoDeploy: true
+    });
 
-    this.webSocketApiGatewayStageProdArn = this.formatArn({
+    this.wsApiGatewayStageProdArn = this.formatArn({
       service: 'execute-api',
-      resourceName: `${webSocketApiGatewayStageProd.stageName}/POST/@connections/*`,
+      resourceName: `${stageProd.stageName}/POST/@connections/*`,
       resource: webSocketApiGateway.apiId
     });
 
     webSocketHandlerLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['execute-api:ManageConnections'],
-        resources: [this.webSocketApiGatewayStageProdArn]
+        resources: [this.wsApiGatewayStageProdArn]
       })
     );
 
-    this.webSocketApiGatewayConnectionsUrl =
+    this.wsApiGatewayConnectionsUrl =
       `https://${webSocketApiGateway.apiId}.execute-api.` +
       `${process.env.AWS_REGION}.amazonaws.com/` +
-      `${webSocketApiGatewayStageProd.stageName}`;
+      `${stageProd.stageName}`;
 
-    const apigwCustomDomain = new apigw2.DomainName(
-      this,
-      'WebSocketApiGatewayDomainName',
-      {
-        domainName: `${process.env.WS_API_DOMAIN_NAME}`,
-        certificate: acm.Certificate.fromCertificateArn(
-          this,
-          'Certificate',
-          `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_BACKEND_CERT}`
-        )
-      }
-    );
+    const apigwCustomDomain = new apigw2.DomainName(this, 'CustomDomainName', {
+      domainName: `${process.env.WS_API_DOMAIN_NAME}`,
+      certificate: acm.Certificate.fromCertificateArn(
+        this,
+        'Certificate',
+        `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_BACKEND_CERT}`
+      )
+    });
 
-    new apigw2.ApiMapping(this, 'WebSocketApiMapping', {
+    new apigw2.ApiMapping(this, 'ApiMapping', {
       api: webSocketApiGateway,
       domainName: apigwCustomDomain,
-      stage: webSocketApiGatewayStageProd
+      stage: stageProd
     });
 
     new route53.ARecord(this, 'WebSocketApiGatewayAliasRecord', {
