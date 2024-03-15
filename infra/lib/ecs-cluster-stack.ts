@@ -5,8 +5,8 @@ import { Construct } from 'constructs';
 
 export class EcsClusterStack extends cdk.NestedStack {
   readonly ecsCluster: ecs.Cluster;
-  readonly influxDbRepositoryName: string = 'control-tower-influxdb';
-  readonly ingestRepositoryName: string = 'control-tower-ingest';
+  readonly influxDbRepositoryName: string = 'stream-lines-influxdb';
+  readonly ingestRepositoryName: string = 'stream-lines-ingest';
 
   constructor(
     scope: Construct,

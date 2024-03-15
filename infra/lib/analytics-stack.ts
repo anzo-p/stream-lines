@@ -42,7 +42,7 @@ export class AnalyticsStack extends cdk.NestedStack {
     const ecrRepository = ecr.Repository.fromRepositoryName(
       this,
       'EcrRepository',
-      'control-tower-analytics'
+      'stream-lines-compute'
     );
 
     taskDefinition.addContainer('AnalyticsContainer', {

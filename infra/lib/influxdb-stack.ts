@@ -117,7 +117,7 @@ export class InfluxDbStack extends cdk.NestedStack {
     const ecrRepository = ecr.Repository.fromRepositoryName(
       this,
       'StreamLinesEcrRepository',
-      'control-tower-influxdb'
+      'stream-lines-influxdb'
     );
 
     const containerPort = parseInt(process.env.INFLUX_SERVER_PORT!);

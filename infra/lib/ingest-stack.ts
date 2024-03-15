@@ -1,4 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
+import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
@@ -37,8 +38,8 @@ export class IngestStack extends cdk.NestedStack {
 
     const ecrRepository = ecr.Repository.fromRepositoryName(
       this,
-      'ECRRepository',
-      'control-tower-ingest'
+      'EcrRepository',
+      'stream-lines-ingest'
     );
 
     taskDefinition.addContainer('IngestContainer', {
@@ -57,7 +58,7 @@ export class IngestStack extends cdk.NestedStack {
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'ingest' })
     });
 
-    new ecs.FargateService(this, 'IngestEcsService', {
+    const ingestService = new ecs.FargateService(this, 'IngestEcsService', {
       cluster: ecsCluster,
       taskDefinition,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
@@ -65,5 +66,29 @@ export class IngestStack extends cdk.NestedStack {
       desiredCount: 1,
       assignPublicIp: true
     });
+
+    /*
+    const cpuUtilizationMetric = new cloudwatch.Metric({
+      namespace: 'AWS/ECS',
+      metricName: 'CPUUtilization',
+      dimensionsMap: {
+        ClusterName: ecsCluster.clusterName,
+        ServiceName: ingestService.serviceName
+      },
+      statistic: 'SampleCount',
+      period: cdk.Duration.minutes(1)
+    });
+
+    new cloudwatch.Alarm(this, 'AlarmIngestNoRunningInstances', {
+      alarmName: 'AlarmIngestNoRunningInstances',
+      alarmDescription: 'Alarm if no Ingest instances are running',
+      metric: cpuUtilizationMetric,
+      comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+      threshold: 1,
+      evaluationPeriods: 1,
+      actionsEnabled: true,
+      treatMissingData: cloudwatch.TreatMissingData.BREACHING
+    });
+    */
   }
 }

@@ -40,7 +40,7 @@ export class BackendStack extends cdk.NestedStack {
     const ecrRepository = ecr.Repository.fromRepositoryName(
       this,
       'EcrRepository',
-      'control-tower-backend'
+      'stream-lines-backend'
     );
 
     const containerPort = process.env.BACKEND_SERVER_PORT!;
