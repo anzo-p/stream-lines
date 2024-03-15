@@ -8,9 +8,9 @@ export class DynamodbStack extends cdk.Stack {
 
     const table = new dynamodb.Table(
       this,
-      "ControlTowerWebsocketConnectionTable",
+      "StreamLinesWebsocketConnectionTable",
       {
-        tableName: "ControlTowerWebsocketConnectionTable",
+        tableName: "StreamLinesWebsocketConnectionTable",
         partitionKey: {
           name: "connectionId",
           type: dynamodb.AttributeType.STRING,
@@ -21,7 +21,7 @@ export class DynamodbStack extends cdk.Stack {
     );
 
     table.addGlobalSecondaryIndex({
-      indexName: "ControlTowerWebsocketGetConnectionsBySymbolIndex",
+      indexName: "StreamLinesWebsocketGetConnectionsBySymbolIndex",
       partitionKey: {
         name: "symbol",
         type: dynamodb.AttributeType.STRING,
