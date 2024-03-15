@@ -19,9 +19,9 @@ RUN rm -f ./target/release/deps/ingest* && \
 FROM debian:bullseye-20240211-slim
 
 # OpenSSL
-RUN apt-get update
-RUN apt-get install -y libssl1.1 ca-certificates
-RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update &&  \
+    apt-get install -y libssl1.1 ca-certificates &&  \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /ingest/target/release/ingest .
 COPY ./app_config.json ./
