@@ -55,7 +55,7 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
     const bucketWebSocketHandlerLambda = s3.Bucket.fromBucketName(
       this,
       'LambdaSourceBucket',
-      `${process.env.S3_BUCKET_LAMBDAS}`
+      `${process.env.S3_APP_BUCKET}`
     );
 
     const webSocketHandlerLambda = new lambda.Function(

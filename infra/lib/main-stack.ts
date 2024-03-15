@@ -5,7 +5,7 @@ import { AnalyticsStack } from './analytics-stack';
 import { BackendStack } from './backend-stack';
 import { DashboardStack } from './dashboard-stack';
 import { EcsClusterStack } from './ecs-cluster-stack';
-import { EcsTaskExecutionRole } from './ecr-exec-task-role';
+import { EcsTaskExecutionRole } from './ecs-task-exec-role';
 import { InfluxDbStack } from './influxdb-stack';
 import { IngestStack } from './ingest-stack';
 import { KinesisStreamsStack } from './kinesis-stack';
@@ -40,8 +40,7 @@ export class StreamLines extends cdk.Stack {
 
     const taskExecRoleStack = new EcsTaskExecutionRole(
       this,
-      'StreamLinesEcsTaskExecRole',
-      [ecsCluster.influxDbRepositoryName, ecsCluster.ingestRepositoryName]
+      'StreamLinesEcsTaskExecRole'
     );
 
     const influxStack = new InfluxDbStack(
@@ -57,7 +56,8 @@ export class StreamLines extends cdk.Stack {
       this,
       'IngestStack',
       ecsCluster.ecsCluster,
-      taskExecRoleStack.role
+      taskExecRoleStack.role,
+      kinesisStack.writeUpstreamPerms
     );
     ingestStack.addDependency(kinesisStack);
 
@@ -65,7 +65,9 @@ export class StreamLines extends cdk.Stack {
       this,
       'AnalyticsStack',
       ecsCluster.ecsCluster,
-      taskExecRoleStack.role
+      taskExecRoleStack.role,
+      kinesisStack.readUpstreamPerms,
+      kinesisStack.writeDownstreamPerms
     );
     analyticsStack.addDependency(kinesisStack);
     analyticsStack.addDependency(influxStack);

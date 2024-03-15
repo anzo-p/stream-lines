@@ -11,6 +11,8 @@ export class AnalyticsStack extends cdk.NestedStack {
     id: string,
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
+    readKinesisUpstreamPerms: iam.PolicyStatement,
+    writeKinesisDownStreamPerms: iam.PolicyStatement,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
@@ -24,12 +26,36 @@ export class AnalyticsStack extends cdk.NestedStack {
       }
     );
 
+    const taskRole = new iam.Role(this, 'TaskRole', {
+      assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
+    });
+
+    taskRole.addToPolicy(readKinesisUpstreamPerms);
+    taskRole.addToPolicy(writeKinesisDownStreamPerms);
+
+    taskRole.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          's3:DeleteObject',
+          's3:GetObject',
+          's3:ListBucket',
+          's3:PutObject'
+        ],
+        resources: [
+          `arn:aws:s3:::${process.env.S3_APP_BUCKET}`,
+          `arn:aws:s3:::${process.env.S3_APP_BUCKET}/*`
+        ]
+      })
+    );
+
     const taskDefinition = new ecs.FargateTaskDefinition(
       this,
       'AnalyticsTaskDefinition',
       {
         family: 'AnalyticsTaskDefinition',
         executionRole,
+        taskRole,
         runtimePlatform: {
           operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
           cpuArchitecture: ecs.CpuArchitecture.ARM64
@@ -50,9 +76,6 @@ export class AnalyticsStack extends cdk.NestedStack {
       memoryLimitMiB: 1024,
       cpu: 512,
       environment: {
-        AWS_ACCESS_KEY_ID: `${process.env.AWS_ACCESS_KEY_ID}`,
-        AWS_SECRET_ACCESS_KEY: `${process.env.AWS_SECRET_ACCESS_KEY}`,
-        AWS_REGION: `${process.env.AWS_REGION}`,
         CHECKPOINT_PATH: `${process.env.FLINK_CHECKPOINTS_PATH},`,
         INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
         INFLUXDB_BUCKET: `${process.env.INFLUXDB_INIT_BUCKET}`,

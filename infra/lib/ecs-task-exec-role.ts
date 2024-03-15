@@ -5,12 +5,7 @@ import { Construct } from 'constructs';
 export class EcsTaskExecutionRole extends cdk.NestedStack {
   readonly role: iam.Role;
 
-  constructor(
-    scope: Construct,
-    id: string,
-    repositories: string[],
-    props?: cdk.StackProps
-  ) {
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     const ecsTaskExecutionRole = new iam.Role(
@@ -21,21 +16,6 @@ export class EcsTaskExecutionRole extends cdk.NestedStack {
         roleName: 'ECSTaskExecutionRole',
         path: '/'
       }
-    );
-
-    ecsTaskExecutionRole.addToPolicy(
-      new iam.PolicyStatement({
-        effect: iam.Effect.ALLOW,
-        actions: [
-          'ecr:GetAuthorizationToken',
-          'ecr:BatchCheckLayerAvailability',
-          'ecr:GetDownloadUrlForLayer',
-          'ecr:BatchGetImage'
-        ],
-        resources: repositories.map((repository) => {
-          return `arn:aws:ecr:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:repository/${repository}`;
-        })
-      })
     );
 
     ecsTaskExecutionRole.addToPolicy(

@@ -7,6 +7,41 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 
 export class KinesisStreamsStack extends cdk.NestedStack {
+  readonly writeUpstreamPerms: iam.PolicyStatement;
+  readonly readUpstreamPerms: iam.PolicyStatement;
+  readonly writeDownstreamPerms: iam.PolicyStatement;
+
+  makeWriteAccessPolicy(streamName: string): iam.PolicyStatement {
+    return new iam.PolicyStatement({
+      actions: [
+        'kinesis:PutRecord',
+        'kinesis:PutRecords',
+        'kinesis:DescribeStream'
+      ],
+      effect: iam.Effect.ALLOW,
+      resources: [
+        `arn:aws:kinesis:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:stream/${streamName}`
+      ]
+    });
+  }
+
+  makeReadAccessPolicy(streamName: string): iam.PolicyStatement {
+    return new iam.PolicyStatement({
+      actions: [
+        'kinesis:DescribeStream',
+        'kinesis:GetRecord',
+        'kinesis:GetRecords',
+        'kinesis:GetShardIterator',
+        'kinesis:ListShards',
+        'kinesis:SubscribeToShard'
+      ],
+      effect: iam.Effect.ALLOW,
+      resources: [
+        `arn:aws:kinesis:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:stream/${streamName}`
+      ]
+    });
+  }
+
   constructor(
     scope: Construct,
     id: string,
@@ -65,20 +100,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
     );
 
     roleResultsStreamPusherLambda.addToPolicy(
-      new iam.PolicyStatement({
-        actions: [
-          'kinesis:DescribeStream',
-          'kinesis:GetRecord',
-          'kinesis:GetRecords',
-          'kinesis:GetShardIterator',
-          'kinesis:ListShards',
-          'kinesis:SubscribeToShard'
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: [
-          `arn:aws:kinesis:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:stream/${resultsStream.streamName}`
-        ]
-      })
+      this.makeReadAccessPolicy(resultsStream.streamName)
     );
 
     roleResultsStreamPusherLambda.addToPolicy(
@@ -91,7 +113,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
     const bucketResultStreamPusherLambda = s3.Bucket.fromBucketName(
       this,
       'LambdaSourceBucket',
-      `${process.env.S3_BUCKET_LAMBDAS}`
+      `${process.env.S3_APP_BUCKET}`
     );
 
     const resultsStreamPusherLambda = new lambda.Function(
@@ -121,6 +143,16 @@ export class KinesisStreamsStack extends cdk.NestedStack {
         maxBatchingWindow: cdk.Duration.seconds(15),
         retryAttempts: 3
       })
+    );
+
+    this.writeUpstreamPerms = this.makeWriteAccessPolicy(
+      'stream-lines-market-data-upstream'
+    );
+    this.readUpstreamPerms = this.makeReadAccessPolicy(
+      'stream-lines-market-data-upstream'
+    );
+    this.writeDownstreamPerms = this.makeWriteAccessPolicy(
+      'stream-lines-results-downstream'
     );
   }
 }
