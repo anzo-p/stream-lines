@@ -17,13 +17,13 @@ export class KinesisStreamsStack extends cdk.NestedStack {
     super(scope, id, props);
 
     new kinesis.Stream(this, 'MarketDataUpStream', {
-      streamName: 'control-tower-market-data-upstream',
+      streamName: 'stream-lines-market-data-upstream',
       shardCount: 2,
       retentionPeriod: cdk.Duration.hours(24)
     });
 
     const resultsStream = new kinesis.Stream(this, 'ResultsDownStream', {
-      streamName: 'control-tower-results-downstream',
+      streamName: 'stream-lines-results-downstream',
       shardCount: 2,
       retentionPeriod: cdk.Duration.hours(24)
     });
