@@ -1,4 +1,4 @@
-name: Stream Lines Compute CI/CD
+name: Analytics CI/CD
 
 on:
   push:

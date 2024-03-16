@@ -1,4 +1,4 @@
-name: Stream Lines Ingest CI/CD
+name: Ingest CI/CD
 
 on:
   push:

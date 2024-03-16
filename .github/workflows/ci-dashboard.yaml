@@ -1,4 +1,4 @@
-name: Stream Lines Dashboard CI/CD
+name: Dashboard CI/CD
 
 on:
   push:

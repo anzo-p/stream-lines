@@ -1,0 +1,36 @@
+name: ApiGw ws conns handler CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "lambdas/websocket_connection_handler/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "lambdas/websocket_connection_handler/**"
+  workflow_dispatch:
+
+jobs:
+  deploy_lambda:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
+
+      - name: Deploy Lambda function
+        run: |
+          cd lambdas/websocket_connection_handler
+          ./deploy.sh
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET: ${{ secrets.S3_APP_BUCKET }}
