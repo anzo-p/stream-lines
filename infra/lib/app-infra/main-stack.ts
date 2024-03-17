@@ -12,7 +12,7 @@ import { KinesisStreamsStack } from './kinesis-stack';
 import { VpcStack } from './vpc-stack';
 import { WebSocketApiGatewayStack } from './api-gateway-stack';
 
-export class StreamLines extends cdk.Stack {
+export class AppInfraStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 

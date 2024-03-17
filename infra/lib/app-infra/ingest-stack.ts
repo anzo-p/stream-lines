@@ -62,7 +62,7 @@ export class IngestStack extends cdk.NestedStack {
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'ingest' })
     });
 
-    const ingestService = new ecs.FargateService(this, 'IngestEcsService', {
+    new ecs.FargateService(this, 'IngestEcsService', {
       cluster: ecsCluster,
       taskDefinition,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
