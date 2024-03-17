@@ -9,7 +9,7 @@ services:
     volumes:
       - influxdb-data:/var/lib/influxdb2
     environment:
-      - INFLUXDB_DB=control_tower_influx
+      - INFLUXDB_DB=stream-lines-influxdb
 
 volumes:
   influxdb-data:
