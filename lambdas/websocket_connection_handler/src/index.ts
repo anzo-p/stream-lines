@@ -6,7 +6,7 @@ import { isSubscriptionMessage } from './types';
 
 export const handler: APIGatewayProxyWebsocketHandlerV2 = async (event: APIGatewayProxyWebsocketEventV2) => {
   const apiGwClient = new ApiGatewayManagementApiClient({
-    endpoint: `https://${event.requestContext.domainName}/${event.requestContext.stage}`
+    endpoint: process.env.API_GW_CONNECTIONS_URL
   });
 
   const connectionId = event.requestContext.connectionId;

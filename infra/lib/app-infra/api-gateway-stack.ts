@@ -125,6 +125,17 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
       `${process.env.AWS_REGION}.amazonaws.com/` +
       `${stageProd.stageName}`;
 
+    /*
+      Handler lambda must exist before api gateway to handle its routes
+      and only after api gatway exists and has a stage, may we have the @connections URL.
+      The event.requestContext, that the lambda will receive, cannot be used
+      because it is now overridden with a custom domain over secured wss protocol.
+    */
+    webSocketHandlerLambda.addEnvironment(
+      'API_GW_CONNECTIONS_URL',
+      `${this.wsApiGatewayConnectionsUrl}`
+    );
+
     const apigwCustomDomain = new apigw2.DomainName(this, 'CustomDomainName', {
       domainName: `${process.env.WS_API_DOMAIN_NAME}`,
       certificate: acm.Certificate.fromCertificateArn(
