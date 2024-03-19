@@ -21,11 +21,6 @@ export const handler: KinesisStreamHandler = async (event: KinesisStreamEvent) =
         subscribersMessages[connectionId].push(message);
       }
     });
-
-    for (const [connectionId, messages] of Object.entries(subscribersMessages)) {
-      await sendMessage(connectionId, messages);
-      delete subscribersMessages[connectionId];
-    }
   }
 
   for (const record of event.Records) {
@@ -43,6 +38,11 @@ export const handler: KinesisStreamHandler = async (event: KinesisStreamEvent) =
       console.error(`Error parsing payload: ${payload}`);
       continue;
     }
+  }
+
+  for (const [connectionId, messages] of Object.entries(subscribersMessages)) {
+    await sendMessage(connectionId, messages);
+    delete subscribersMessages[connectionId];
   }
 };
 
