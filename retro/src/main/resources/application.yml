@@ -1,0 +1,17 @@
+alpaca:
+  daily_bars_url: https://data.alpaca.markets/v2/stocks/bars?feed=sip
+  earliest_historical_date: 2016-01-01
+  max_calls_per_minute: 200
+
+influxdb:
+  url: http://localhost:8086
+  token: eaIaS9KpUMhTjAZU5mzkEcMamgaUzv_TN3QTWb4hxHhqXsMulW_t7erZKP_j60SV7IgHb28Z1rbWm-WFZ2AbDQ==
+  organization: stream-lines
+  bucket: stream-lines-daily-bars
+
+tickers:
+  - AAPL
+  - MSFT
+  - GOOG
+  - AMZN
+  - TSLA
