@@ -1,0 +1,313 @@
+tickers:
+  - symbol: AAPL
+    company: "Apple, Inc."
+
+  - symbol: ABBV
+    company: "AbbVie, Inc."
+
+  - symbol: ABNB
+    company: "Airbnb, Inc."
+
+  - symbol: ABT
+    company: "Abbott Laboratories"
+
+  - symbol: ACN
+    company: "Accenture Plc"
+
+  - symbol: ADBE
+    company: "Adobe, Inc."
+
+  - symbol: ADI
+    company: "Analog Devices, Inc."
+
+  - symbol: ADP
+    company: "Automatic Data Processing, Inc."
+
+  - symbol: AMAT
+    company: "Applied Materials, Inc."
+
+  - symbol: AMGN
+    company: "Amgen, Inc."
+
+  - symbol: AMD
+    company: "Advanced Micro Devices, Inc."
+
+  - symbol: AMT
+    company: "American Tower Corporation"
+
+  - symbol: AMZN
+    company: "Amazon.com, Inc."
+
+  - symbol: ANET
+    company: "Arista Networks, Inc."
+
+  - symbol: AVGO
+    company: "Broadcom, Inc."
+
+  - symbol: AXP
+    company: "American Express Company"
+
+  - symbol: BA
+    company: "The Boeing Company"
+
+  - symbol: BAC
+    company: "Bank of America Corporation"
+
+  - symbol: BKNG
+    company: "Booking Holdings, Inc."
+
+  - symbol: BLK
+    company: "BlackRock, Inc."
+
+  - symbol: BRK.B
+    company: "Berkshire Hathaway, Inc."
+    series : B
+
+  - symbol: BSX
+    company: "Boston Scientific Corporation"
+
+  - symbol: C
+    company: "Citigroup, Inc."
+
+  - symbol: CAT
+    company: "Caterpillar, Inc."
+
+  - symbol: CB
+    company: "Chubb Limited"
+
+  - symbol: CI
+    company: "The Cigna Group"
+
+  - symbol: CMCSA
+    company: "Comcast Corporation"
+
+  - symbol: COP
+    company: "ConocoPhillips"
+
+  - symbol: COST
+    company: "Costco Wholesale Corporation"
+
+  - symbol: CRM
+    company: "Salesforce.com, Inc."
+
+  - symbol: CRWD
+    company: "CrowdStrike Holdings, Inc."
+
+  - symbol: CSCO
+    company: "Cisco Systems, Inc."
+
+  - symbol: CVX
+    company: "Chevron Corporation"
+
+  - symbol: DE
+    company: "Deere & Company"
+
+  - symbol: DHR
+    company: "Danaher Corporation"
+
+  - symbol: DIS
+    company: "The Walt Disney Company"
+
+  - symbol: ELV
+    company: "Elevance Health, Inc."
+
+  - symbol: ETN
+    company: "Eaton Corporation Plc"
+
+  - symbol: GE
+    company: "GE Aerospace"
+
+  - symbol: GOOGL
+    company: "Alphabet, Inc."
+    series : A
+
+  - symbol: GOOG
+    company: "Alphabet, Inc."
+    series : C
+
+  - symbol: GS
+    company: "The Goldman Sachs Group, Inc."
+
+  - symbol: HD
+    company: "The Home Depot, Inc."
+
+  - symbol: HON
+    company: "Honeywell International, Inc."
+
+  - symbol: IBM
+    company: "International Business Machines Corporation"
+
+  - symbol: INTL
+    company: "Intel Corporation"
+
+  - symbol: INTU
+    company: "Intuit, Inc."
+
+  - symbol: ISRG
+    company: "Intuitive Surgical, Inc."
+
+  - symbol: JNJ
+    company: "Johnson & Johnson"
+
+  - symbol: JPM
+    company: "JPMorgan Chase & Co."
+
+  - symbol: KLAC
+    company: "KLA Corporation"
+
+  - symbol: KKR
+    company: "KKR & Co., Inc."
+
+  - symbol: KO
+    company: "The Coca-Cola Company"
+
+  - symbol: LIN
+    company: "Linde Plc"
+
+  - symbol: LLY
+    company: "Eli Lilly & Co"
+
+  - symbol: LMT
+    company: "Lockheed Martin Corporation"
+
+  - symbol: LOW
+    company: "Lowe's Companies, Inc."
+
+  - symbol: LRCX
+    company: "Lam Research Corporation"
+
+  - symbol: MA
+    company: "Mastercard, Inc."
+
+  - symbol: MCD
+    company: "McDonald's Corporation"
+
+  - symbol: MDT
+    company: "Medtronic Plc"
+
+  - symbol: META
+    company: "Meta Platforms, Inc."
+    series : A
+
+  - symbol: MMC
+    company: "Marsh & McLennan Companies, Inc."
+
+  - symbol: MRK
+    company: "Merck & Co., Inc."
+
+  - symbol: MS
+    company: "Morgan Stanley"
+
+  - symbol: MSFT
+    company: "Microsoft Corporation"
+
+  - symbol: MU
+    company: "Micron Technology, Inc."
+
+  - symbol: NEE
+    company: "NextEra Energy, Inc."
+
+  - symbol: NFLX
+    company: "Netflix, Inc."
+
+  - symbol: NKE
+    company: "NIKE, Inc."
+
+  - symbol: NOW
+    company: "ServiceNow, Inc."
+
+  - symbol: NVDA
+    company: "NVIDIA Corporation"
+
+  - symbol: ORCL
+    company: "Oracle Corporation"
+
+  - symbol: PANW
+    company: "Palo Alto Networks, Inc."
+
+  - symbol: PEP
+    company: "PepsiCo, Inc."
+
+  - symbol: PFE
+    company: "Pfizer, Inc."
+
+  - symbol: PLD
+    company: "Prologis, Inc."
+
+  - symbol: PG
+    company: "The Procter & Gamble Company"
+
+  - symbol: PGR
+    company: "Progressive Corporation"
+
+  - symbol: PM
+    company: "Philip Morris International, Inc."
+
+  - symbol: QCOM
+    company: "QUALCOMM, Inc."
+
+  - symbol: REGN
+    company: "Regeneron Pharmaceuticals, Inc."
+
+  - symbol: RTX
+    company: "RTX Corporation"
+
+  - symbol: SCHW
+    company: "The Charles Schwab Corporation"
+
+  - symbol: SNPS
+    company: "Synopsys, Inc."
+
+  - symbol: SPGI
+    company: "S&P Global, Inc."
+
+  - symbol: SYK
+    company: "Stryker Corporation"
+
+  - symbol: T
+    company: "AT&T, Inc."
+
+  - symbol: TJX
+    company: "The TJX Companies, Inc."
+
+  - symbol: TMO
+    company: "Thermo Fisher Scientific, Inc."
+
+  - symbol: TMUS
+    company: "T-Mobile US, Inc."
+
+  - symbol: TSLA
+    company: "Tesla, Inc."
+
+  - symbol: TXN
+    company: "Texas Instruments, Incorporated"
+
+  - symbol: UBER
+    company: "Uber Technologies, Inc."
+
+  - symbol: UNP
+    company: "Union Pacific Corporation"
+
+  - symbol: UNH
+    company: "UnitedHealth Group, Inc."
+
+  - symbol: UPS
+    company: "United Parcel Service, Inc."
+
+  - symbol: V
+    company: "Visa, Inc."
+
+  - symbol: VRTX
+    company: "Vertex Pharmaceuticals, Inc."
+
+  - symbol: VZ
+    company: "Verizon Communications, Inc."
+
+  - symbol: WFC
+    company: "Wells Fargo & Company"
+
+  - symbol: WMT
+    company: "Walmart, Inc."
+
+  - symbol: XOM
+    company: "Exxon Mobil Corporation"

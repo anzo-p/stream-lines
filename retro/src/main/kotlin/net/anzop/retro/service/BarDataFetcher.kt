@@ -3,7 +3,7 @@ package net.anzop.retro.service
 import java.net.URI
 import java.time.OffsetDateTime
 import net.anzop.retro.config.AlpacaProps
-import net.anzop.retro.config.Tickers
+import net.anzop.retro.config.TickerConfig
 import net.anzop.retro.helpers.buildUri
 import net.anzop.retro.helpers.getRequest
 import net.anzop.retro.helpers.resolveStartDate
@@ -14,7 +14,7 @@ import org.springframework.web.reactive.function.client.WebClient
 
 @Service
 class BarDataFetcher(
-    private val tickerConfig: Tickers,
+    private val tickerConfig: TickerConfig,
     private val alpacaProps: AlpacaProps,
     private val webClient: WebClient,
     private val barDataRepository: BarDataRepository
@@ -30,8 +30,8 @@ class BarDataFetcher(
         tickerConfig.tickers.forEach { ticker ->
             throttle()
 
-            val startDate = resolveStartDate(ticker, measurement) ?: return@forEach
-            processTicker(ticker, measurement, startDate)
+            val startDate = resolveStartDate(ticker.symbol, measurement) ?: return@forEach
+            processTicker(ticker.symbol, measurement, startDate)
         }
 
     private fun resolveStartDate(ticker: String, measurement: String): OffsetDateTime? {
@@ -39,17 +39,24 @@ class BarDataFetcher(
         logger.info("Last known fetch date for $ticker is $lastKnownFetchDate")
 
         val startDate = resolveStartDate(lastKnownFetchDate, alpacaProps.earliestHistoricalDate)
-        logger.info("Fetching data for $ticker from $startDate")
+        logger.info("startDate was set to $startDate")
         return startDate
     }
 
-    private fun handleResponse(response: BarsResponse?, measurement: String) =
+    private fun handleResponse(ticker: String, response: BarsResponse?, measurement: String) =
         response?.let { body ->
-            logger.info("Fetched ${body.bars.values.sumOf { it.size }} items")
-
-            body.bars.forEach { (ticker, bars) ->
-                bars.map { bar -> bar.toModel(ticker, measurement) }
-                    .forEach(barDataRepository::save)
+            val n = body.bars.values.sumOf { it.size }
+            when {
+                n == 0 -> {
+                    logger.warn("No bars fetched. Perhaps ticker: $ticker is invalid or outdated.")
+                }
+                else -> {
+                    logger.info("Fetched $n bars for $ticker")
+                    body.bars.forEach { (ticker, bars) ->
+                        bars.map { bar -> bar.toModel(ticker, measurement) }
+                            .forEach(barDataRepository::save)
+                    }
+                }
             }
         }
 
@@ -70,7 +77,7 @@ class BarDataFetcher(
             pageToken = pageToken
         )
         val response = webClient.getRequest<BarsResponse>(uri)
-        handleResponse(response, measurement)
+        handleResponse(ticker, response, measurement)
 
         response?.nextPageToken?.takeIf { it.isNotEmpty() }?.let { nextPage ->
             return processTicker(ticker, measurement, startDate, nextPage)
