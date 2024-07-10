@@ -11,6 +11,6 @@ data class BarData(
     val lowPrice: Double,
     val numberOfTrades: Long,
     val volume: Long,
-    val volumeWeighted: Double,
+    val volumeWeightedAvgPrice: Double,
     val marketTimestamp: OffsetDateTime,
 )

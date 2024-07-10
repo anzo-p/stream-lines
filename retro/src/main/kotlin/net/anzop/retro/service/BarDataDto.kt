@@ -36,7 +36,7 @@ data class BarDataDto(
 
     @SerialName("vw")
     @field:Min(0)
-    val volumeWeighted: Double,
+    val volumeWeightedAvgPrice: Double,
 
     @SerialName("t")
     @Serializable(with = OffsetDateTimeSerializer::class)
@@ -53,7 +53,7 @@ data class BarDataDto(
             lowPrice = lowPrice,
             numberOfTrades = numBerOfTrades,
             volume = volume,
-            volumeWeighted = volumeWeighted,
+            volumeWeightedAvgPrice = volumeWeightedAvgPrice,
             marketTimestamp = marketTimestamp,
         )
 }
