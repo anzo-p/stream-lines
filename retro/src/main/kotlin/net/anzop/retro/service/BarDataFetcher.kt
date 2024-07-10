@@ -9,8 +9,6 @@ import net.anzop.retro.helpers.getRequest
 import net.anzop.retro.helpers.resolveStartDate
 import net.anzop.retro.repository.BarDataRepository
 import org.slf4j.LoggerFactory
-import org.springframework.boot.context.event.ApplicationReadyEvent
-import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 
@@ -24,9 +22,7 @@ class BarDataFetcher(
 
     private val logger = LoggerFactory.getLogger(BarDataFetcher::class.java)
 
-    @EventListener(ApplicationReadyEvent::class)
-    fun onApplicationReady() {
-        logger.info("Application started. Running initial task...")
+    fun run() {
         run("1Day")
     }
 
@@ -49,7 +45,7 @@ class BarDataFetcher(
 
     private fun handleResponse(response: BarsResponse?, measurement: String) =
         response?.let { body ->
-            logger.info("Fetched ${body.bars.values.sumOf(List<BarDataDto>::size)} items")
+            logger.info("Fetched ${body.bars.values.sumOf { it.size }} items")
 
             body.bars.forEach { (ticker, bars) ->
                 bars.map { bar -> bar.toModel(ticker, measurement) }
