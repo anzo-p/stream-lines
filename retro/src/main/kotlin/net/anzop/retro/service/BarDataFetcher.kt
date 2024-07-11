@@ -3,7 +3,7 @@ package net.anzop.retro.service
 import java.net.URI
 import java.time.OffsetDateTime
 import net.anzop.retro.config.AlpacaProps
-import net.anzop.retro.config.TickerConfig
+import net.anzop.retro.config.tickerConfig.TickerConfig
 import net.anzop.retro.helpers.buildUri
 import net.anzop.retro.helpers.getRequest
 import net.anzop.retro.helpers.resolveStartDate

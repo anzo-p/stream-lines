@@ -9,10 +9,12 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Component
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.reactive.function.client.WebClient
 
 @Component
 @ConfigurationProperties(prefix = "alpaca")
+@Validated
 class AlpacaProps {
     class Authentication {
         @NotBlank
