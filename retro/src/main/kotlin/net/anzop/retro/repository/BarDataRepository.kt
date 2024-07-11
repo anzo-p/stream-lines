@@ -3,7 +3,7 @@ package net.anzop.retro.repository
 import com.influxdb.client.InfluxDBClient
 import com.influxdb.client.domain.WritePrecision
 import com.influxdb.client.write.Point
-import com.influxdb.query.FluxTable
+import com.influxdb.query.FluxRecord
 import com.influxdb.query.dsl.Flux
 import com.influxdb.query.dsl.functions.restriction.Restrictions
 import java.time.Instant
@@ -32,8 +32,6 @@ class BarDataRepository (
             .toString()
 
         return runQuery(flux)
-            .firstOrNull()
-            ?.records
             ?.firstOrNull()
             ?.time
     }
@@ -54,8 +52,10 @@ class BarDataRepository (
         influxDBClient.writeApiBlocking.writePoint(point)
     }
 
-    private fun runQuery(q: String): MutableList<FluxTable> =
+    private fun runQuery(q: String): List<FluxRecord>? =
         influxDBClient
             .queryApi
             .query(q)
+            .firstOrNull()
+            ?.records
 }

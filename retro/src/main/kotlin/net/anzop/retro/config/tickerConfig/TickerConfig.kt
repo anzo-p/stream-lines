@@ -9,7 +9,7 @@ import org.springframework.validation.annotation.Validated
 data class Ticker(
 
     @NotBlank
-    @field:Pattern(regexp = "^[A-Z.]{1,5}\$", message = "Symbol must have 1-5 uppercase letters or a period.")
+    @field:Pattern(regexp = "^[A-Z.]{1,5}\$", message = "Symbol must have 1-5 uppercase letters. Period also allowed.")
     val symbol: String,
 
     @NotBlank
@@ -24,6 +24,5 @@ data class Ticker(
 @UniqueSymbols
 @UniqueCompany
 data class TickerConfig(
-
     val tickers: List<Ticker>
 )

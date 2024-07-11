@@ -5,7 +5,7 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import org.springframework.web.util.UriComponentsBuilder
 
-fun buildUri(
+fun buildHistoricalBarsUri(
     baseUrl: URI,
     feed: String,
     symbols: List<String>,

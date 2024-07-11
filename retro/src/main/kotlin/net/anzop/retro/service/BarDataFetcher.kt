@@ -4,7 +4,7 @@ import java.net.URI
 import java.time.OffsetDateTime
 import net.anzop.retro.config.AlpacaProps
 import net.anzop.retro.config.tickerConfig.TickerConfig
-import net.anzop.retro.helpers.buildUri
+import net.anzop.retro.helpers.buildHistoricalBarsUri
 import net.anzop.retro.helpers.getRequest
 import net.anzop.retro.helpers.resolveStartDate
 import net.anzop.retro.repository.BarDataRepository
@@ -14,27 +14,24 @@ import org.springframework.web.reactive.function.client.WebClient
 
 @Service
 class BarDataFetcher(
-    private val tickerConfig: TickerConfig,
     private val alpacaProps: AlpacaProps,
-    private val webClient: WebClient,
-    private val barDataRepository: BarDataRepository
+    private val tickerConfig: TickerConfig,
+    private val barDataRepository: BarDataRepository,
+    private val webClient: WebClient
 ) {
-
     private val logger = LoggerFactory.getLogger(BarDataFetcher::class.java)
 
     fun run() {
         run("1Day")
     }
 
-    fun run(measurement: String) =
+    private fun run(measurement: String) =
         tickerConfig.tickers.forEach { ticker ->
-            throttle()
-
-            val startDate = resolveStartDate(ticker.symbol, measurement) ?: return@forEach
+            val startDate = getStartDate(ticker.symbol, measurement) ?: return@forEach
             processTicker(ticker.symbol, measurement, startDate)
         }
 
-    private fun resolveStartDate(ticker: String, measurement: String): OffsetDateTime? {
+    private fun getStartDate(ticker: String, measurement: String): OffsetDateTime? {
         val lastKnownFetchDate = barDataRepository.getLatestMeasurementTime(ticker, measurement)
         logger.info("Last known fetch date for $ticker is $lastKnownFetchDate")
 
@@ -48,12 +45,13 @@ class BarDataFetcher(
             val n = body.bars.values.sumOf { it.size }
             when {
                 n == 0 -> {
-                    logger.warn("No bars fetched. Perhaps ticker: $ticker is invalid or outdated.")
+                    logger.warn("Response for historical bars from Alpaca is empty. Perhaps ticker: $ticker is invalid or outdated.")
                 }
                 else -> {
                     logger.info("Fetched $n bars for $ticker")
                     body.bars.forEach { (ticker, bars) ->
-                        bars.map { bar -> bar.toModel(ticker, measurement) }
+                        bars
+                            .map { bar -> bar.toModel(ticker, measurement) }
                             .forEach(barDataRepository::save)
                     }
                 }
@@ -68,7 +66,7 @@ class BarDataFetcher(
     ) {
         throttle()
 
-        val uri = buildUri(
+        val uri = buildHistoricalBarsUri(
             baseUrl = URI.create(alpacaProps.dailyBarsUrl),
             feed = alpacaProps.dataSource,
             symbols = listOf(ticker),

@@ -17,7 +17,7 @@ inline fun <reified T> WebClient.getRequest(url: URI): T? =
         .block()
 
 fun ClientResponse.handleError(): Mono<out Throwable> {
-    val logger = org.slf4j.LoggerFactory.getLogger("net.anzop.retro.helpers.http")!!
+    val logger = org.slf4j.LoggerFactory.getLogger("net.anzop.retro.helpers.webclient.handleError")!!
 
     when (this.statusCode().value()) {
         HttpStatus.BAD_REQUEST.value() -> {
