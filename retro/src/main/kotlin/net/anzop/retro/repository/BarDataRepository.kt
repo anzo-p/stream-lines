@@ -10,6 +10,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import net.anzop.retro.config.InfluxDBConfig
 import net.anzop.retro.model.BarData
+import net.anzop.retro.model.Measurement
 import org.springframework.stereotype.Repository
 
 @Repository
@@ -18,13 +19,13 @@ class BarDataRepository (
     private val influxDBClient: InfluxDBClient
 ) {
 
-    fun getLatestMeasurementTime(ticker: String, measurement: String): Instant? {
+    fun getLatestMeasurementTime(measurement: Measurement, ticker: String): Instant? {
         val flux = Flux
             .from(influxDBConfig.bucket)
             .range(-10L, ChronoUnit.YEARS)
             .filter(
                 Restrictions.and(
-                    Restrictions.measurement().equal(measurement),
+                    Restrictions.measurement().equal(measurement.code),
                     Restrictions.tag("ticker").equal(ticker)
                 )
             )
@@ -38,7 +39,7 @@ class BarDataRepository (
 
     fun save(barData: BarData) {
         val point = Point
-            .measurement(barData.measurement)
+            .measurement(barData.measurement.code)
             .time(barData.marketTimestamp.toInstant().toEpochMilli(), WritePrecision.MS)
             .addTag("ticker", barData.ticker)
             .addField("openingPrice", barData.openingPrice)

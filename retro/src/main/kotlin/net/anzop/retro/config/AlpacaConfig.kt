@@ -30,6 +30,9 @@ class AlpacaProps {
     lateinit var authentication: Authentication
 
     @NotBlank
+    lateinit var barDataTimeframe: String
+
+    @NotBlank
     lateinit var dailyBarsUrl: String
 
     @NotBlank

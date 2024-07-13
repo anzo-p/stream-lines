@@ -6,6 +6,7 @@ alpaca:
   authentication:
     api_key: ${ALPACA_API_KEY}
     api_secret: ${ALPACA_API_SECRET}
+  bar_data_time_frame: 1Day
   daily_bars_url: https://data.alpaca.markets/v2/stocks/bars
   data_source: sip
   earliest_historical_date: 2016-01-01

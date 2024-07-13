@@ -7,6 +7,7 @@ import net.anzop.retro.config.tickerConfig.TickerConfig
 import net.anzop.retro.helpers.buildHistoricalBarsUri
 import net.anzop.retro.helpers.getRequest
 import net.anzop.retro.helpers.resolveStartDate
+import net.anzop.retro.model.Measurement
 import net.anzop.retro.repository.BarDataRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -21,18 +22,14 @@ class BarDataFetcher(
 ) {
     private val logger = LoggerFactory.getLogger(BarDataFetcher::class.java)
 
-    fun run() {
-        run("1Day")
-    }
-
-    private fun run(measurement: String) =
+    fun run() =
         tickerConfig.tickers.forEach { ticker ->
-            val startDate = getStartDate(ticker.symbol, measurement) ?: return@forEach
-            processTicker(ticker.symbol, measurement, startDate)
+            val startDate = getStartDate(ticker.symbol) ?: return@forEach
+            processTicker(ticker.symbol, startDate)
         }
 
-    private fun getStartDate(ticker: String, measurement: String): OffsetDateTime? {
-        val lastKnownFetchDate = barDataRepository.getLatestMeasurementTime(ticker, measurement)
+    private fun getStartDate(ticker: String): OffsetDateTime? {
+        val lastKnownFetchDate = barDataRepository.getLatestMeasurementTime(Measurement.SECURITIES_RAW_DAILY, ticker)
         logger.info("Last known fetch date for $ticker is $lastKnownFetchDate")
 
         val startDate = resolveStartDate(lastKnownFetchDate, alpacaProps.earliestHistoricalDate)
@@ -40,7 +37,7 @@ class BarDataFetcher(
         return startDate
     }
 
-    private fun handleResponse(ticker: String, response: BarsResponse?, measurement: String) =
+    private fun handleResponse(ticker: String, response: BarsResponse?) =
         response?.let { body ->
             val n = body.bars.values.sumOf { it.size }
             when {
@@ -51,7 +48,7 @@ class BarDataFetcher(
                     logger.info("Fetched $n bars for $ticker")
                     body.bars.forEach { (ticker, bars) ->
                         bars
-                            .map { bar -> bar.toModel(ticker, measurement) }
+                            .map { bar -> bar.toModel(Measurement.SECURITIES_RAW_DAILY, ticker) }
                             .forEach(barDataRepository::save)
                     }
                 }
@@ -60,7 +57,6 @@ class BarDataFetcher(
 
     private tailrec fun processTicker(
         ticker: String,
-        measurement: String,
         startDate: OffsetDateTime,
         pageToken: String = ""
     ) {
@@ -70,15 +66,15 @@ class BarDataFetcher(
             baseUrl = URI.create(alpacaProps.dailyBarsUrl),
             feed = alpacaProps.dataSource,
             symbols = listOf(ticker),
-            timeframe = measurement,
+            timeframe = alpacaProps.barDataTimeframe,
             start = startDate,
             pageToken = pageToken
         )
         val response = webClient.getRequest<BarsResponse>(uri)
-        handleResponse(ticker, response, measurement)
+        handleResponse(ticker, response)
 
         response?.nextPageToken?.takeIf { it.isNotEmpty() }?.let { nextPage ->
-            return processTicker(ticker, measurement, startDate, nextPage)
+            return processTicker(ticker, startDate, nextPage)
         }
     }
 

@@ -6,6 +6,7 @@ import java.time.OffsetDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.anzop.retro.model.BarData
+import net.anzop.retro.model.Measurement
 import net.anzop.retro.serdes.OffsetDateTimeSerializer
 
 @Serializable
@@ -39,7 +40,7 @@ data class BarDataDto(
     @field:NotNull
     val marketTimestamp: OffsetDateTime,
 ) {
-    fun toModel(measurement: String, ticker: String): BarData =
+    fun toModel(measurement: Measurement, ticker: String): BarData =
         BarData(
             measurement = measurement,
             ticker = ticker,
