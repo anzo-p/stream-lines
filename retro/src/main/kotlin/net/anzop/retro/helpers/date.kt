@@ -20,3 +20,8 @@ fun resolveStartDate(latestDateForTicker: Instant?, baseStartDate: LocalDate): O
 
     return fromDate.takeIf { it.isBefore(tilDate) }?.atTime(LocalTime.MIDNIGHT)?.atOffset(ZoneOffset.UTC)
 }
+
+fun genWeekdayRange(startDate: LocalDate, endDate: LocalDate): List<LocalDate> =
+    generateSequence(startDate) { date -> if (date.isBefore(endDate)) date.plusDays(1) else null }
+        .toList()
+        .filterNot { listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY).contains(it.dayOfWeek) }
