@@ -12,6 +12,7 @@ fun buildHistoricalBarsUri(
     timeframe: String,
     start: OffsetDateTime,
     end: OffsetDateTime? = null,
+    adjustment: String? = "all",
     limit: Int? = null,
     pageToken: String? = null
 ): URI {
@@ -22,6 +23,7 @@ fun buildHistoricalBarsUri(
         .queryParam("start", start.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
 
     end?.let { builder.queryParam("end", end.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)) }
+    adjustment?.let { builder.queryParam("adjustment", adjustment) }
     limit?.let {builder.queryParam("limit", limit) }
     pageToken?.let { builder.queryParam("page_token", pageToken) }
 
