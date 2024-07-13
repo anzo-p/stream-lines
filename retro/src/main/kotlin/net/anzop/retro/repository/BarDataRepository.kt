@@ -38,15 +38,13 @@ class BarDataRepository (
 
     fun save(barData: BarData) {
         val point = Point
-            .measurement(barData.barTimeSpan)
+            .measurement(barData.measurement)
             .time(barData.marketTimestamp.toInstant().toEpochMilli(), WritePrecision.MS)
             .addTag("ticker", barData.ticker)
             .addField("openingPrice", barData.openingPrice)
             .addField("closingPrice", barData.closingPrice)
             .addField("highPrice", barData.highPrice)
             .addField("lowPrice", barData.lowPrice)
-            .addField("numberOfTrades", barData.numberOfTrades)
-            .addField("volume", barData.volume)
             .addField("volumeWeightedAvgPrice", barData.volumeWeightedAvgPrice)
 
         influxDBClient.writeApiBlocking.writePoint(point)

@@ -4,10 +4,13 @@ import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import java.time.LocalDate
+import kotlinx.serialization.json.Json
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpHeaders
+import org.springframework.http.codec.json.KotlinSerializationJsonDecoder
+import org.springframework.http.codec.json.KotlinSerializationJsonEncoder
 import org.springframework.stereotype.Component
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.reactive.function.client.WebClient
@@ -44,9 +47,15 @@ class AlpacaConfig(private val alpacaProperties: AlpacaProps) {
 
     @Bean
     fun webClient(): WebClient {
+        val json = Json { ignoreUnknownKeys = true }
+
         return WebClient
             .builder()
             .defaultHeaders { it.authenticate(alpacaProperties.authentication) }
+            .codecs { config ->
+                config.defaultCodecs().kotlinSerializationJsonDecoder(KotlinSerializationJsonDecoder(json))
+                config.defaultCodecs().kotlinSerializationJsonEncoder(KotlinSerializationJsonEncoder(json))
+            }
             .build()
     }
 

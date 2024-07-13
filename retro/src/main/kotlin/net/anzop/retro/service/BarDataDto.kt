@@ -26,10 +26,6 @@ data class BarDataDto(
     @field:Min(0)
     val lowPrice: Double,
 
-    @SerialName("n")
-    @field:Min(0)
-    val numBerOfTrades: Long,
-
     @SerialName("v")
     @field:Min(0)
     val volume: Long,
@@ -43,18 +39,17 @@ data class BarDataDto(
     @field:NotNull
     val marketTimestamp: OffsetDateTime,
 ) {
-    fun toModel(ticker: String, measurement: String): BarData =
+    fun toModel(measurement: String, ticker: String): BarData =
         BarData(
+            measurement = measurement,
             ticker = ticker,
-            barTimeSpan = measurement,
             openingPrice = openingPrice,
             closingPrice = closingPrice,
             highPrice = highPrice,
             lowPrice = lowPrice,
-            numberOfTrades = numBerOfTrades,
-            volume = volume,
             volumeWeightedAvgPrice = volumeWeightedAvgPrice,
-            marketTimestamp = marketTimestamp,
+            totalTradingValue = volumeWeightedAvgPrice * volume,
+            marketTimestamp = marketTimestamp
         )
 }
 
