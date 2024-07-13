@@ -7,8 +7,8 @@ import net.anzop.retro.config.AlpacaProps
 import net.anzop.retro.helpers.genWeekdayRange
 import net.anzop.retro.model.BarData
 import net.anzop.retro.model.Measurement
+import net.anzop.retro.model.div
 import net.anzop.retro.model.plus
-import net.anzop.retro.model.ratio
 import net.anzop.retro.repository.BarDataRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -66,17 +66,17 @@ class IndexProcessor(
     private fun processBars(securities: Securities, bars: List<BarData>): List<BarData> =
         bars.mapNotNull { barData ->
             securities[barData.ticker]?.let { (initPrice, indexValueWhenIntroduced) ->
-                fun normalize(from: Double, to: Double): Double =
-                    (to / from) * indexValueWhenIntroduced
+                fun normalize(currentPrice: Double): Double =
+                    (currentPrice / initPrice) * indexValueWhenIntroduced
 
                 BarData(
                     measurement = Measurement.SECURITIES_WEIGHTED_EQUAL_DAILY,
                     ticker = barData.ticker,
-                    openingPrice = normalize(initPrice, barData.openingPrice),
-                    closingPrice = normalize(initPrice, barData.closingPrice),
-                    highPrice = normalize(initPrice, barData.highPrice),
-                    lowPrice = normalize(initPrice, barData.lowPrice),
-                    volumeWeightedAvgPrice = normalize(initPrice, barData.volumeWeightedAvgPrice),
+                    openingPrice = normalize(barData.openingPrice),
+                    closingPrice = normalize(barData.closingPrice),
+                    highPrice = normalize(barData.highPrice),
+                    lowPrice = normalize(barData.lowPrice),
+                    volumeWeightedAvgPrice = normalize(barData.volumeWeightedAvgPrice),
                     totalTradingValue = barData.totalTradingValue,
                     marketTimestamp = barData.marketTimestamp,
                 )
@@ -96,7 +96,7 @@ class IndexProcessor(
                 measurement = Measurement.INDEX_WEIGHTED_EQUAL_DAILY,
                 ticker = "INDEX"
             )
-            .ratio(bars.size)
+            .div(bars.size.toDouble())
 
         barDataRepository.save(indexBar)
 

@@ -31,6 +31,6 @@ class InfluxDBConfig {
         InfluxDBClientFactory.create(url, token.toCharArray(), organization, bucket)
 
     @Bean
-    fun influxDbAsyncWriteApi(): WriteApi =
+    fun influxDBAsyncWriter(): WriteApi =
         InfluxDBClientFactory.create(url, token.toCharArray(), organization, bucket).writeApi
 }

@@ -2,7 +2,6 @@ package net.anzop.retro.repository
 
 import com.influxdb.client.InfluxDBClient
 import com.influxdb.client.WriteApi
-import com.influxdb.client.domain.WritePrecision
 import com.influxdb.client.write.Point
 import com.influxdb.query.FluxTable
 import com.influxdb.query.dsl.Flux
@@ -55,25 +54,16 @@ class BarDataRepository (
     }
 
     fun save(barData: BarData) =
+        save(listOf(barData))
+
+    fun save(barData: List<BarData>) =
         influxDBClient
             .writeApiBlocking
-            .writePoint(toPoint(barData))
+            .writePoints(barData.map { toPoint(it) })
 
     // still takes time, must never need to await
     fun saveAsync(barData: List<BarData>) =
         write(barData.map { toPoint(it) })
-
-    private fun toPoint(barData: BarData): Point =
-        Point
-            .measurement(barData.measurement.code)
-            .time(barData.marketTimestamp.toInstant().toEpochMilli(), WritePrecision.MS)
-            .addTag("ticker", barData.ticker)
-            .addField("openingPrice", barData.openingPrice)
-            .addField("closingPrice", barData.closingPrice)
-            .addField("highPrice", barData.highPrice)
-            .addField("lowPrice", barData.lowPrice)
-            .addField("volumeWeightedAvgPrice", barData.volumeWeightedAvgPrice)
-            .addField("totalTradingValue", barData.totalTradingValue)
 
     private fun write(points: List<Point>) {
         influxDBAsyncWriter.writePoints(points)

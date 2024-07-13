@@ -1,11 +1,25 @@
 package net.anzop.retro.repository
 
+import com.influxdb.client.domain.WritePrecision
+import com.influxdb.client.write.Point
 import com.influxdb.query.FluxTable
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import net.anzop.retro.model.BarData
 import net.anzop.retro.model.Measurement
+
+fun toPoint(barData: BarData): Point =
+    Point
+        .measurement(barData.measurement.code)
+        .time(barData.marketTimestamp.toInstant().toEpochMilli(), WritePrecision.MS)
+        .addTag("ticker", barData.ticker)
+        .addField("openingPrice", barData.openingPrice)
+        .addField("closingPrice", barData.closingPrice)
+        .addField("highPrice", barData.highPrice)
+        .addField("lowPrice", barData.lowPrice)
+        .addField("volumeWeightedAvgPrice", barData.volumeWeightedAvgPrice)
+        .addField("totalTradingValue", barData.totalTradingValue)
 
 fun toBarDataList(tables: List<FluxTable>): List<BarData> {
     val groupedByTicker = tables.flatMap { it.records }

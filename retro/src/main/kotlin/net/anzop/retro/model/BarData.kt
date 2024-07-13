@@ -41,7 +41,7 @@ operator fun BarData.plus(that: BarData): BarData =
         marketTimestamp = that.marketTimestamp,
     )
 
-fun BarData.ratio(divisor: Int): BarData =
+operator fun BarData.div(divisor: Double): BarData =
     this.copy(
         openingPrice = this.openingPrice / divisor,
         closingPrice = this.closingPrice / divisor,

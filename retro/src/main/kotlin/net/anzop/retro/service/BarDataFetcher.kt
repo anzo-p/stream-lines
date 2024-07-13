@@ -42,15 +42,16 @@ class BarDataFetcher(
             val n = body.bars.values.sumOf { it.size }
             when {
                 n == 0 -> {
-                    logger.warn("Response for historical bars from Alpaca is empty. Perhaps ticker: $ticker is invalid or outdated.")
+                    logger.warn("Response from Alpaca is empty. Perhaps ticker: $ticker is invalid or outdated.")
                 }
                 else -> {
                     logger.info("Fetched $n bars for $ticker")
-                    body.bars.forEach { (ticker, bars) ->
-                        bars
-                            .map { bar -> bar.toModel(Measurement.SECURITIES_RAW_DAILY, ticker) }
-                            .forEach(barDataRepository::save)
-                    }
+                    val barDataList = body
+                        .bars
+                        .flatMap { it.value.map { barDataDto ->
+                            barDataDto.toModel(Measurement.SECURITIES_RAW_DAILY, it.key) }
+                        }
+                    barDataRepository.save(barDataList)
                 }
             }
         }
