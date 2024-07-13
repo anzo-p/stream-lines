@@ -55,7 +55,7 @@ class IndexProcessor(
             }
 
             val weightedBars = processBars(securities, bars)
-            weightedBars.forEach(barDataRepository::save)
+            barDataRepository.saveAsync(weightedBars)
 
             resolveNewIndexValue(weightedBars, currIndexValue)
         }
