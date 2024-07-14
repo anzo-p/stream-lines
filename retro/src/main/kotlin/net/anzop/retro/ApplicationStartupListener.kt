@@ -1,6 +1,6 @@
 package net.anzop.retro
 
-import net.anzop.retro.service.BarDataFetcher
+import net.anzop.retro.http.client.BarDataFetcher
 import net.anzop.retro.service.IndexProcessor
 import org.slf4j.LoggerFactory
 import org.springframework.boot.context.event.ApplicationReadyEvent

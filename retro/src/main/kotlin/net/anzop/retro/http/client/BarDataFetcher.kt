@@ -1,4 +1,4 @@
-package net.anzop.retro.service
+package net.anzop.retro.http.client
 
 import java.net.URI
 import java.time.OffsetDateTime
@@ -39,18 +39,19 @@ class BarDataFetcher(
 
     private fun handleResponse(ticker: String, response: BarsResponse?) =
         response?.let { body ->
-            val n = body.bars.values.sumOf { it.size }
+            val bars = body.bars
+            val n = bars.values.sumOf { it.size }
             when {
                 n == 0 -> {
                     logger.warn("Response from Alpaca is empty. Perhaps ticker: $ticker is invalid or outdated.")
                 }
                 else -> {
-                    logger.info("Fetched $n bars for $ticker")
-                    val barDataList = body
-                        .bars
-                        .flatMap { it.value.map { barDataDto ->
-                            barDataDto.toModel(Measurement.SECURITIES_RAW_DAILY, it.key) }
+                    logger.info("Fetched $n bars for $ticker up to ${bars.values.last().map { it.marketTimestamp }}")
+                    val barDataList = bars.flatMap {
+                        it.value.map { barDataDto ->
+                            barDataDto.toModel(Measurement.SECURITIES_RAW_DAILY, it.key)
                         }
+                    }
                     barDataRepository.save(barDataList)
                 }
             }

@@ -25,7 +25,7 @@ class IndexProcessor(
     private val alpacaProps: AlpacaProps,
     private val barDataRepository: BarDataRepository,
 ) {
-    private val logger = LoggerFactory.getLogger(BarDataFetcher::class.java)
+    private val logger = LoggerFactory.getLogger(IndexProcessor::class.java)
 
     fun process() {
         val securities = mutableMapOf<String, MemberSecurity>()

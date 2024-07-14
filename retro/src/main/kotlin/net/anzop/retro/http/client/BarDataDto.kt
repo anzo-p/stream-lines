@@ -1,13 +1,13 @@
-package net.anzop.retro.service
+package net.anzop.retro.http.client
 
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotNull
 import java.time.OffsetDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import net.anzop.retro.http.client.serdes.OffsetDateTimeSerializer
 import net.anzop.retro.model.BarData
 import net.anzop.retro.model.Measurement
-import net.anzop.retro.serdes.OffsetDateTimeSerializer
 
 @Serializable
 data class BarDataDto(
