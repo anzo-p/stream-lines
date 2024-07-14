@@ -8,7 +8,10 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
 fun resolveStartDate(latestDateForTicker: Instant?, baseStartDate: LocalDate): OffsetDateTime? {
-    val fromDate = latestDateForTicker?.atZone(ZoneOffset.UTC)?.toLocalDate() ?: baseStartDate
+    val fromDate = latestDateForTicker
+        ?.atZone(ZoneOffset.UTC)
+        ?.toLocalDate()
+        ?: baseStartDate
 
     val tilDate = LocalDate.now().run {
         if (dayOfWeek > DayOfWeek.FRIDAY) {
@@ -18,7 +21,10 @@ fun resolveStartDate(latestDateForTicker: Instant?, baseStartDate: LocalDate): O
         }
     }
 
-    return fromDate.takeIf { it.isBefore(tilDate) }?.atTime(LocalTime.MIDNIGHT)?.atOffset(ZoneOffset.UTC)
+    return fromDate
+        .takeIf { it.isBefore(tilDate) }
+        ?.atTime(LocalTime.MIDNIGHT)
+        ?.atOffset(ZoneOffset.UTC)
 }
 
 fun genWeekdayRange(startDate: LocalDate, endDate: LocalDate): List<LocalDate> =

@@ -29,16 +29,13 @@ data class BarData(
 )
 
 operator fun BarData.plus(that: BarData): BarData =
-    BarData(
-        measurement = this.measurement,
-        ticker = this.ticker,
+    this.copy(
         openingPrice = this.openingPrice + that.openingPrice,
         closingPrice = this.closingPrice + that.closingPrice,
         highPrice = this.highPrice + that.highPrice,
         lowPrice = this.lowPrice + that.lowPrice,
         volumeWeightedAvgPrice = this.volumeWeightedAvgPrice + that.volumeWeightedAvgPrice,
         totalTradingValue = this.totalTradingValue + that.totalTradingValue,
-        marketTimestamp = that.marketTimestamp,
     )
 
 operator fun BarData.div(divisor: Double): BarData =

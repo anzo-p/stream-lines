@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 private data class MemberSecurity (
-    val initPrice: Double,
+    val introductionPrice: Double,
     val indexValueWhenIntroduced: Double
 )
 
@@ -48,7 +48,7 @@ class IndexProcessor(
             bars.forEach { barData ->
                 securities.computeIfAbsent(barData.ticker) {
                     MemberSecurity(
-                        initPrice = barData.volumeWeightedAvgPrice,
+                        introductionPrice = barData.volumeWeightedAvgPrice,
                         indexValueWhenIntroduced = currIndexValue
                     )
                 }
@@ -65,9 +65,9 @@ class IndexProcessor(
 
     private fun processBars(securities: Securities, bars: List<BarData>): List<BarData> =
         bars.mapNotNull { barData ->
-            securities[barData.ticker]?.let { (initPrice, indexValueWhenIntroduced) ->
+            securities[barData.ticker]?.let { (introductionPrice, indexValueWhenIntroduced) ->
                 fun normalize(currentPrice: Double): Double =
-                    (currentPrice / initPrice) * indexValueWhenIntroduced
+                    (currentPrice / introductionPrice) * indexValueWhenIntroduced
 
                 BarData(
                     measurement = Measurement.SECURITIES_WEIGHTED_EQUAL_DAILY,

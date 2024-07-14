@@ -37,26 +37,6 @@ class BarDataFetcher(
         return startDate
     }
 
-    private fun handleResponse(ticker: String, response: BarsResponse?) =
-        response?.let { body ->
-            val bars = body.bars
-            val n = bars.values.sumOf { it.size }
-            when {
-                n == 0 -> {
-                    logger.warn("Response from Alpaca is empty. Perhaps ticker: $ticker is invalid or outdated.")
-                }
-                else -> {
-                    logger.info("Fetched $n bars for $ticker up to ${bars.values.last().map { it.marketTimestamp }}")
-                    val barDataList = bars.flatMap {
-                        it.value.map { barDataDto ->
-                            barDataDto.toModel(Measurement.SECURITIES_RAW_DAILY, it.key)
-                        }
-                    }
-                    barDataRepository.save(barDataList)
-                }
-            }
-        }
-
     private tailrec fun processTicker(
         ticker: String,
         startDate: OffsetDateTime,
@@ -75,12 +55,35 @@ class BarDataFetcher(
         val response = webClient.getRequest<BarsResponse>(uri)
         handleResponse(ticker, response)
 
-        response?.nextPageToken?.takeIf { it.isNotEmpty() }?.let { nextPage ->
-            return processTicker(ticker, startDate, nextPage)
-        }
+        response
+            ?.nextPageToken
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { nextPage ->
+                return processTicker(ticker, startDate, nextPage)
+            }
     }
 
-    fun throttle() {
+    private fun handleResponse(ticker: String, response: BarsResponse?) =
+        response?.let { body ->
+            val bars = body.bars
+            val n = bars.values.sumOf { it.size }
+            when {
+                n == 0 -> {
+                    logger.warn("Response from Alpaca is empty. Perhaps ticker: $ticker is invalid or outdated.")
+                }
+                else -> {
+                    logger.info("Fetched $n bars for $ticker up to ${bars.values.flatten().last().marketTimestamp}")
+                    val barDataList = bars.flatMap {
+                        it.value.map { barDataDto ->
+                            barDataDto.toModel(Measurement.SECURITIES_RAW_DAILY, it.key)
+                        }
+                    }
+                    barDataRepository.save(barDataList)
+                }
+            }
+        }
+
+    private fun throttle() {
         Thread.sleep((60000 / alpacaProps.maxCallsPerMinute).toLong())
     }
 }
