@@ -22,7 +22,7 @@ fun resolveStartDate(latestDateForTicker: Instant?, baseStartDate: LocalDate): O
     }
 
     return fromDate
-        .takeIf { it.isBefore(tilDate) }
+        .takeIf { it.atStartOfDay().isBefore(tilDate.atStartOfDay()) }
         ?.atTime(LocalTime.MIDNIGHT)
         ?.atOffset(ZoneOffset.UTC)
 }
