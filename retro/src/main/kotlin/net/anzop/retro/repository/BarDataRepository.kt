@@ -53,17 +53,17 @@ class BarDataRepository (
             ?.time
     }
 
-    fun save(barData: BarData) =
-        save(listOf(barData))
+    fun <T> save(entity: T) =
+        save(listOf(entity))
 
-    fun save(barData: List<BarData>) =
-        influxDBClient
-            .writeApiBlocking
-            .writePoints(barData.map { toPoint(it) })
+    fun <T> save(entities: List<T>) =
+        influxDBClient.takeIf { entities.isNotEmpty() }
+            ?.writeApiBlocking
+            ?.writePoints(entities.map { toPoint(it) })
 
     // still takes time, must never need to await
-    fun saveAsync(barData: List<BarData>) =
-        write(barData.map { toPoint(it) })
+    fun <T> saveAsync(entities: List<T>) =
+        write(entities.map { toPoint(it) })
 
     private fun write(points: List<Point>) {
         influxDBAsyncWriter.writePoints(points)

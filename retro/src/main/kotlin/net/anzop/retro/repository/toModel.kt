@@ -1,25 +1,11 @@
 package net.anzop.retro.repository
 
-import com.influxdb.client.domain.WritePrecision
-import com.influxdb.client.write.Point
 import com.influxdb.query.FluxTable
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import net.anzop.retro.model.BarData
 import net.anzop.retro.model.Measurement
-
-fun toPoint(barData: BarData): Point =
-    Point
-        .measurement(barData.measurement.code)
-        .time(barData.marketTimestamp.toInstant().toEpochMilli(), WritePrecision.MS)
-        .addTag("ticker", barData.ticker)
-        .addField("openingPrice", barData.openingPrice)
-        .addField("closingPrice", barData.closingPrice)
-        .addField("highPrice", barData.highPrice)
-        .addField("lowPrice", barData.lowPrice)
-        .addField("volumeWeightedAvgPrice", barData.volumeWeightedAvgPrice)
-        .addField("totalTradingValue", barData.totalTradingValue)
 
 fun toBarDataList(tables: List<FluxTable>): List<BarData> {
     val groupedByTicker = tables.flatMap { it.records }
@@ -49,6 +35,12 @@ private fun toBarData(ticker: String, fields: Map<String, List<Any?>>): BarData 
         ?.firstOrNull()
         ?.let { Measurement.fromCode(it) }
         ?: throw IllegalArgumentException("Invalid measurement for ticker: $ticker")
+
+    val marketTimestamp = (fields["time"] as? List<*>)
+        ?.filterIsInstance<Instant>()
+        ?.firstOrNull()
+        ?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) }
+        ?: throw IllegalArgumentException("Invalid marketTimestamp for ticker: $ticker")
 
     val openingPrice = (fields["openingPrice"] as? List<*>)
         ?.filterIsInstance<Number>()
@@ -86,21 +78,15 @@ private fun toBarData(ticker: String, fields: Map<String, List<Any?>>): BarData 
         ?.toDouble()
         ?: throw IllegalArgumentException("Invalid totalTradingValue for ticker: $ticker")
 
-    val marketTimestamp = (fields["time"] as? List<*>)
-        ?.filterIsInstance<Instant>()
-        ?.firstOrNull()
-        ?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) }
-        ?: throw IllegalArgumentException("Invalid marketTimestamp for ticker: $ticker")
-
     return BarData(
         measurement = measurement,
         ticker = ticker,
+        marketTimestamp = marketTimestamp,
         openingPrice = openingPrice,
         closingPrice = closingPrice,
         highPrice = highPrice,
         lowPrice = lowPrice,
         volumeWeightedAvgPrice = volumeWeightedAvgPrice,
-        totalTradingValue = totalTradingValue,
-        marketTimestamp = marketTimestamp
+        totalTradingValue = totalTradingValue
     )
 }

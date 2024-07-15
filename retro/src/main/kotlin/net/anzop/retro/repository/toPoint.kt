@@ -1,0 +1,40 @@
+package net.anzop.retro.repository
+
+import com.influxdb.client.domain.WritePrecision
+import com.influxdb.client.write.Point
+import java.time.OffsetDateTime
+import net.anzop.retro.model.BarData
+import net.anzop.retro.model.Measurement
+import net.anzop.retro.model.PriceChangeWeighted
+
+fun <T> toPoint(entity: T): Point =
+    when (entity) {
+        is BarData -> toPoint(entity as BarData)
+        is PriceChangeWeighted -> toPoint(entity as PriceChangeWeighted)
+        else -> throw IllegalArgumentException("Unsupported type: $entity")
+    }
+
+private fun toPoint(barData: BarData): Point =
+    basePoint(barData.measurement, barData.ticker, barData.marketTimestamp)
+        .addField("openingPrice", barData.openingPrice)
+        .addField("closingPrice", barData.closingPrice)
+        .addField("highPrice", barData.highPrice)
+        .addField("lowPrice", barData.lowPrice)
+        .addField("volumeWeightedAvgPrice", barData.volumeWeightedAvgPrice)
+        .addField("totalTradingValue", barData.totalTradingValue)
+
+private fun toPoint(priceChange: PriceChangeWeighted): Point =
+    basePoint(priceChange.measurement, priceChange.ticker, priceChange.marketTimestamp)
+        .addField("priceChangeOpen", priceChange.priceChangeOpen)
+        .addField("priceChangeClose", priceChange.priceChangeClose)
+        .addField("priceChangeHigh", priceChange.priceChangeHigh)
+        .addField("priceChangeLow", priceChange.priceChangeLow)
+        .addField("priceChangeAvg", priceChange.priceChangeAvg)
+        .addField("priceChangeDaily", priceChange.priceChangeDaily)
+        .addField("totalTradingValue", priceChange.totalTradingValue)
+
+private fun basePoint(measurement: Measurement, ticker: String, time: OffsetDateTime): Point =
+    Point
+        .measurement(measurement.code)
+        .time(time.toInstant().toEpochMilli(), WritePrecision.MS)
+        .addTag("ticker", ticker)

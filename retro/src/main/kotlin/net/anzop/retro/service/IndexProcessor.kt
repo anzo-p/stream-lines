@@ -7,6 +7,7 @@ import net.anzop.retro.config.AlpacaProps
 import net.anzop.retro.helpers.genWeekdayRange
 import net.anzop.retro.model.BarData
 import net.anzop.retro.model.Measurement
+import net.anzop.retro.model.PriceChangeWeighted
 import net.anzop.retro.model.div
 import net.anzop.retro.model.plus
 import net.anzop.retro.repository.BarDataRepository
@@ -14,11 +15,12 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 private data class MemberSecurity (
+    val indexValueWhenIntroduced: Double,
     val introductionPrice: Double,
-    val indexValueWhenIntroduced: Double
+    val prevDayPrice: Double
 )
 
-private typealias Securities = Map<String, MemberSecurity>
+private typealias Securities = MutableMap<String, MemberSecurity>
 
 @Service
 class IndexProcessor(
@@ -45,58 +47,65 @@ class IndexProcessor(
                 from = date.atStartOfDay().toInstant(ZoneOffset.UTC)
             )
 
-            bars.forEach { barData ->
-                securities.computeIfAbsent(barData.ticker) {
+            bars.forEach { bar ->
+                securities.computeIfAbsent(bar.ticker) {
                     MemberSecurity(
-                        introductionPrice = barData.volumeWeightedAvgPrice,
-                        indexValueWhenIntroduced = currIndexValue
+                        indexValueWhenIntroduced = currIndexValue,
+                        introductionPrice = bar.volumeWeightedAvgPrice,
+                        prevDayPrice = bar.volumeWeightedAvgPrice
                     )
                 }
             }
 
-            val weightedBars = processBars(securities, bars)
-            barDataRepository.saveAsync(weightedBars)
+            val priceChanges = processBars(securities, bars)
+            barDataRepository.saveAsync(priceChanges)
 
-            resolveNewIndexValue(weightedBars, currIndexValue)
+            resolveNewIndexValue(priceChanges, currIndexValue)
         }
 
         logger.info("Final Index Value is: $latestIndexValue")
     }
 
-    private fun processBars(securities: Securities, bars: List<BarData>): List<BarData> =
-        bars.mapNotNull { barData ->
-            securities[barData.ticker]?.let { (introductionPrice, indexValueWhenIntroduced) ->
-                fun normalize(currentPrice: Double): Double =
-                    (currentPrice / introductionPrice) * indexValueWhenIntroduced
+    private fun processBars(securities: Securities, bars: List<BarData>): List<PriceChangeWeighted> =
+        bars.mapNotNull { bar ->
+            securities[bar.ticker]?.let { entry ->
+                val (indexValueWhenIntroduced, introductionPrice, prevDayPrice) = entry
 
-                BarData(
+                fun normalize(price: Double): Double =
+                    (price / introductionPrice) * indexValueWhenIntroduced
+
+                securities[bar.ticker] = entry.copy(prevDayPrice = bar.volumeWeightedAvgPrice)
+                val priceChangeAvg = normalize(bar.volumeWeightedAvgPrice)
+
+                PriceChangeWeighted(
                     measurement = Measurement.SECURITIES_WEIGHTED_EQUAL_DAILY,
-                    ticker = barData.ticker,
-                    openingPrice = normalize(barData.openingPrice),
-                    closingPrice = normalize(barData.closingPrice),
-                    highPrice = normalize(barData.highPrice),
-                    lowPrice = normalize(barData.lowPrice),
-                    volumeWeightedAvgPrice = normalize(barData.volumeWeightedAvgPrice),
-                    totalTradingValue = barData.totalTradingValue,
-                    marketTimestamp = barData.marketTimestamp,
+                    ticker = bar.ticker,
+                    marketTimestamp = bar.marketTimestamp,
+                    priceChangeOpen = normalize(bar.openingPrice),
+                    priceChangeClose = normalize(bar.closingPrice),
+                    priceChangeHigh = normalize(bar.highPrice),
+                    priceChangeLow = normalize(bar.lowPrice),
+                    priceChangeAvg = priceChangeAvg,
+                    priceChangeDaily = priceChangeAvg / normalize(prevDayPrice),
+                    totalTradingValue = bar.totalTradingValue
                 )
             }
         }
 
-    private fun resolveNewIndexValue(bars: List<BarData>, indexValue: Double): Double =
-        bars.takeIf { it.isNotEmpty() }
+    private fun resolveNewIndexValue(priceChanges: List<PriceChangeWeighted>, indexValue: Double): Double =
+        priceChanges.takeIf { it.isNotEmpty() }
             ?.let { createIndex(it) }
-            ?.volumeWeightedAvgPrice
+            ?.priceChangeAvg
             ?: indexValue
 
-    private fun createIndex(bars: List<BarData>): BarData {
-        val indexBar = bars
-            .reduce { acc, barData -> acc + barData }
+    private fun createIndex(priceChanges: List<PriceChangeWeighted>): PriceChangeWeighted {
+        val indexBar = priceChanges
+            .reduce { acc, priceChange -> acc + priceChange }
             .copy(
                 measurement = Measurement.INDEX_WEIGHTED_EQUAL_DAILY,
                 ticker = "INDEX"
             )
-            .div(bars.size.toDouble())
+            .div(priceChanges.size.toDouble())
 
         barDataRepository.save(indexBar)
 
