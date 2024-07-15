@@ -73,12 +73,18 @@ class BarDataFetcher(
                 }
                 else -> {
                     logger.info("Fetched $n bars for $ticker up to ${bars.values.flatten().last().marketTimestamp}")
-                    val barDataList = bars.flatMap {
-                        it.value.map { barDataDto ->
-                            barDataDto.toModel(Measurement.SECURITIES_RAW_DAILY, it.key)
+                    val barDataList = bars.flatMap { entry ->
+                        entry.value.mapNotNull { barDataDto ->
+                            runCatching {
+                                barDataDto.toModel(Measurement.SECURITIES_RAW_DAILY, entry.key)
+                            }.onFailure {
+                                logger.warn("Validation failed for $ticker bar data: ${it.message}")
+                            }.getOrNull()
                         }
                     }
-                    barDataRepository.save(barDataList)
+                    if (barDataList.isNotEmpty()) {
+                        barDataRepository.save(barDataList)
+                    }
                 }
             }
         }
