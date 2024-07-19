@@ -8,11 +8,13 @@ import com.influxdb.query.dsl.Flux
 import com.influxdb.query.dsl.functions.FilterFlux
 import com.influxdb.query.dsl.functions.restriction.Restrictions
 import java.time.Instant
+import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import net.anzop.retro.config.InfluxDBConfig
-import net.anzop.retro.model.marketData.BarData
+import net.anzop.retro.helpers.toInstantUtc
 import net.anzop.retro.model.marketData.MarketData
 import net.anzop.retro.model.marketData.Measurement
+import net.anzop.retro.model.marketData.PriceChange
 import org.springframework.stereotype.Repository
 
 @Repository
@@ -22,11 +24,24 @@ class MarketDataRepository (
     private val influxDBAsyncWriter: WriteApi
 ) {
     fun getEarliestSourceBarDataEntry(ticker: String): Instant? =
-        getLastMeasurement(
+        getFirstMeasurementTime(
+            measurement = Measurement.SECURITIES_RAW_DAILY,
+            ticker = ticker
+        )
+
+    fun getLatestSourceBarDataEntry(ticker: String): Instant? =
+        getLatestMeasurementTime(
             measurement = Measurement.SECURITIES_RAW_DAILY,
             ticker = ticker,
-            clazz = BarData::class.java
-        )?.marketTimestamp
+        )
+
+    fun getIndexValueAt(date: LocalDate): Double? =
+        getFirstMeasurement(
+            measurement = Measurement.INDEX_WEIGHTED_EQUAL_DAILY,
+            ticker = "INDEX",
+            since = date.toInstantUtc(),
+            clazz = PriceChange::class.java
+        )?.priceChangeAvg
 
     fun <T : MarketData> getMeasurements(
         measurement: Measurement,
@@ -53,6 +68,24 @@ class MarketDataRepository (
             .map { clazz.cast(it) }
     }
 
+    fun <T : MarketData> getFirstMeasurement(
+        measurement: Measurement,
+        ticker: String,
+        since: Instant? = null,
+        clazz: Class<T>
+    ): T? =
+        getFirstMeasurementTime(measurement, ticker, since ?: Instant.ofEpochMilli(0L))
+            ?.let { ts ->
+                val q = baseFlux(
+                    measurement,
+                    ticker,
+                    start = ts
+                ).filter(Restrictions.time().equal(ts))
+
+                val result = runAndParse(q.toString(), clazz).first()
+                return cast(result, clazz)
+            }
+
     fun <T : MarketData> getLastMeasurement(
         measurement: Measurement,
         ticker: String,
@@ -61,41 +94,51 @@ class MarketDataRepository (
     ): T? =
         getLatestMeasurementTime(measurement, ticker, earlierThan)
             ?.let { ts ->
-                val q = Flux
-                    .from(influxDBConfig.bucket)
-                    .range(Instant.ofEpochMilli(0L))
-                    .filter(
-                        Restrictions.and(
-                            Restrictions.measurement().equal(measurement.code),
-                            Restrictions.time().equal(ts),
-                            Restrictions.tag("ticker").equal(ticker)
-                        )
-                    )
-                    .toString()
+                val q = baseFlux(measurement, ticker)
+                    .filter(Restrictions.time().equal(ts))
 
-                val result = runAndParse(q, clazz).first()
+                val result = runAndParse(q.toString(), clazz).first()
                 return cast(result, clazz)
             }
+
+    fun <T> save(entity: T) =
+        save(listOf(entity))
+
+    fun <T> save(entities: List<T>) =
+        influxDBClient.takeIf { entities.isNotEmpty() }
+            ?.writeApiBlocking
+            ?.writePoints(entities.map { toPoint(it) })
+
+    // still takes time, must never need to await
+    fun <T> saveAsync(entities: List<T>) =
+        write(entities.map { toPoint(it) })
+
+    private fun getFirstMeasurementTime(
+        measurement: Measurement,
+        ticker: String,
+        since: Instant? = null
+    ): Instant? {
+        val q = baseFlux(
+            measurement = measurement,
+            ticker = ticker,
+            start = since
+        ).min("_time")
+
+        return queryForTimestamp(q)
+    }
 
     private fun getLatestMeasurementTime(
         measurement: Measurement,
         ticker: String,
         earlierThan: Instant? = null
     ): Instant? {
-        val baseQ = baseFlux(
+        val q = baseFlux(
             measurement = measurement,
             ticker = ticker,
             stop = earlierThan
-        )
-        val q = baseQ
-            .max("_time")
-            .toString()
+        ).max("_time")
 
-        return runQuery(q)
-            .firstOrNull()
-            ?.records
-            ?.firstOrNull()
-            ?.time
+        return queryForTimestamp(q)
     }
 
     private fun baseFlux(
@@ -117,24 +160,14 @@ class MarketDataRepository (
                 )
             )
 
-    fun <T> save(entity: T) =
-        save(listOf(entity))
+    private fun queryForTimestamp(q: Flux): Instant? =
+        runQuery(q.toString())
+            .firstOrNull()
+            ?.records
+            ?.firstOrNull()
+            ?.time
 
-    fun <T> save(entities: List<T>) =
-        influxDBClient.takeIf { entities.isNotEmpty() }
-            ?.writeApiBlocking
-            ?.writePoints(entities.map { toPoint(it) })
-
-    // still takes time, must never need to await
-    fun <T> saveAsync(entities: List<T>) =
-        write(entities.map { toPoint(it) })
-
-    private fun write(points: List<Point>) {
-        influxDBAsyncWriter.writePoints(points)
-        influxDBAsyncWriter.flush()
-    }
-
-    fun <T> runAndParse(q: String, clazz: Class<T>): List<MarketData> =
+    private fun <T> runAndParse(q: String, clazz: Class<T>): List<MarketData> =
         parseTable(
             tables = runQuery(q),
             factory = factories[clazz.simpleName] ?: throw IllegalArgumentException("Invalid class type: $clazz")
@@ -151,4 +184,9 @@ class MarketDataRepository (
         } else {
             throw IllegalArgumentException("Invalid class type: $clazz")
         }
+
+    private fun write(points: List<Point>) {
+        influxDBAsyncWriter.writePoints(points)
+        influxDBAsyncWriter.flush()
+    }
 }

@@ -12,6 +12,11 @@ alpaca:
   earliest_historical_date: 2016-01-01
   max_calls_per_minute: 200
 
+aws:
+  region: ${AWS_REGION}
+  dynamodb:
+    table-name: ${RETRO_TABLE_NAME}
+
 influxdb:
   bucket: ${INFLUXDB_DAILY_BARS_BUCKET}
   organization: ${INFLUXDB_ORG}

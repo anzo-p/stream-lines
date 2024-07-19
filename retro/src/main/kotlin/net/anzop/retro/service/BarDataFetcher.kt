@@ -6,8 +6,8 @@ import net.anzop.retro.config.AlpacaProps
 import net.anzop.retro.config.tickerConfig.TickerConfig
 import net.anzop.retro.helpers.buildHistoricalBarsUri
 import net.anzop.retro.helpers.getRequest
-import net.anzop.retro.helpers.toInstant
-import net.anzop.retro.helpers.toOffsetDateTime
+import net.anzop.retro.helpers.toInstantUtc
+import net.anzop.retro.helpers.toOffsetDateTimeUtc
 import net.anzop.retro.http.client.BarDataDto
 import net.anzop.retro.http.client.BarsResponse
 import net.anzop.retro.model.marketData.Measurement
@@ -43,10 +43,11 @@ class BarDataFetcher(
     }
 
     private fun resolveStartDate(ticker: String): OffsetDateTime {
-        val latestMarketTimestamp = marketDataRepository.getEarliestSourceBarDataEntry(ticker)
+        val latestMarketTimestamp = marketDataRepository.getLatestSourceBarDataEntry(ticker)
         logger.info("Last known marketTimestamp for $ticker is $latestMarketTimestamp")
 
-        val startDate = (latestMarketTimestamp?: alpacaProps.earliestHistoricalDate.toInstant()).toOffsetDateTime()
+        val fallBackDate = alpacaProps.earliestHistoricalDate.toInstantUtc()
+        val startDate = (latestMarketTimestamp ?: fallBackDate).toOffsetDateTimeUtc()
         logger.info("startDate was set to $startDate")
         return startDate
     }
@@ -114,7 +115,7 @@ class BarDataFetcher(
 
         return bars
             .minOf { it.marketTimestamp }
-            .toOffsetDateTime()
+            .toOffsetDateTimeUtc()
     }
 
     private fun throttle() {

@@ -1,16 +1,19 @@
 package net.anzop.retro.service
 
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import net.anzop.retro.config.AlpacaProps
-import net.anzop.retro.helpers.genWeekdayRange
+import net.anzop.retro.helpers.generateWeekdayRange
+import net.anzop.retro.helpers.toLocalDate
 import net.anzop.retro.model.IndexMember
 import net.anzop.retro.model.marketData.BarData
 import net.anzop.retro.model.marketData.Measurement
 import net.anzop.retro.model.marketData.PriceChange
 import net.anzop.retro.model.marketData.div
 import net.anzop.retro.model.marketData.plus
+import net.anzop.retro.repository.dynamodb.CacheRepository
 import net.anzop.retro.repository.influxdb.MarketDataRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -20,19 +23,38 @@ private typealias IndexMembers = MutableMap<String, IndexMember>
 @Service
 class IndexProcessor(
     private val alpacaProps: AlpacaProps,
+    private val cacheRepository: CacheRepository,
     private val marketDataRepository: MarketDataRepository,
 ) {
     private val logger = LoggerFactory.getLogger(IndexProcessor::class.java)
 
+    private var asyncRecordsToInsert = mutableListOf<Any>()
+
     fun process() {
-        val securities = mutableMapOf<String, IndexMember>()
-        val processingPeriod = genWeekdayRange(
-            startDate = alpacaProps.earliestHistoricalDate,
-            endDate = Instant.now().atZone(ZoneOffset.UTC).toLocalDate()
+        val startDate = cacheRepository.getIndexStaleFrom()
+            ?: run {
+                cacheRepository.deleteMemberSecurities()
+                alpacaProps.earliestHistoricalDate
+            }
+        logger.info("Processing index from $startDate")
+
+        val initialIndexValue = marketDataRepository.getIndexValueAt(startDate) ?: 1.0
+        logger.info("Starting Index Value is: $initialIndexValue")
+
+        val processingPeriod = generateWeekdayRange(
+            startDate = startDate,
+            endDate = Instant.now().toLocalDate()
         )
         logger.info("${processingPeriod.size} days to process the index for")
 
-        val latestIndexValue = processingPeriod.fold(1.0) { currIndexValue, date ->
+        val latestIndexValue = loop(processingPeriod, initialIndexValue)
+        logger.info("Final Index Value is: $latestIndexValue")
+    }
+
+    fun loop(period: List<LocalDate>, initialIndexValue: Double): Double {
+        val securities = cacheRepository.getMemberSecurities().toMutableMap()
+
+        val latestIndexValue = period.fold(initialIndexValue) { currIndexValue, date ->
             if (ChronoUnit.DAYS.between(alpacaProps.earliestHistoricalDate, date) % 61 == 0L) {
                 logger.info("Processing. Current date: $date, current index value: $currIndexValue")
             }
@@ -44,6 +66,7 @@ class IndexProcessor(
             )
             bars.forEach { bar ->
                 securities.computeIfAbsent(bar.ticker) {
+                    validateMember(bar.ticker, date)
                     IndexMember(
                         indexValueWhenIntroduced = currIndexValue,
                         introductionPrice = bar.volumeWeightedAvgPrice,
@@ -54,12 +77,17 @@ class IndexProcessor(
             }
 
             val priceChanges = processBars(securities, bars)
-            marketDataRepository.saveAsync(priceChanges)
-
+            asyncRecordsToInsert.addAll(priceChanges)
             resolveNewIndexValue(priceChanges, currIndexValue)
         }
 
-        logger.info("Final Index Value is: $latestIndexValue")
+        marketDataRepository.saveAsync(asyncRecordsToInsert)
+        asyncRecordsToInsert.clear()
+
+        cacheRepository.storeMemberSecurities(securities)
+        cacheRepository.deleteIndexStaleFrom()
+
+        return latestIndexValue
     }
 
     private fun processBars(securities: IndexMembers, bars: List<BarData>): List<PriceChange> =
@@ -107,4 +135,15 @@ class IndexProcessor(
 
         return indexBar
     }
+
+    private fun validateMember(ticker: String, date: LocalDate) =
+        marketDataRepository.getEarliestSourceBarDataEntry(ticker)?.let { firstEntry ->
+            if (firstEntry.toLocalDate() != date) {
+                cacheRepository.deleteIndexStaleFrom()
+                throw IllegalStateException(
+                    "$date is not the first date for ticker: $ticker but still it's index details are missing." +
+                    "Reset cached stale date to recalculate index from beginning."
+                )
+            }
+        }
 }

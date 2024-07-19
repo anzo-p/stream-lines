@@ -19,5 +19,6 @@ class ApplicationStartupListener(
         logger.info("Application started. Running initial task...")
         barDataFetcher.run()
         indexProcessor.process()
+        logger.info("Done.")
     }
 }

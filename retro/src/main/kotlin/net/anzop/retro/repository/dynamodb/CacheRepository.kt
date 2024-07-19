@@ -2,6 +2,7 @@ package net.anzop.retro.repository.dynamodb
 
 import java.time.LocalDate
 import net.anzop.retro.config.AwsConfig
+import net.anzop.retro.model.IndexMember
 import org.springframework.stereotype.Repository
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient
 import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest
@@ -38,6 +39,41 @@ class CacheRepository(
             ?.s()
             ?.let { LocalDate.parse(it) }
     }
+
+    fun deleteIndexStaleFrom() =
+        deleteItem(
+            mapOf(
+                "PK" to "indexStaleFrom".toAttrib(),
+                "SK" to "indexStaleFrom".toAttrib()
+            )
+        )
+
+    fun storeMemberSecurities(securities: Map<String, IndexMember>) =
+        saveItem(
+            mapOf(
+                "PK" to "memberSecurity".toAttrib(),
+                "SK" to "memberSecurity".toAttrib(),
+                "memberSecurities" to securities.toAttrib()
+            )
+        )
+
+    fun getMemberSecurities(): Map<String, IndexMember> {
+        val key = mapOf(
+            "PK" to "memberSecurity".toAttrib(),
+            "SK" to "memberSecurity".toAttrib()
+        )
+        return getItem(key)
+            ?.let { getMemberSecurities(it) }
+            ?: emptyMap()
+    }
+
+    fun deleteMemberSecurities() =
+        deleteItem(
+            mapOf(
+                "PK" to "memberSecurity".toAttrib(),
+                "SK" to "memberSecurity".toAttrib()
+            )
+        )
 
     private fun saveItem(item: AttribMap) {
         val request = PutItemRequest.builder()
