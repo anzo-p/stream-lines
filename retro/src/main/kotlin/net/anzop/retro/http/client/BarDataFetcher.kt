@@ -7,7 +7,7 @@ import net.anzop.retro.config.tickerConfig.TickerConfig
 import net.anzop.retro.helpers.buildHistoricalBarsUri
 import net.anzop.retro.helpers.getRequest
 import net.anzop.retro.helpers.resolveStartDate
-import net.anzop.retro.model.Measurement
+import net.anzop.retro.model.marketData.Measurement
 import net.anzop.retro.repository.BarDataRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service

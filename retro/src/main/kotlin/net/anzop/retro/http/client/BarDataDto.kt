@@ -6,8 +6,8 @@ import java.time.OffsetDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.anzop.retro.http.client.serdes.OffsetDateTimeSerializer
-import net.anzop.retro.model.BarData
-import net.anzop.retro.model.Measurement
+import net.anzop.retro.model.marketData.BarData
+import net.anzop.retro.model.marketData.Measurement
 import org.springframework.validation.annotation.Validated
 
 @Serializable
@@ -52,13 +52,13 @@ data class BarDataDto(
         return BarData(
             measurement = measurement,
             ticker = ticker,
+            marketTimestamp = marketTimestamp.toInstant(),
             openingPrice = openingPrice,
             closingPrice = closingPrice,
             highPrice = highPrice,
             lowPrice = lowPrice,
             volumeWeightedAvgPrice = volumeWeightedAvgPrice,
             totalTradingValue = volumeWeightedAvgPrice * volume,
-            marketTimestamp = marketTimestamp
         )
     }
 }

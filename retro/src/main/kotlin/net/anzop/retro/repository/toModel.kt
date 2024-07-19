@@ -2,10 +2,8 @@ package net.anzop.retro.repository
 
 import com.influxdb.query.FluxTable
 import java.time.Instant
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
-import net.anzop.retro.model.BarData
-import net.anzop.retro.model.Measurement
+import net.anzop.retro.model.marketData.BarData
+import net.anzop.retro.model.marketData.Measurement
 
 fun toBarDataList(tables: List<FluxTable>): List<BarData> {
     val groupedByTicker = tables.flatMap { it.records }
@@ -39,7 +37,6 @@ private fun toBarData(ticker: String, fields: Map<String, List<Any?>>): BarData 
     val marketTimestamp = (fields["time"] as? List<*>)
         ?.filterIsInstance<Instant>()
         ?.firstOrNull()
-        ?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) }
         ?: throw IllegalArgumentException("Invalid marketTimestamp for ticker: $ticker")
 
     val openingPrice = (fields["openingPrice"] as? List<*>)

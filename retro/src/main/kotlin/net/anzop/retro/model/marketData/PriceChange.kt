@@ -1,11 +1,11 @@
-package net.anzop.retro.model
+package net.anzop.retro.model.marketData
 
-import java.time.OffsetDateTime
+import java.time.Instant
 
-data class PriceChangeWeighted(
-    val measurement: Measurement,
-    val ticker: String,
-    val marketTimestamp: OffsetDateTime,
+data class PriceChange(
+    override val measurement: Measurement,
+    override val ticker: String,
+    override val marketTimestamp: Instant,
     val priceChangeOpen: Double,
     val priceChangeClose: Double,
     val priceChangeHigh: Double,
@@ -13,9 +13,9 @@ data class PriceChangeWeighted(
     val priceChangeAvg: Double,
     val priceChangeDaily: Double,
     val totalTradingValue: Double
-)
+) : MarketData(measurement, ticker, marketTimestamp)
 
-operator fun PriceChangeWeighted.plus(that: PriceChangeWeighted): PriceChangeWeighted =
+operator fun PriceChange.plus(that: PriceChange): PriceChange =
     this.copy(
         priceChangeOpen = this.priceChangeOpen + that.priceChangeOpen,
         priceChangeClose = this.priceChangeClose + that.priceChangeClose,
@@ -26,7 +26,7 @@ operator fun PriceChangeWeighted.plus(that: PriceChangeWeighted): PriceChangeWei
         totalTradingValue = this.totalTradingValue + that.totalTradingValue,
     )
 
-operator fun PriceChangeWeighted.div(divisor: Double): PriceChangeWeighted =
+operator fun PriceChange.div(divisor: Double): PriceChange =
     this.copy(
         priceChangeOpen = this.priceChangeOpen / divisor,
         priceChangeClose = this.priceChangeClose / divisor,

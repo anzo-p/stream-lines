@@ -9,8 +9,8 @@ import com.influxdb.query.dsl.functions.restriction.Restrictions
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import net.anzop.retro.config.InfluxDBConfig
-import net.anzop.retro.model.BarData
-import net.anzop.retro.model.Measurement
+import net.anzop.retro.model.marketData.BarData
+import net.anzop.retro.model.marketData.Measurement
 import org.springframework.stereotype.Repository
 
 @Repository

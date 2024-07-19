@@ -1,4 +1,4 @@
-package net.anzop.retro.model
+package net.anzop.retro.model.marketData
 
 enum class Measurement(val code: String) {
     SECURITIES_RAW_DAILY("sec_raw_d"),

@@ -5,22 +5,17 @@ import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import net.anzop.retro.config.AlpacaProps
 import net.anzop.retro.helpers.genWeekdayRange
-import net.anzop.retro.model.BarData
-import net.anzop.retro.model.Measurement
-import net.anzop.retro.model.PriceChangeWeighted
-import net.anzop.retro.model.div
-import net.anzop.retro.model.plus
+import net.anzop.retro.model.IndexMember
+import net.anzop.retro.model.marketData.BarData
+import net.anzop.retro.model.marketData.Measurement
+import net.anzop.retro.model.marketData.PriceChange
+import net.anzop.retro.model.marketData.div
+import net.anzop.retro.model.marketData.plus
 import net.anzop.retro.repository.BarDataRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
-private data class MemberSecurity (
-    val indexValueWhenIntroduced: Double,
-    val introductionPrice: Double,
-    val prevDayPrice: Double
-)
-
-private typealias Securities = MutableMap<String, MemberSecurity>
+private typealias IndexMembers = MutableMap<String, IndexMember>
 
 @Service
 class IndexProcessor(
@@ -30,7 +25,7 @@ class IndexProcessor(
     private val logger = LoggerFactory.getLogger(IndexProcessor::class.java)
 
     fun process() {
-        val securities = mutableMapOf<String, MemberSecurity>()
+        val securities = mutableMapOf<String, IndexMember>()
         val processingPeriod = genWeekdayRange(
             startDate = alpacaProps.earliestHistoricalDate,
             endDate = Instant.now().atZone(ZoneOffset.UTC).toLocalDate()
@@ -49,10 +44,11 @@ class IndexProcessor(
 
             bars.forEach { bar ->
                 securities.computeIfAbsent(bar.ticker) {
-                    MemberSecurity(
+                    IndexMember(
                         indexValueWhenIntroduced = currIndexValue,
                         introductionPrice = bar.volumeWeightedAvgPrice,
-                        prevDayPrice = bar.volumeWeightedAvgPrice
+                        prevDayPrice = bar.volumeWeightedAvgPrice,
+                        ticker = bar.ticker
                     )
                 }
             }
@@ -66,7 +62,7 @@ class IndexProcessor(
         logger.info("Final Index Value is: $latestIndexValue")
     }
 
-    private fun processBars(securities: Securities, bars: List<BarData>): List<PriceChangeWeighted> =
+    private fun processBars(securities: IndexMembers, bars: List<BarData>): List<PriceChange> =
         bars.mapNotNull { bar ->
             securities[bar.ticker]?.let { entry ->
                 val (indexValueWhenIntroduced, introductionPrice, prevDayPrice) = entry
@@ -77,7 +73,7 @@ class IndexProcessor(
                 securities[bar.ticker] = entry.copy(prevDayPrice = bar.volumeWeightedAvgPrice)
                 val priceChangeAvg = normalize(bar.volumeWeightedAvgPrice)
 
-                PriceChangeWeighted(
+                PriceChange(
                     measurement = Measurement.SECURITIES_WEIGHTED_EQUAL_DAILY,
                     ticker = bar.ticker,
                     marketTimestamp = bar.marketTimestamp,
@@ -92,13 +88,13 @@ class IndexProcessor(
             }
         }
 
-    private fun resolveNewIndexValue(priceChanges: List<PriceChangeWeighted>, indexValue: Double): Double =
+    private fun resolveNewIndexValue(priceChanges: List<PriceChange>, indexValue: Double): Double =
         priceChanges.takeIf { it.isNotEmpty() }
             ?.let { createIndex(it) }
             ?.priceChangeAvg
             ?: indexValue
 
-    private fun createIndex(priceChanges: List<PriceChangeWeighted>): PriceChangeWeighted {
+    private fun createIndex(priceChanges: List<PriceChange>): PriceChange {
         val indexBar = priceChanges
             .reduce { acc, priceChange -> acc + priceChange }
             .copy(
