@@ -10,7 +10,7 @@ import net.anzop.retro.helpers.toInstant
 import net.anzop.retro.helpers.toOffsetDateTime
 import net.anzop.retro.http.client.BarsResponse
 import net.anzop.retro.model.marketData.Measurement
-import net.anzop.retro.repository.BarDataRepository
+import net.anzop.retro.repository.MarketDataRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -19,7 +19,7 @@ import org.springframework.web.reactive.function.client.WebClient
 class BarDataFetcher(
     private val alpacaProps: AlpacaProps,
     private val tickerConfig: TickerConfig,
-    private val barDataRepository: BarDataRepository,
+    private val marketDataRepository: MarketDataRepository,
     private val webClient: WebClient
 ) {
     private val logger = LoggerFactory.getLogger(BarDataFetcher::class.java)
@@ -31,9 +31,8 @@ class BarDataFetcher(
         }
 
     private fun resolveStartDate(ticker: String): OffsetDateTime {
-        val latestMarketTimestamp = barDataRepository.getLatestMeasurementTime(Measurement.SECURITIES_RAW_DAILY, ticker)
-        logger.info("Last known fetch date for $ticker is $latestMarketTimestamp")
-
+        val latestMarketTimestamp = marketDataRepository.getLatestMeasurementTime(Measurement.SECURITIES_RAW_DAILY, ticker)
+        logger.info("Last known marketTimestamp for $ticker is $latestMarketTimestamp")
 
         val startDate = (latestMarketTimestamp?: alpacaProps.earliestHistoricalDate.toInstant()).toOffsetDateTime()
         logger.info("startDate was set to $startDate")
@@ -86,7 +85,7 @@ class BarDataFetcher(
                         }
                     }
                     if (barDataList.isNotEmpty()) {
-                        barDataRepository.save(barDataList)
+                        marketDataRepository.save(barDataList)
                     }
                 }
             }

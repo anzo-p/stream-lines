@@ -1,89 +1,42 @@
 package net.anzop.retro.repository
 
+import com.influxdb.query.FluxRecord
 import com.influxdb.query.FluxTable
 import java.time.Instant
-import net.anzop.retro.model.marketData.BarData
-import net.anzop.retro.model.marketData.Measurement
+import net.anzop.retro.model.marketData.MarketData
 
-fun toBarDataList(tables: List<FluxTable>): List<BarData> {
-    val groupedByTicker = tables.flatMap { it.records }
-        .groupBy { record -> record.getValueByKey("ticker")?.toString() ?: "" }
-        .filterKeys { it.isNotEmpty() }
-
-    return groupedByTicker.map { (ticker, records) ->
+fun <T : MarketData> parseTable(tables: List<FluxTable>, factory: MarketDataFactory<T>): List<T> {
+    return toRecords(tables).mapNotNull { (ticker, records) ->
         val fields = mutableMapOf<String, MutableList<Any?>>()
+        var type: String? = null
 
-        records.forEach { record ->
-            val field = record.field ?: return@forEach
-            val value = record.value ?: return@forEach
+        records
+            .sortedBy { record -> record.getValueByKey("_time") as? Instant }
+            .forEach { record ->
+                val field = record.field ?: return@forEach
+                val value = record.value ?: return@forEach
 
-            fields["time"] = mutableListOf(record.time)
-            fields["_measurement"] = mutableListOf(record.measurement)
-            val values = fields.getOrPut(field) { mutableListOf() }
-            values.add(value)
-        }
+                fields["time"] = mutableListOf(record.time)
+                fields["measurement"] = mutableListOf(record.measurement)
+                val values = fields.getOrPut(field) { mutableListOf() }
+                values.add(value)
 
-        toBarData(ticker, fields)
+                if (type == null) {
+                    type = record.getValueByKey("type") as? String
+                }
+            }
+
+        factory.create(ticker, fields)
     }
 }
 
-private fun toBarData(ticker: String, fields: Map<String, List<Any?>>): BarData {
-    val measurement = (fields["_measurement"] as? List<*>)
-        ?.filterIsInstance<String>()
-        ?.firstOrNull()
-        ?.let { Measurement.fromCode(it) }
-        ?: throw IllegalArgumentException("Invalid measurement for ticker: $ticker")
-
-    val marketTimestamp = (fields["time"] as? List<*>)
-        ?.filterIsInstance<Instant>()
-        ?.firstOrNull()
-        ?: throw IllegalArgumentException("Invalid marketTimestamp for ticker: $ticker")
-
-    val openingPrice = (fields["openingPrice"] as? List<*>)
-        ?.filterIsInstance<Number>()
-        ?.firstOrNull()
-        ?.toDouble()
-        ?: throw IllegalArgumentException("Invalid openingPrice for ticker: $ticker")
-
-    val closingPrice = (fields["closingPrice"] as? List<*>)
-        ?.filterIsInstance<Number>()
-        ?.firstOrNull()
-        ?.toDouble()
-        ?: throw IllegalArgumentException("Invalid closingPrice for ticker: $ticker")
-
-    val highPrice = (fields["highPrice"] as? List<*>)
-        ?.filterIsInstance<Number>()
-        ?.firstOrNull()
-        ?.toDouble()
-        ?: throw IllegalArgumentException("Invalid highPrice for ticker: $ticker")
-
-    val lowPrice = (fields["lowPrice"] as? List<*>)
-        ?.filterIsInstance<Number>()
-        ?.firstOrNull()
-        ?.toDouble()
-        ?: throw IllegalArgumentException("Invalid lowPrice for ticker: $ticker")
-
-    val volumeWeightedAvgPrice = (fields["volumeWeightedAvgPrice"] as? List<*>)
-        ?.filterIsInstance<Number>()
-        ?.firstOrNull()
-        ?.toDouble()
-        ?: throw IllegalArgumentException("Invalid volumeWeightedAvgPrice for ticker: $ticker")
-
-    val totalTradingValue = (fields["totalTradingValue"] as? List<*>)
-        ?.filterIsInstance<Number>()
-        ?.firstOrNull()
-        ?.toDouble()
-        ?: throw IllegalArgumentException("Invalid totalTradingValue for ticker: $ticker")
-
-    return BarData(
-        measurement = measurement,
-        ticker = ticker,
-        marketTimestamp = marketTimestamp,
-        openingPrice = openingPrice,
-        closingPrice = closingPrice,
-        highPrice = highPrice,
-        lowPrice = lowPrice,
-        volumeWeightedAvgPrice = volumeWeightedAvgPrice,
-        totalTradingValue = totalTradingValue
-    )
-}
+private fun toRecords(tables: List<FluxTable>): Map<String, List<FluxRecord>> =
+    tables
+        .flatMap { it.records }
+        .mapNotNull { record ->
+            record
+                .getValueByKey("ticker")
+                ?.toString()
+                ?.let { it to record }
+        }
+        .groupBy({ it.first }, { it.second })

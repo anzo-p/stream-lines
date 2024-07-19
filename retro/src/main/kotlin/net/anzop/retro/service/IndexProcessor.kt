@@ -11,7 +11,7 @@ import net.anzop.retro.model.marketData.Measurement
 import net.anzop.retro.model.marketData.PriceChange
 import net.anzop.retro.model.marketData.div
 import net.anzop.retro.model.marketData.plus
-import net.anzop.retro.repository.BarDataRepository
+import net.anzop.retro.repository.MarketDataRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -20,7 +20,7 @@ private typealias IndexMembers = MutableMap<String, IndexMember>
 @Service
 class IndexProcessor(
     private val alpacaProps: AlpacaProps,
-    private val barDataRepository: BarDataRepository,
+    private val marketDataRepository: MarketDataRepository,
 ) {
     private val logger = LoggerFactory.getLogger(IndexProcessor::class.java)
 
@@ -37,11 +37,11 @@ class IndexProcessor(
                 logger.info("Processing. Current date: $date, current index value: $currIndexValue")
             }
 
-            val bars = barDataRepository.getMeasurements(
+            val bars = marketDataRepository.getMeasurements(
                 measurement = Measurement.SECURITIES_RAW_DAILY,
-                from = date.atStartOfDay().toInstant(ZoneOffset.UTC)
+                from = date.atStartOfDay().toInstant(ZoneOffset.UTC),
+                clazz = BarData::class.java
             )
-
             bars.forEach { bar ->
                 securities.computeIfAbsent(bar.ticker) {
                     IndexMember(
@@ -54,7 +54,7 @@ class IndexProcessor(
             }
 
             val priceChanges = processBars(securities, bars)
-            barDataRepository.saveAsync(priceChanges)
+            marketDataRepository.saveAsync(priceChanges)
 
             resolveNewIndexValue(priceChanges, currIndexValue)
         }
@@ -103,7 +103,7 @@ class IndexProcessor(
             )
             .div(priceChanges.size.toDouble())
 
-        barDataRepository.save(indexBar)
+        marketDataRepository.save(indexBar)
 
         return indexBar
     }

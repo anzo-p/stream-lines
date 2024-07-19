@@ -15,7 +15,7 @@ fun <T> toPoint(entity: T): Point =
     }
 
 private fun toPoint(barData: BarData): Point =
-    basePoint(barData.measurement, barData.ticker, barData.marketTimestamp)
+    basePoint<BarData>(barData.measurement, barData.ticker, barData.marketTimestamp)
         .addField("openingPrice", barData.openingPrice)
         .addField("closingPrice", barData.closingPrice)
         .addField("highPrice", barData.highPrice)
@@ -24,7 +24,7 @@ private fun toPoint(barData: BarData): Point =
         .addField("totalTradingValue", barData.totalTradingValue)
 
 private fun toPoint(priceChange: PriceChange): Point =
-    basePoint(priceChange.measurement, priceChange.ticker, priceChange.marketTimestamp)
+    basePoint<PriceChange>(priceChange.measurement, priceChange.ticker, priceChange.marketTimestamp)
         .addField("priceChangeOpen", priceChange.priceChangeOpen)
         .addField("priceChangeClose", priceChange.priceChangeClose)
         .addField("priceChangeHigh", priceChange.priceChangeHigh)
@@ -33,8 +33,13 @@ private fun toPoint(priceChange: PriceChange): Point =
         .addField("priceChangeDaily", priceChange.priceChangeDaily)
         .addField("totalTradingValue", priceChange.totalTradingValue)
 
-private fun basePoint(measurement: Measurement, ticker: String, marketTimestamp: Instant): Point =
+private inline fun <reified T> basePoint(
+    measurement: Measurement,
+    ticker: String,
+    marketTimestamp: Instant,
+): Point =
     Point
         .measurement(measurement.code)
         .time(marketTimestamp.toEpochMilli(), WritePrecision.MS)
         .addTag("ticker", ticker)
+        .addTag("type", T::class.simpleName)
