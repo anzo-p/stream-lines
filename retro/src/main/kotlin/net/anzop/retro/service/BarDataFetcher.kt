@@ -8,9 +8,11 @@ import net.anzop.retro.helpers.buildHistoricalBarsUri
 import net.anzop.retro.helpers.getRequest
 import net.anzop.retro.helpers.toInstant
 import net.anzop.retro.helpers.toOffsetDateTime
+import net.anzop.retro.http.client.BarDataDto
 import net.anzop.retro.http.client.BarsResponse
 import net.anzop.retro.model.marketData.Measurement
-import net.anzop.retro.repository.MarketDataRepository
+import net.anzop.retro.repository.dynamodb.CacheRepository
+import net.anzop.retro.repository.influxdb.MarketDataRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -19,19 +21,29 @@ import org.springframework.web.reactive.function.client.WebClient
 class BarDataFetcher(
     private val alpacaProps: AlpacaProps,
     private val tickerConfig: TickerConfig,
+    private val cacheRepository: CacheRepository,
     private val marketDataRepository: MarketDataRepository,
     private val webClient: WebClient
 ) {
     private val logger = LoggerFactory.getLogger(BarDataFetcher::class.java)
 
-    fun run() =
-        tickerConfig.tickers.forEach { ticker ->
-            val startDate = resolveStartDate(ticker.symbol)
-            processTicker(ticker.symbol, startDate)
+    fun run() {
+        val earliestMarketTimestamp = tickerConfig
+            .tickers
+            .mapNotNull { ticker ->
+                val startDate = resolveStartDate(ticker.symbol)
+                processTicker(ticker.symbol, startDate)
+            }
+            .min()
+
+        logger.info("The earliest processed marketTimestamp was $earliestMarketTimestamp")
+        earliestMarketTimestamp.let {
+            cacheRepository.suggestIndexStaleFrom(it.toLocalDate())
         }
+    }
 
     private fun resolveStartDate(ticker: String): OffsetDateTime {
-        val latestMarketTimestamp = marketDataRepository.getLatestMeasurementTime(Measurement.SECURITIES_RAW_DAILY, ticker)
+        val latestMarketTimestamp = marketDataRepository.getEarliestSourceBarDataEntry(ticker)
         logger.info("Last known marketTimestamp for $ticker is $latestMarketTimestamp")
 
         val startDate = (latestMarketTimestamp?: alpacaProps.earliestHistoricalDate.toInstant()).toOffsetDateTime()
@@ -42,8 +54,9 @@ class BarDataFetcher(
     private tailrec fun processTicker(
         ticker: String,
         startDate: OffsetDateTime,
-        pageToken: String = ""
-    ) {
+        pageToken: String = "",
+        accFirstEntry: OffsetDateTime? = null
+    ): OffsetDateTime? {
         throttle()
 
         val uri = buildHistoricalBarsUri(
@@ -55,41 +68,54 @@ class BarDataFetcher(
             pageToken = pageToken
         )
         val response = webClient.getRequest<BarsResponse>(uri)
-        handleResponse(ticker, response)
+        val firstEntry = handleResponse(ticker, response)
 
-        response
-            ?.nextPageToken
-            ?.takeIf { it.isNotEmpty() }
-            ?.let { nextPage ->
-                return processTicker(ticker, startDate, nextPage)
-            }
+        val newFirstEntry = if (accFirstEntry == null || (firstEntry != null && firstEntry < accFirstEntry)) {
+            firstEntry
+        } else {
+            accFirstEntry
+        }
+
+        return if (response?.nextPageToken?.isNotEmpty() == true) {
+            processTicker(ticker, startDate, response.nextPageToken!!, newFirstEntry)
+        } else {
+            newFirstEntry
+        }
     }
 
-    private fun handleResponse(ticker: String, response: BarsResponse?) =
+    private fun handleResponse(ticker: String, response: BarsResponse?): OffsetDateTime? =
         response?.let { body ->
             val bars = body.bars
             val n = bars.values.sumOf { it.size }
+
             when {
                 n == 0 -> {
                     logger.warn("Response from Alpaca is empty. Perhaps ticker: $ticker is invalid or outdated.")
+                    null
                 }
                 else -> {
                     logger.info("Fetched $n bars for $ticker up to ${bars.values.flatten().last().marketTimestamp}")
-                    val barDataList = bars.flatMap { entry ->
-                        entry.value.mapNotNull { barDataDto ->
-                            runCatching {
-                                barDataDto.toModel(Measurement.SECURITIES_RAW_DAILY, entry.key)
-                            }.onFailure {
-                                logger.warn("Validation failed for $ticker bar data: ${it.message}")
-                            }.getOrNull()
-                        }
-                    }
-                    if (barDataList.isNotEmpty()) {
-                        marketDataRepository.save(barDataList)
-                    }
+                    processEntries(ticker, bars.values.flatten())
                 }
             }
         }
+
+    private fun processEntries(ticker: String, barEntries: List<BarDataDto>): OffsetDateTime {
+        val bars = barEntries
+            .mapNotNull { entry ->
+                runCatching {
+                    entry.toModel(Measurement.SECURITIES_RAW_DAILY, ticker)
+                }.onFailure {
+                    logger.warn("Validation failed for $ticker bar data: ${it.message}")
+                }.getOrNull()
+            }
+
+        marketDataRepository.save(bars)
+
+        return bars
+            .minOf { it.marketTimestamp }
+            .toOffsetDateTime()
+    }
 
     private fun throttle() {
         Thread.sleep((60000 / alpacaProps.maxCallsPerMinute).toLong())

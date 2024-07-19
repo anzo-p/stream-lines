@@ -28,6 +28,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("io.github.cdimascio:java-dotenv:5.2.2")
+    implementation("software.amazon.awssdk:dynamodb:2.26.20")
+    implementation("software.amazon.awssdk:auth:2.26.20")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 

@@ -1,4 +1,4 @@
-package net.anzop.retro.repository
+package net.anzop.retro.repository.influxdb
 
 import com.influxdb.client.InfluxDBClient
 import com.influxdb.client.WriteApi
@@ -10,6 +10,7 @@ import com.influxdb.query.dsl.functions.restriction.Restrictions
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import net.anzop.retro.config.InfluxDBConfig
+import net.anzop.retro.model.marketData.BarData
 import net.anzop.retro.model.marketData.MarketData
 import net.anzop.retro.model.marketData.Measurement
 import org.springframework.stereotype.Repository
@@ -20,6 +21,13 @@ class MarketDataRepository (
     private val influxDBClient: InfluxDBClient,
     private val influxDBAsyncWriter: WriteApi
 ) {
+    fun getEarliestSourceBarDataEntry(ticker: String): Instant? =
+        getLastMeasurement(
+            measurement = Measurement.SECURITIES_RAW_DAILY,
+            ticker = ticker,
+            clazz = BarData::class.java
+        )?.marketTimestamp
+
     fun <T : MarketData> getMeasurements(
         measurement: Measurement,
         from: Instant,
@@ -45,7 +53,31 @@ class MarketDataRepository (
             .map { clazz.cast(it) }
     }
 
-    fun getLatestMeasurementTime(
+    fun <T : MarketData> getLastMeasurement(
+        measurement: Measurement,
+        ticker: String,
+        earlierThan: Instant? = null,
+        clazz: Class<T>
+    ): T? =
+        getLatestMeasurementTime(measurement, ticker, earlierThan)
+            ?.let { ts ->
+                val q = Flux
+                    .from(influxDBConfig.bucket)
+                    .range(Instant.ofEpochMilli(0L))
+                    .filter(
+                        Restrictions.and(
+                            Restrictions.measurement().equal(measurement.code),
+                            Restrictions.time().equal(ts),
+                            Restrictions.tag("ticker").equal(ticker)
+                        )
+                    )
+                    .toString()
+
+                val result = runAndParse(q, clazz).first()
+                return cast(result, clazz)
+            }
+
+    private fun getLatestMeasurementTime(
         measurement: Measurement,
         ticker: String,
         earlierThan: Instant? = null
@@ -112,4 +144,11 @@ class MarketDataRepository (
         influxDBClient
             .queryApi
             .query(q)
+
+    private fun <T> cast(result: MarketData, clazz: Class<T>): T =
+        if (clazz.isInstance(result)) {
+            clazz.cast(result)
+        } else {
+            throw IllegalArgumentException("Invalid class type: $clazz")
+        }
 }

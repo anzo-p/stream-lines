@@ -1,4 +1,4 @@
-package net.anzop.retro.repository
+package net.anzop.retro.repository.influxdb
 
 import com.influxdb.client.domain.WritePrecision
 import com.influxdb.client.write.Point

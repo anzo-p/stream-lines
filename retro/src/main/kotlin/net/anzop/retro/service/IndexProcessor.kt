@@ -11,7 +11,7 @@ import net.anzop.retro.model.marketData.Measurement
 import net.anzop.retro.model.marketData.PriceChange
 import net.anzop.retro.model.marketData.div
 import net.anzop.retro.model.marketData.plus
-import net.anzop.retro.repository.MarketDataRepository
+import net.anzop.retro.repository.influxdb.MarketDataRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
