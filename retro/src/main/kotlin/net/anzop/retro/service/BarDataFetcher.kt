@@ -1,4 +1,4 @@
-package net.anzop.retro.http.client
+package net.anzop.retro.service
 
 import java.net.URI
 import java.time.OffsetDateTime
@@ -6,7 +6,9 @@ import net.anzop.retro.config.AlpacaProps
 import net.anzop.retro.config.tickerConfig.TickerConfig
 import net.anzop.retro.helpers.buildHistoricalBarsUri
 import net.anzop.retro.helpers.getRequest
-import net.anzop.retro.helpers.resolveStartDate
+import net.anzop.retro.helpers.toInstant
+import net.anzop.retro.helpers.toOffsetDateTime
+import net.anzop.retro.http.client.BarsResponse
 import net.anzop.retro.model.marketData.Measurement
 import net.anzop.retro.repository.BarDataRepository
 import org.slf4j.LoggerFactory
@@ -24,15 +26,16 @@ class BarDataFetcher(
 
     fun run() =
         tickerConfig.tickers.forEach { ticker ->
-            val startDate = getStartDate(ticker.symbol) ?: return@forEach
+            val startDate = resolveStartDate(ticker.symbol)
             processTicker(ticker.symbol, startDate)
         }
 
-    private fun getStartDate(ticker: String): OffsetDateTime? {
-        val lastKnownFetchDate = barDataRepository.getLatestMeasurementTime(Measurement.SECURITIES_RAW_DAILY, ticker)
-        logger.info("Last known fetch date for $ticker is $lastKnownFetchDate")
+    private fun resolveStartDate(ticker: String): OffsetDateTime {
+        val latestMarketTimestamp = barDataRepository.getLatestMeasurementTime(Measurement.SECURITIES_RAW_DAILY, ticker)
+        logger.info("Last known fetch date for $ticker is $latestMarketTimestamp")
 
-        val startDate = resolveStartDate(lastKnownFetchDate, alpacaProps.earliestHistoricalDate)
+
+        val startDate = (latestMarketTimestamp?: alpacaProps.earliestHistoricalDate.toInstant()).toOffsetDateTime()
         logger.info("startDate was set to $startDate")
         return startDate
     }
