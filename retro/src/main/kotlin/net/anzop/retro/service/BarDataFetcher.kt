@@ -5,9 +5,9 @@ import java.time.OffsetDateTime
 import net.anzop.retro.config.AlpacaProps
 import net.anzop.retro.config.tickerConfig.TickerConfig
 import net.anzop.retro.helpers.buildHistoricalBarsUri
+import net.anzop.retro.helpers.date.asAmericaNyToInstant
+import net.anzop.retro.helpers.date.toOffsetDateTime
 import net.anzop.retro.helpers.getRequest
-import net.anzop.retro.helpers.toInstantUtc
-import net.anzop.retro.helpers.toOffsetDateTimeUtc
 import net.anzop.retro.http.client.BarDataDto
 import net.anzop.retro.http.client.BarsResponse
 import net.anzop.retro.model.marketData.Measurement
@@ -31,8 +31,8 @@ class BarDataFetcher(
         val earliestMarketTimestamp = tickerConfig
             .tickers
             .mapNotNull { ticker ->
-                val startDate = resolveStartDate(ticker.symbol)
-                processTicker(ticker.symbol, startDate)
+                val startDateTime = resolveStartDate(ticker.symbol)
+                processTicker(ticker.symbol, startDateTime)
             }
             .min()
 
@@ -46,15 +46,15 @@ class BarDataFetcher(
         val latestMarketTimestamp = marketDataRepository.getLatestSourceBarDataEntry(ticker)
         logger.info("Last known marketTimestamp for $ticker is $latestMarketTimestamp")
 
-        val fallBackDate = alpacaProps.earliestHistoricalDate.toInstantUtc()
-        val startDate = (latestMarketTimestamp ?: fallBackDate).toOffsetDateTimeUtc()
-        logger.info("startDate was set to $startDate")
-        return startDate
+        val fallBackDate = alpacaProps.earliestHistoricalDate.asAmericaNyToInstant()
+        val startDateTime = (latestMarketTimestamp ?: fallBackDate).toOffsetDateTime()
+        logger.info("startDate was set to $startDateTime")
+        return startDateTime
     }
 
     private tailrec fun processTicker(
         ticker: String,
-        startDate: OffsetDateTime,
+        startDateTime: OffsetDateTime,
         pageToken: String = "",
         accFirstEntry: OffsetDateTime? = null
     ): OffsetDateTime? {
@@ -65,7 +65,7 @@ class BarDataFetcher(
             feed = alpacaProps.dataSource,
             symbols = listOf(ticker),
             timeframe = alpacaProps.barDataTimeframe,
-            start = startDate,
+            start = startDateTime,
             pageToken = pageToken
         )
         val response = webClient.getRequest<BarsResponse>(uri)
@@ -78,7 +78,7 @@ class BarDataFetcher(
         }
 
         return if (response?.nextPageToken?.isNotEmpty() == true) {
-            processTicker(ticker, startDate, response.nextPageToken!!, newFirstEntry)
+            processTicker(ticker, startDateTime, response.nextPageToken!!, newFirstEntry)
         } else {
             newFirstEntry
         }
@@ -115,7 +115,7 @@ class BarDataFetcher(
 
         return bars
             .minOf { it.marketTimestamp }
-            .toOffsetDateTimeUtc()
+            .toOffsetDateTime()
     }
 
     private fun throttle() {

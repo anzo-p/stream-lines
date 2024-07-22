@@ -2,11 +2,10 @@ package net.anzop.retro.service
 
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import net.anzop.retro.config.AlpacaProps
-import net.anzop.retro.helpers.generateWeekdayRange
-import net.anzop.retro.helpers.toLocalDate
+import net.anzop.retro.helpers.date.generateWeekdayRange
+import net.anzop.retro.helpers.date.toLocalDate
 import net.anzop.retro.model.IndexMember
 import net.anzop.retro.model.marketData.BarData
 import net.anzop.retro.model.marketData.Measurement
@@ -59,11 +58,7 @@ class IndexProcessor(
                 logger.info("Processing. Current date: $date, current index value: $currIndexValue")
             }
 
-            val bars = marketDataRepository.getMeasurements(
-                measurement = Measurement.SECURITIES_RAW_DAILY,
-                from = date.atStartOfDay().toInstant(ZoneOffset.UTC),
-                clazz = BarData::class.java
-            )
+            val bars = marketDataRepository.getSourceBarData(date)
             bars.forEach { bar ->
                 securities.computeIfAbsent(bar.ticker) {
                     validateMember(bar.ticker, date)
@@ -141,8 +136,7 @@ class IndexProcessor(
             if (firstEntry.toLocalDate() != date) {
                 cacheRepository.deleteIndexStaleFrom()
                 throw IllegalStateException(
-                    "$date is not the first date for ticker: $ticker but still it's index details are missing." +
-                    "Reset cached stale date to recalculate index from beginning."
+                    "Date: $date is not when ticker: $ticker gets introduced, $firstEntry would be."
                 )
             }
         }

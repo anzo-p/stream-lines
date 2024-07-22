@@ -9,9 +9,11 @@ import com.influxdb.query.dsl.functions.FilterFlux
 import com.influxdb.query.dsl.functions.restriction.Restrictions
 import java.time.Instant
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 import net.anzop.retro.config.InfluxDBConfig
-import net.anzop.retro.helpers.toInstantUtc
+import net.anzop.retro.helpers.date.asAmericaNyToInstant
+import net.anzop.retro.helpers.date.plusOneDayAlmost
+import net.anzop.retro.helpers.date.toInstant
+import net.anzop.retro.model.marketData.BarData
 import net.anzop.retro.model.marketData.MarketData
 import net.anzop.retro.model.marketData.Measurement
 import net.anzop.retro.model.marketData.PriceChange
@@ -35,11 +37,19 @@ class MarketDataRepository (
             ticker = ticker,
         )
 
+    fun getSourceBarData(date: LocalDate): List<BarData> =
+        getMeasurements(
+            measurement = Measurement.SECURITIES_RAW_DAILY,
+            from = date.asAmericaNyToInstant(),
+            til = date.asAmericaNyToInstant().plusOneDayAlmost(),
+            clazz = BarData::class.java
+        )
+
     fun getIndexValueAt(date: LocalDate): Double? =
         getFirstMeasurement(
             measurement = Measurement.INDEX_WEIGHTED_EQUAL_DAILY,
             ticker = "INDEX",
-            since = date.toInstantUtc(),
+            since = date.toInstant(),
             clazz = PriceChange::class.java
         )?.priceChangeAvg
 
@@ -50,13 +60,10 @@ class MarketDataRepository (
         ticker: String? = null,
         clazz: Class<T>
     ): List<T> {
-        val tilInstant = til ?: from
+        val tilInstant = til ?: from.plusOneDayAlmost()
         val baseQ = Flux
             .from(influxDBConfig.bucket)
-            .range(
-                from.truncatedTo(ChronoUnit.DAYS),
-                tilInstant.truncatedTo(ChronoUnit.DAYS).plus(1, ChronoUnit.DAYS)
-            )
+            .range(from, tilInstant)
             .filter(Restrictions.measurement().equal(measurement.code))
 
         val q = ticker?.let {
@@ -74,11 +81,15 @@ class MarketDataRepository (
         since: Instant? = null,
         clazz: Class<T>
     ): T? =
-        getFirstMeasurementTime(measurement, ticker, since ?: Instant.ofEpochMilli(0L))
+        getFirstMeasurementTime(
+            measurement = measurement,
+            ticker = ticker,
+            since ?: Instant.ofEpochMilli(0L)
+        )
             ?.let { ts ->
                 val q = baseFlux(
-                    measurement,
-                    ticker,
+                    measurement = measurement,
+                    ticker = ticker,
                     start = ts
                 ).filter(Restrictions.time().equal(ts))
 

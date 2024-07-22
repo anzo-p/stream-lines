@@ -9,7 +9,7 @@ alpaca:
   bar_data_time_frame: 1Hour
   daily_bars_url: https://data.alpaca.markets/v2/stocks/bars
   data_source: sip
-  earliest_historical_date: 2016-01-01
+  earliest_historical_date: 2016-01-02
   max_calls_per_minute: 200
 
 aws:
