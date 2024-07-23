@@ -17,11 +17,11 @@ fun LocalDate.toInstant(): Instant =
 fun Instant.plusOneDayAlmost(): Instant =
     this.plus(1, ChronoUnit.DAYS).minusMillis(1)
 
-fun Instant.toLocalDate(): LocalDate =
-    this.atZone(ZoneId.of("UTC")).toLocalDate()
+fun Instant.toLocalDate(zoneId: ZoneId? = ZoneId.of("UTC")): LocalDate =
+    this.atZone(zoneId).toLocalDate()
 
-fun Instant.toOffsetDateTime(): OffsetDateTime =
-    OffsetDateTime.ofInstant(this, ZoneId.of("UTC"))
+fun Instant.toOffsetDateTime(zoneId: ZoneId? = ZoneId.of("UTC")): OffsetDateTime =
+    OffsetDateTime.ofInstant(this, zoneId)
 
 fun generateWeekdayRange(startDate: LocalDate, endDate: LocalDate): List<LocalDate> {
     val sequence = generateSequence(startDate) { date ->
