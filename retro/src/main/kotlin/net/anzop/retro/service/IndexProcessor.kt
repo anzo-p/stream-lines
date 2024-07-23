@@ -5,6 +5,7 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import net.anzop.retro.config.AlpacaProps
 import net.anzop.retro.helpers.date.generateWeekdayRange
+import net.anzop.retro.helpers.date.toInstant
 import net.anzop.retro.helpers.date.toLocalDate
 import net.anzop.retro.model.IndexMember
 import net.anzop.retro.model.marketData.BarData
@@ -30,7 +31,7 @@ class IndexProcessor(
     private var asyncRecordsToInsert = mutableListOf<Any>()
 
     fun process() {
-        val startDate = cacheRepository.getIndexStaleFrom()
+        val startDate = cacheRepository.getIndexStaleFrom()?.minusDays(1)
             ?: run {
                 cacheRepository.deleteMemberSecurities()
                 alpacaProps.earliestHistoricalDate
@@ -71,7 +72,7 @@ class IndexProcessor(
                 }
             }
 
-            val priceChanges = processBars(securities, bars)
+            val priceChanges = processBars(securities, bars, date)
             asyncRecordsToInsert.addAll(priceChanges)
             resolveNewIndexValue(priceChanges, currIndexValue)
         }
@@ -85,7 +86,7 @@ class IndexProcessor(
         return latestIndexValue
     }
 
-    private fun processBars(securities: IndexMembers, bars: List<BarData>): List<PriceChange> =
+    private fun processBars(securities: IndexMembers, bars: List<BarData>, indexDate: LocalDate): List<PriceChange> =
         bars.mapNotNull { bar ->
             securities[bar.ticker]?.let { entry ->
                 val (indexValueWhenIntroduced, introductionPrice, prevDayPrice) = entry
@@ -99,7 +100,7 @@ class IndexProcessor(
                 PriceChange(
                     measurement = Measurement.SECURITIES_WEIGHTED_EQUAL_DAILY,
                     ticker = bar.ticker,
-                    marketTimestamp = bar.marketTimestamp,
+                    marketTimestamp = indexDate.toInstant(),
                     priceChangeOpen = normalize(bar.openingPrice),
                     priceChangeClose = normalize(bar.closingPrice),
                     priceChangeHigh = normalize(bar.highPrice),
