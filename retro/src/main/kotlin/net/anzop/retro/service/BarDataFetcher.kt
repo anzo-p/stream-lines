@@ -10,6 +10,7 @@ import net.anzop.retro.helpers.date.toOffsetDateTime
 import net.anzop.retro.helpers.getRequest
 import net.anzop.retro.http.client.BarDataDto
 import net.anzop.retro.http.client.BarsResponse
+import net.anzop.retro.model.Ticker
 import net.anzop.retro.model.marketData.Measurement
 import net.anzop.retro.repository.dynamodb.CacheRepository
 import net.anzop.retro.repository.influxdb.MarketDataRepository
@@ -32,7 +33,7 @@ class BarDataFetcher(
             .tickers
             .mapNotNull { ticker ->
                 val startDateTime = resolveStartDate(ticker.symbol)
-                processTicker(ticker.symbol, startDateTime)
+                processTicker(ticker, startDateTime)
             }
             .min()
 
@@ -53,7 +54,7 @@ class BarDataFetcher(
     }
 
     private tailrec fun processTicker(
-        ticker: String,
+        ticker: Ticker,
         startDateTime: OffsetDateTime,
         pageToken: String = "",
         accFirstEntry: OffsetDateTime? = null
@@ -63,7 +64,7 @@ class BarDataFetcher(
         val uri = buildHistoricalBarsUri(
             baseUrl = URI.create(alpacaProps.dailyBarsUrl),
             feed = alpacaProps.dataSource,
-            symbols = listOf(ticker),
+            symbols = listOf(ticker.symbol),
             timeframe = alpacaProps.barDataTimeframe,
             start = startDateTime,
             pageToken = pageToken
@@ -84,24 +85,24 @@ class BarDataFetcher(
         }
     }
 
-    private fun handleResponse(ticker: String, response: BarsResponse?): OffsetDateTime? =
+    private fun handleResponse(ticker: Ticker, response: BarsResponse?): OffsetDateTime? =
         response?.let { body ->
             val bars = body.bars
             val n = bars.values.sumOf { it.size }
 
             when {
                 n == 0 -> {
-                    logger.warn("Response from Alpaca is empty. Perhaps ticker: $ticker is invalid or outdated.")
+                    logger.warn("Response from Alpaca is empty. Perhaps ticker: ${ticker.symbol} is invalid or outdated.")
                     null
                 }
                 else -> {
-                    logger.info("Fetched $n bars for $ticker up to ${bars.values.flatten().last().marketTimestamp}")
+                    logger.info("Fetched $n bars for ${ticker.symbol} up to ${bars.values.flatten().last().marketTimestamp}")
                     processEntries(ticker, bars.values.flatten())
                 }
             }
         }
 
-    private fun processEntries(ticker: String, barEntries: List<BarDataDto>): OffsetDateTime {
+    private fun processEntries(ticker: Ticker, barEntries: List<BarDataDto>): OffsetDateTime {
         val bars = barEntries
             .mapNotNull { entry ->
                 runCatching {

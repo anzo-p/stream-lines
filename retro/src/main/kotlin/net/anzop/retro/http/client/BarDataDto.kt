@@ -6,6 +6,7 @@ import java.time.OffsetDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.anzop.retro.http.client.serdes.OffsetDateTimeSerializer
+import net.anzop.retro.model.Ticker
 import net.anzop.retro.model.marketData.BarData
 import net.anzop.retro.model.marketData.Measurement
 import org.springframework.validation.annotation.Validated
@@ -44,14 +45,14 @@ data class BarDataDto(
     val volumeWeightedAvgPrice: Double,
 
 ) {
-    fun toModel(measurement: Measurement, ticker: String): BarData {
+    fun toModel(measurement: Measurement, ticker: Ticker): BarData {
         validate(this).takeIf { it.isNotEmpty() }?.let {
             throw IllegalArgumentException("Validation failed: $this fails in $it")
         }
 
         return BarData(
             measurement = measurement,
-            ticker = ticker,
+            ticker = ticker.symbol,
             marketTimestamp = marketTimestamp.toInstant(),
             openingPrice = openingPrice,
             closingPrice = closingPrice,
