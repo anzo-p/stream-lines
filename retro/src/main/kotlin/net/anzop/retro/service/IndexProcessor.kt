@@ -59,7 +59,10 @@ class IndexProcessor(
                 logger.info("Processing. Current date: $date, current index value: $currIndexValue")
             }
 
-            val bars = marketDataRepository.getSourceBarData(date)
+            val bars = marketDataRepository.getSourceBarData(
+                date = date,
+                onlyRegularTradingHours = true
+            )
             bars.forEach { bar ->
                 securities.computeIfAbsent(bar.ticker) {
                     validateMember(bar.ticker, date)
@@ -99,7 +102,9 @@ class IndexProcessor(
 
                 PriceChange(
                     measurement = Measurement.SECURITIES_WEIGHTED_EQUAL_DAILY,
+                    company = bar.company,
                     ticker = bar.ticker,
+                    regularTradingHours = bar.regularTradingHours,
                     marketTimestamp = indexDate.toInstant(),
                     priceChangeOpen = normalize(bar.openingPrice),
                     priceChangeClose = normalize(bar.closingPrice),
@@ -123,6 +128,7 @@ class IndexProcessor(
             .reduce { acc, priceChange -> acc + priceChange }
             .copy(
                 measurement = Measurement.INDEX_WEIGHTED_EQUAL_DAILY,
+                company = "INDEX",
                 ticker = "INDEX"
             )
             .div(priceChanges.size.toDouble())

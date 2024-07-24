@@ -34,9 +34,9 @@ fun LocalDate.isHoliday(): Boolean {
     val variable = variableHolidays.any { (month, dayOfWeek, n) ->
         this.monthValue == month && this.dayOfWeek == dayOfWeek && run {
             if (n > 0) {
-                this.dayOfMonth / 7 == n
+                (n - 1) * 7 < this.dayOfMonth && n * 7 >= this.dayOfMonth
             } else {
-                this.dayOfMonth > this.lengthOfMonth() - 7
+                this.dayOfMonth >= this.lengthOfMonth() - 7
             }
         }
     }

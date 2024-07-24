@@ -17,7 +17,13 @@ private inline fun <reified T : MarketData> basePoint(data: MarketData): Point =
     Point
         .measurement(data.measurement.code)
         .time(data.marketTimestamp.toEpochMilli(), WritePrecision.MS)
-        .addTag("ticker", data.ticker)
+        .addTags(
+            mapOf(
+                "company" to data.company,
+                "ticker" to data.ticker,
+                "regularTradingHours" to data.regularTradingHours.toString(),
+            )
+        )
 
 private fun BarData.toPoint(): Point =
     basePoint<BarData>(this)

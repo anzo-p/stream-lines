@@ -4,8 +4,10 @@ import java.time.Instant
 
 data class PriceChange(
     override val measurement: Measurement,
+    override val company: String,
     override val ticker: String,
     override val marketTimestamp: Instant,
+    override val regularTradingHours: Boolean,
     val priceChangeOpen: Double,
     val priceChangeClose: Double,
     val priceChangeHigh: Double,
@@ -13,7 +15,7 @@ data class PriceChange(
     val priceChangeAvg: Double,
     val priceChangeDaily: Double,
     val totalTradingValue: Double
-) : MarketData(measurement, ticker, marketTimestamp)
+) : MarketData(measurement, company, ticker, marketTimestamp, regularTradingHours)
 
 operator fun PriceChange.plus(that: PriceChange): PriceChange =
     this.copy(

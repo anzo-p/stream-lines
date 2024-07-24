@@ -10,7 +10,7 @@ import com.influxdb.query.dsl.functions.restriction.Restrictions
 import java.time.Instant
 import java.time.LocalDate
 import net.anzop.retro.config.InfluxDBConfig
-import net.anzop.retro.helpers.date.asAmericaNyToInstant
+import net.anzop.retro.helpers.date.nyseTradingHoursOr24h
 import net.anzop.retro.helpers.date.plusOneDayAlmost
 import net.anzop.retro.helpers.date.toInstant
 import net.anzop.retro.model.marketData.BarData
@@ -32,18 +32,24 @@ class MarketDataRepository (
         )
 
     fun getLatestSourceBarDataEntry(ticker: String): Instant? =
-        getLatestMeasurementTime(
-            measurement = Measurement.SECURITIES_RAW_SEMI_HOURLY,
-            ticker = ticker,
-        )
+        listOf(false, true).mapNotNull {
+            getLatestMeasurementTime(
+                measurement = Measurement.SECURITIES_RAW_SEMI_HOURLY,
+                ticker = ticker,
+                regularTradingHours = it
+            )
+        }.max()
 
-    fun getSourceBarData(date: LocalDate): List<BarData> =
-        getMeasurements(
+    fun getSourceBarData(date: LocalDate, onlyRegularTradingHours: Boolean): List<BarData> {
+        val (from, til) = nyseTradingHoursOr24h(date, onlyRegularTradingHours) ?: return emptyList()
+
+        return getMeasurements(
             measurement = Measurement.SECURITIES_RAW_SEMI_HOURLY,
-            from = date.asAmericaNyToInstant(),
-            til = date.asAmericaNyToInstant().plusOneDayAlmost(),
+            from = from,
+            til = til,
             clazz = BarData::class.java
         )
+    }
 
     fun getIndexValueAt(date: LocalDate): Double? =
         getFirstMeasurement(
@@ -141,13 +147,18 @@ class MarketDataRepository (
     private fun getLatestMeasurementTime(
         measurement: Measurement,
         ticker: String,
-        earlierThan: Instant? = null
+        earlierThan: Instant? = null,
+        regularTradingHours: Boolean? = true,
     ): Instant? {
-        val q = baseFlux(
+        val baseQ = baseFlux(
             measurement = measurement,
             ticker = ticker,
             stop = earlierThan
         ).max("_time")
+
+        val q = regularTradingHours?.let {
+            baseQ.filter(Restrictions.tag("regularTradingHours").equal(it.toString()))
+        } ?: baseQ
 
         return queryForTimestamp(q)
     }

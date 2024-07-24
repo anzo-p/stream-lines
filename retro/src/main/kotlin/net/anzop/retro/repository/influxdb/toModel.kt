@@ -23,6 +23,8 @@ fun <T : MarketData> parseTable(tables: List<FluxTable>, factory: MarketDataFact
                     when (key) {
                         "_time" -> addOnce("time", value)
                         "_measurement" -> addOnce("measurement", value)
+                        "company" -> addOnce(key, value)
+                        "regularTradingHours" -> add(key, value)
                         "_value" -> add(recordField, value)
                     }
                 }

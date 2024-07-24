@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Positive
 import java.time.OffsetDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import net.anzop.retro.helpers.date.nyseTradingHours
 import net.anzop.retro.http.client.serdes.OffsetDateTimeSerializer
 import net.anzop.retro.model.Ticker
 import net.anzop.retro.model.marketData.BarData
@@ -50,10 +51,14 @@ data class BarDataDto(
             throw IllegalArgumentException("Validation failed: $this fails in $it")
         }
 
+        val time = marketTimestamp.toInstant()
+
         return BarData(
             measurement = measurement,
             ticker = ticker.symbol,
-            marketTimestamp = marketTimestamp.toInstant(),
+            company = ticker.company,
+            marketTimestamp = time,
+            regularTradingHours = nyseTradingHours.isOpenAt(time),
             openingPrice = openingPrice,
             closingPrice = closingPrice,
             highPrice = highPrice,

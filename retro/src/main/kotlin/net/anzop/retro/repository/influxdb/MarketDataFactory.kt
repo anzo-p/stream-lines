@@ -46,8 +46,10 @@ class BarDataFactory : MarketDataFactory<BarData> {
 
         return BarData(
             measurement = Measurement.fromCode(getMeasurement(ticker, values)),
+            company = getCompany(ticker, values),
             ticker = ticker,
             marketTimestamp = getTimeStamp(ticker, values),
+            regularTradingHours = getRegularTradingHours(ticker, values),
             openingPrice = openingPrice,
             closingPrice = closingPrice,
             highPrice = highPrice,
@@ -92,8 +94,10 @@ class PriceChangeFactory : MarketDataFactory<PriceChange> {
 
         return PriceChange(
             measurement = Measurement.fromCode(getMeasurement(ticker, values)),
+            company = getCompany(ticker, values),
             ticker = ticker,
             marketTimestamp = getTimeStamp(ticker, values),
+            regularTradingHours = getRegularTradingHours(ticker, values),
             priceChangeOpen = priceChangeOpen,
             priceChangeClose = priceChangeClose,
             priceChangeHigh = priceChangeHigh,
@@ -115,3 +119,18 @@ private fun getTimeStamp(ticker: String, values: InfluxDValues): Instant =
         ?.filterIsInstance<Instant>()
         ?.minOfOrNull { it }
         ?: throw IllegalArgumentException("Invalid marketTimestamp for ticker: $ticker")
+
+private fun getCompany(ticker: String, values: InfluxDValues): String =
+    values["company"]
+        ?.firstOrNull() as? String
+        ?: throw IllegalArgumentException("Invalid company for ticker: $ticker")
+
+private fun getRegularTradingHours(ticker: String, values: InfluxDValues): Boolean {
+    val value = values["regularTradingHours"]
+        // first..() works as presently regularTradingHours is a query param
+        ?.firstOrNull() as? String
+        ?: throw IllegalArgumentException("Invalid regularTradingHours for ticker: $ticker")
+
+    return value.toBooleanStrictOrNull()
+        ?: throw IllegalArgumentException("Invalid regularTradingHours $value for ticker: $ticker")
+}
