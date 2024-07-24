@@ -27,19 +27,19 @@ class MarketDataRepository (
 ) {
     fun getEarliestSourceBarDataEntry(ticker: String): Instant? =
         getFirstMeasurementTime(
-            measurement = Measurement.SECURITIES_RAW_DAILY,
+            measurement = Measurement.SECURITIES_RAW_SEMI_HOURLY,
             ticker = ticker
         )
 
     fun getLatestSourceBarDataEntry(ticker: String): Instant? =
         getLatestMeasurementTime(
-            measurement = Measurement.SECURITIES_RAW_DAILY,
+            measurement = Measurement.SECURITIES_RAW_SEMI_HOURLY,
             ticker = ticker,
         )
 
     fun getSourceBarData(date: LocalDate): List<BarData> =
         getMeasurements(
-            measurement = Measurement.SECURITIES_RAW_DAILY,
+            measurement = Measurement.SECURITIES_RAW_SEMI_HOURLY,
             from = date.asAmericaNyToInstant(),
             til = date.asAmericaNyToInstant().plusOneDayAlmost(),
             clazz = BarData::class.java
