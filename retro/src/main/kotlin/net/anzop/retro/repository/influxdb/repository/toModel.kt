@@ -1,4 +1,4 @@
-package net.anzop.retro.repository.influxdb
+package net.anzop.retro.repository.influxdb.repository
 
 import com.influxdb.query.FluxRecord
 import com.influxdb.query.FluxTable

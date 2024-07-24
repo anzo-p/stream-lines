@@ -14,7 +14,7 @@ import net.anzop.retro.model.marketData.PriceChange
 import net.anzop.retro.model.marketData.div
 import net.anzop.retro.model.marketData.plus
 import net.anzop.retro.repository.dynamodb.CacheRepository
-import net.anzop.retro.repository.influxdb.MarketDataRepository
+import net.anzop.retro.repository.influxdb.MarketDataFacade
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -24,7 +24,7 @@ private typealias IndexMembers = MutableMap<String, IndexMember>
 class IndexProcessor(
     private val alpacaProps: AlpacaProps,
     private val cacheRepository: CacheRepository,
-    private val marketDataRepository: MarketDataRepository,
+    private val marketDataFacade: MarketDataFacade,
 ) {
     private val logger = LoggerFactory.getLogger(IndexProcessor::class.java)
 
@@ -38,7 +38,7 @@ class IndexProcessor(
             }
         logger.info("Processing index from $startDate")
 
-        val initialIndexValue = marketDataRepository.getIndexValueAt(startDate) ?: 1.0
+        val initialIndexValue = marketDataFacade.getIndexValueAt(startDate) ?: 1.0
         logger.info("Starting Index Value is: $initialIndexValue")
 
         val processingPeriod = generateWeekdayRange(
@@ -59,7 +59,7 @@ class IndexProcessor(
                 logger.info("Processing. Current date: $date, current index value: $currIndexValue")
             }
 
-            val bars = marketDataRepository.getSourceBarData(
+            val bars = marketDataFacade.getSourceBarData(
                 date = date,
                 onlyRegularTradingHours = true
             )
@@ -80,7 +80,7 @@ class IndexProcessor(
             resolveNewIndexValue(priceChanges, currIndexValue)
         }
 
-        marketDataRepository.saveAsync(asyncRecordsToInsert)
+        marketDataFacade.saveAsync(asyncRecordsToInsert)
         asyncRecordsToInsert.clear()
 
         cacheRepository.storeMemberSecurities(securities)
@@ -133,13 +133,13 @@ class IndexProcessor(
             )
             .div(priceChanges.size.toDouble())
 
-        marketDataRepository.save(indexBar)
+        marketDataFacade.save(indexBar)
 
         return indexBar
     }
 
     private fun validateMember(ticker: String, date: LocalDate) =
-        marketDataRepository.getEarliestSourceBarDataEntry(ticker)?.let { firstEntry ->
+        marketDataFacade.getEarliestSourceBarDataEntry(ticker)?.let { firstEntry ->
             if (firstEntry.toLocalDate() != date) {
                 cacheRepository.deleteIndexStaleFrom()
                 throw IllegalStateException(

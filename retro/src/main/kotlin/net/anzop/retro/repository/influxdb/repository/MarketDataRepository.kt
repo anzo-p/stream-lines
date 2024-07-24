@@ -1,4 +1,4 @@
-package net.anzop.retro.repository.influxdb
+package net.anzop.retro.repository.influxdb.repository
 
 import com.influxdb.client.InfluxDBClient
 import com.influxdb.client.WriteApi
@@ -8,15 +8,10 @@ import com.influxdb.query.dsl.Flux
 import com.influxdb.query.dsl.functions.FilterFlux
 import com.influxdb.query.dsl.functions.restriction.Restrictions
 import java.time.Instant
-import java.time.LocalDate
 import net.anzop.retro.config.InfluxDBConfig
-import net.anzop.retro.helpers.date.nyseTradingHoursOr24h
 import net.anzop.retro.helpers.date.plusOneDayAlmost
-import net.anzop.retro.helpers.date.toInstant
-import net.anzop.retro.model.marketData.BarData
 import net.anzop.retro.model.marketData.MarketData
 import net.anzop.retro.model.marketData.Measurement
-import net.anzop.retro.model.marketData.PriceChange
 import org.springframework.stereotype.Repository
 
 @Repository
@@ -25,40 +20,6 @@ class MarketDataRepository (
     private val influxDBClient: InfluxDBClient,
     private val influxDBAsyncWriter: WriteApi
 ) {
-    fun getEarliestSourceBarDataEntry(ticker: String): Instant? =
-        getFirstMeasurementTime(
-            measurement = Measurement.SECURITIES_RAW_SEMI_HOURLY,
-            ticker = ticker
-        )
-
-    fun getLatestSourceBarDataEntry(ticker: String): Instant? =
-        listOf(false, true).mapNotNull {
-            getLatestMeasurementTime(
-                measurement = Measurement.SECURITIES_RAW_SEMI_HOURLY,
-                ticker = ticker,
-                regularTradingHours = it
-            )
-        }.max()
-
-    fun getSourceBarData(date: LocalDate, onlyRegularTradingHours: Boolean): List<BarData> {
-        val (from, til) = nyseTradingHoursOr24h(date, onlyRegularTradingHours) ?: return emptyList()
-
-        return getMeasurements(
-            measurement = Measurement.SECURITIES_RAW_SEMI_HOURLY,
-            from = from,
-            til = til,
-            clazz = BarData::class.java
-        )
-    }
-
-    fun getIndexValueAt(date: LocalDate): Double? =
-        getFirstMeasurement(
-            measurement = Measurement.INDEX_WEIGHTED_EQUAL_DAILY,
-            ticker = "INDEX",
-            since = date.toInstant(),
-            clazz = PriceChange::class.java
-        )?.priceChangeAvg
-
     fun <T : MarketData> getMeasurements(
         measurement: Measurement,
         from: Instant,
@@ -118,19 +79,7 @@ class MarketDataRepository (
                 return cast(result, clazz)
             }
 
-    fun <T> save(entity: T) =
-        save(listOf(entity))
-
-    fun <T> save(entities: List<T>) =
-        influxDBClient.takeIf { entities.isNotEmpty() }
-            ?.writeApiBlocking
-            ?.writePoints(entities.map { toPoint(it) })
-
-    // still takes time, must never need to await
-    fun <T> saveAsync(entities: List<T>) =
-        write(entities.map { toPoint(it) })
-
-    private fun getFirstMeasurementTime(
+    fun getFirstMeasurementTime(
         measurement: Measurement,
         ticker: String,
         since: Instant? = null
@@ -144,7 +93,7 @@ class MarketDataRepository (
         return queryForTimestamp(q)
     }
 
-    private fun getLatestMeasurementTime(
+    fun getLatestMeasurementTime(
         measurement: Measurement,
         ticker: String,
         earlierThan: Instant? = null,
@@ -162,6 +111,14 @@ class MarketDataRepository (
 
         return queryForTimestamp(q)
     }
+
+    fun <T> save(entities: List<T>) =
+        influxDBClient.takeIf { entities.isNotEmpty() }
+            ?.writeApiBlocking
+            ?.writePoints(entities.map { toPoint(it) })
+
+    fun <T> saveAsync(entities: List<T>) =
+        write(entities.map { toPoint(it) })
 
     private fun baseFlux(
         measurement: Measurement,

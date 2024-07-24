@@ -1,4 +1,4 @@
-package net.anzop.retro.repository.influxdb
+package net.anzop.retro.repository.influxdb.repository
 
 import java.time.Instant
 import net.anzop.retro.model.marketData.BarData

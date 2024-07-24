@@ -13,7 +13,7 @@ import net.anzop.retro.http.client.BarsResponse
 import net.anzop.retro.model.Ticker
 import net.anzop.retro.model.marketData.Measurement
 import net.anzop.retro.repository.dynamodb.CacheRepository
-import net.anzop.retro.repository.influxdb.MarketDataRepository
+import net.anzop.retro.repository.influxdb.MarketDataFacade
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -23,7 +23,7 @@ class BarDataFetcher(
     private val alpacaProps: AlpacaProps,
     private val tickerConfig: TickerConfig,
     private val cacheRepository: CacheRepository,
-    private val marketDataRepository: MarketDataRepository,
+    private val marketDataFacade: MarketDataFacade,
     private val webClient: WebClient
 ) {
     private val logger = LoggerFactory.getLogger(BarDataFetcher::class.java)
@@ -44,7 +44,7 @@ class BarDataFetcher(
     }
 
     private fun resolveStartDate(ticker: String): OffsetDateTime {
-        val latestMarketTimestamp = marketDataRepository.getLatestSourceBarDataEntry(ticker)
+        val latestMarketTimestamp = marketDataFacade.getLatestSourceBarDataEntry(ticker)
         logger.info("Last known marketTimestamp for $ticker is $latestMarketTimestamp")
 
         val fallBackDate = alpacaProps.earliestHistoricalDate.asAmericaNyToInstant()
@@ -112,7 +112,7 @@ class BarDataFetcher(
                 }.getOrNull()
             }
 
-        marketDataRepository.save(bars)
+        marketDataFacade.save(bars)
 
         return bars
             .minOf { it.marketTimestamp }
