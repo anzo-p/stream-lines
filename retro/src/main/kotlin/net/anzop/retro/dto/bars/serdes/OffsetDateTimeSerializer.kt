@@ -1,4 +1,4 @@
-package net.anzop.retro.http.client.serdes
+package net.anzop.retro.dto.bars.serdes
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind

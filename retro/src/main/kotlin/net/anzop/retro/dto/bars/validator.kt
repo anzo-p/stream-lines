@@ -1,4 +1,4 @@
-package net.anzop.retro.http.client
+package net.anzop.retro.dto.bars
 
 import jakarta.validation.ConstraintViolation
 import jakarta.validation.Validation

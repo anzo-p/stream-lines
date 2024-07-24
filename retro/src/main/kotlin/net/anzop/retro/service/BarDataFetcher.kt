@@ -4,12 +4,12 @@ import java.net.URI
 import java.time.OffsetDateTime
 import net.anzop.retro.config.AlpacaProps
 import net.anzop.retro.config.tickerConfig.TickerConfig
+import net.anzop.retro.dto.bars.BarDataDto
+import net.anzop.retro.dto.bars.BarsResponse
 import net.anzop.retro.helpers.buildHistoricalBarsUri
 import net.anzop.retro.helpers.date.asAmericaNyToInstant
 import net.anzop.retro.helpers.date.toOffsetDateTime
 import net.anzop.retro.helpers.getRequest
-import net.anzop.retro.http.client.BarDataDto
-import net.anzop.retro.http.client.BarsResponse
 import net.anzop.retro.model.Ticker
 import net.anzop.retro.model.marketData.Measurement
 import net.anzop.retro.repository.dynamodb.CacheRepository

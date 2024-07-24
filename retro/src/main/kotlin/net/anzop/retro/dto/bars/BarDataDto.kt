@@ -1,12 +1,12 @@
-package net.anzop.retro.http.client
+package net.anzop.retro.dto.bars
 
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
 import java.time.OffsetDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import net.anzop.retro.dto.bars.serdes.OffsetDateTimeSerializer
 import net.anzop.retro.helpers.date.nyseTradingHours
-import net.anzop.retro.http.client.serdes.OffsetDateTimeSerializer
 import net.anzop.retro.model.Ticker
 import net.anzop.retro.model.marketData.BarData
 import net.anzop.retro.model.marketData.Measurement
