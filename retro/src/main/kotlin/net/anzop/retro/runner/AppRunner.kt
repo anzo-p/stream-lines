@@ -1,9 +1,6 @@
 package net.anzop.retro.runner
 
-import java.time.Instant
-import java.time.ZoneId
-import net.anzop.retro.helpers.date.isHoliday
-import net.anzop.retro.helpers.date.toLocalDate
+import java.util.concurrent.locks.ReentrantLock
 import net.anzop.retro.service.BarDataFetcher
 import net.anzop.retro.service.IndexProcessor
 import org.slf4j.LoggerFactory
@@ -16,20 +13,28 @@ class AppRunner(
 ) {
     private val logger = LoggerFactory.getLogger(AppRunner::class.java)
 
+    private val lock = ReentrantLock()
+    @Volatile private var isRunning = false
+
     fun fetchAndProcess() {
-        logger.info("Executing tasks...")
+        if (lock.tryLock()) {
+            try {
+                if (isRunning) {
+                    logger.info("Lock acquirable but task is already running. Exiting...")
+                    return
+                }
+                isRunning = true
 
-        if (Instant.now()
-            .toLocalDate(ZoneId.of("America/New_York"))
-            .isHoliday()) {
-
-            logger.info("Today is a holiday in U.S. and securities exchanges aren't open. Exiting...")
-            return
+                logger.info("Executing tasks...")
+                barDataFetcher.run()
+                indexProcessor.process()
+                logger.info("Done.")
+            } finally {
+                isRunning = false
+                lock.unlock()
+            }
+        } else {
+            logger.info("Cannot acquire lock, assuming task already running. Exiting...")
         }
-
-        barDataFetcher.run()
-        logger.info("Bar data fetching completed.")
-        indexProcessor.process()
-        logger.info("Index processing completed.")
     }
 }
