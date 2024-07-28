@@ -98,7 +98,6 @@ class IndexProcessor(
                     (price / introductionPrice) * indexValueWhenIntroduced
 
                 securities[bar.ticker] = entry.copy(prevDayPrice = bar.volumeWeightedAvgPrice)
-                val priceChangeAvg = normalize(bar.volumeWeightedAvgPrice)
 
                 PriceChange(
                     measurement = Measurement.SECURITIES_WEIGHTED_EQUAL_DAILY,
@@ -110,8 +109,8 @@ class IndexProcessor(
                     priceChangeClose = normalize(bar.closingPrice),
                     priceChangeHigh = normalize(bar.highPrice),
                     priceChangeLow = normalize(bar.lowPrice),
-                    priceChangeAvg = priceChangeAvg,
-                    priceChangeDaily = priceChangeAvg / normalize(prevDayPrice),
+                    priceChangeAvg = normalize(bar.volumeWeightedAvgPrice),
+                    prevPriceChangeAvg = normalize(prevDayPrice),
                     totalTradingValue = bar.totalTradingValue
                 )
             }

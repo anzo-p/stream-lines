@@ -83,10 +83,10 @@ class PriceChangeFactory : MarketDataFactory<PriceChange> {
             ?.average()
             ?: throw IllegalArgumentException("Invalid priceChangeAvg for ticker: $ticker")
 
-        val priceChangeDaily = values["priceChangeDaily"]
+        val prevPriceChangeAvg = values["prevPriceChangeAvg"]
             ?.map { it as Double }
             ?.average()
-            ?: throw IllegalArgumentException("Invalid priceChangeDaily for ticker: $ticker")
+            ?: throw IllegalArgumentException("Invalid prevPriceChangeAvg for ticker: $ticker")
 
         val totalTradingValue = values["totalTradingValue"]
             ?.sumOf { it as Double }
@@ -103,7 +103,7 @@ class PriceChangeFactory : MarketDataFactory<PriceChange> {
             priceChangeHigh = priceChangeHigh,
             priceChangeLow = priceChangeLow,
             priceChangeAvg = priceChangeAvg,
-            priceChangeDaily = priceChangeDaily,
+            prevPriceChangeAvg = prevPriceChangeAvg,
             totalTradingValue = totalTradingValue
         )
     }

@@ -47,7 +47,7 @@ private fun PriceChange.toPoint(): Point =
                 "priceChangeHigh" to priceChangeHigh,
                 "priceChangeLow" to priceChangeLow,
                 "priceChangeAvg" to priceChangeAvg,
-                "priceChangeDaily" to priceChangeDaily,
+                "prevPriceChangeAvg" to prevPriceChangeAvg,
                 "totalTradingValue" to totalTradingValue,
             )
         )
