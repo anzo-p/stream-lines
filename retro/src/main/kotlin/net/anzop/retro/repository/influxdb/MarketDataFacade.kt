@@ -26,14 +26,14 @@ class MarketDataFacade (
 
     fun getEarliestSourceBarDataEntry(ticker: String): Instant? =
         marketDataRepository.getFirstMeasurementTime(
-            measurement = Measurement.SECURITIES_RAW_SEMI_HOURLY,
+            measurement = Measurement.SECURITY_RAW_SEMI_HOURLY,
             ticker = ticker
         )
 
     fun getLatestSourceBarDataEntry(ticker: String): Instant? =
         listOf(false, true).mapNotNull {
             marketDataRepository.getLatestMeasurementTime(
-                measurement = Measurement.SECURITIES_RAW_SEMI_HOURLY,
+                measurement = Measurement.SECURITY_RAW_SEMI_HOURLY,
                 ticker = ticker,
                 regularTradingHours = it
             )
@@ -43,16 +43,16 @@ class MarketDataFacade (
         val (from, til) = nyseTradingHoursOr24h(date, onlyRegularTradingHours) ?: return emptyList()
 
         return getMeasurements(
-            measurement = Measurement.SECURITIES_RAW_SEMI_HOURLY,
+            measurement = Measurement.SECURITY_RAW_SEMI_HOURLY,
             from = from,
             til = til,
             clazz = BarData::class.java
         )
     }
 
-    fun getIndexValueAt(date: LocalDate): Double? =
+    fun getIndexValueAt(measurement: Measurement, date: LocalDate): Double? =
         marketDataRepository.getFirstMeasurement(
-            measurement = Measurement.INDEX_WEIGHTED_EQUAL_DAILY,
+            measurement = measurement,
             ticker = "INDEX",
             since = date.toInstant(),
             clazz = PriceChange::class.java

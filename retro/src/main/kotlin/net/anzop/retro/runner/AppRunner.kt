@@ -27,7 +27,7 @@ class AppRunner(
 
                 logger.info("Executing tasks...")
                 barDataFetcher.run()
-                indexProcessor.process()
+                indexProcessor.run()
                 logger.info("Done.")
             } finally {
                 isRunning = false

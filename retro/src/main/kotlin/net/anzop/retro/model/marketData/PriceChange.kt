@@ -1,6 +1,8 @@
 package net.anzop.retro.model.marketData
 
 import java.time.Instant
+import kotlin.math.exp
+import kotlin.math.ln
 
 data class PriceChange(
     override val measurement: Measurement,
@@ -38,3 +40,35 @@ operator fun PriceChange.div(divisor: Double): PriceChange =
         prevPriceChangeAvg = this.prevPriceChangeAvg / divisor,
         totalTradingValue = this.totalTradingValue
     )
+
+fun PriceChange.ln(): PriceChange =
+    this.copy(
+        priceChangeOpen = ln(priceChangeOpen),
+        priceChangeClose = ln(priceChangeClose),
+        priceChangeHigh = ln(priceChangeHigh),
+        priceChangeLow = ln(priceChangeLow),
+        priceChangeAvg = ln(priceChangeAvg),
+        prevPriceChangeAvg = ln(prevPriceChangeAvg),
+        totalTradingValue = totalTradingValue
+)
+
+fun PriceChange.exp(): PriceChange =
+    this.copy(
+        priceChangeOpen = exp(priceChangeOpen),
+        priceChangeClose = exp(priceChangeClose),
+        priceChangeHigh = exp(priceChangeHigh),
+        priceChangeLow = exp(priceChangeLow),
+        priceChangeAvg = exp(priceChangeAvg),
+        prevPriceChangeAvg = exp(prevPriceChangeAvg),
+        totalTradingValue = totalTradingValue
+)
+
+fun Collection<PriceChange>.mean(): PriceChange =
+    this.reduce { acc, priceChange -> acc + priceChange }
+        .div(this.size.toDouble())
+
+fun Collection<PriceChange>.geometricMean(): PriceChange =
+    this.map { it.ln() }
+        .reduce { acc, priceChange -> acc + priceChange }
+        .div(this.size.toDouble())
+        .exp()

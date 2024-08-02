@@ -2,6 +2,7 @@ package net.anzop.retro.repository.dynamodb
 
 import java.time.LocalDate
 import net.anzop.retro.model.IndexMember
+import net.anzop.retro.model.marketData.Measurement
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue
 
 typealias AttribMap = Map<String, AttributeValue>
@@ -18,10 +19,11 @@ fun LocalDate.toAttrib(): AttributeValue =
 fun IndexMember.toAttrib(): AttributeValue =
     AttributeValue.builder().m(
         mapOf(
+            "ticker" to this.ticker.toAttrib(),
+            "measurement" to this.measurement.code.toAttrib(),
             "indexValueWhenIntroduced" to this.indexValueWhenIntroduced.toAttrib(),
             "introductionPrice" to this.introductionPrice.toAttrib(),
             "prevDayPrice" to this.prevDayPrice.toAttrib(),
-            "ticker" to this.ticker.toAttrib()
         )
     ).build()
 
@@ -54,10 +56,11 @@ fun getMemberSecurities(item: AttribMap): Map<String, IndexMember> =
 
 fun attribToMemberSecurity(attributes: AttribMap): IndexMember =
     IndexMember(
+        ticker = attributes["ticker"].toStringOrDefault(),
+        measurement = Measurement.fromCode(attributes["measurement"].toStringOrDefault()),
         indexValueWhenIntroduced = attributes["indexValueWhenIntroduced"].toDoubleOrDefault(),
         introductionPrice = attributes["introductionPrice"].toDoubleOrDefault(),
         prevDayPrice = attributes["prevDayPrice"].toDoubleOrDefault(),
-        ticker = attributes["ticker"].toStringOrDefault()
     )
 
 fun <T> convertAttributeValueMap(
