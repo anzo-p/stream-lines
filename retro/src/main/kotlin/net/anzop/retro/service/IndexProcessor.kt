@@ -31,7 +31,7 @@ class IndexProcessor(
     private var asyncRecordsToInsert = mutableListOf<Any>()
 
     fun run() {
-        Measurement.indexMeasurements().forEach(this::process)
+        Measurement.indexMeasurements.forEach(this::process)
         cacheRepository.deleteIndexStaleFrom()
     }
 
@@ -70,7 +70,7 @@ class IndexProcessor(
 
             val bars = marketDataFacade.getSourceBarData(
                 date = date,
-                onlyRegularTradingHours = true
+                onlyRegularTradingHours = Measurement.regularHours(measurement)
             )
             bars.forEach { bar ->
                 securities.computeIfAbsent(bar.ticker) {
@@ -105,7 +105,7 @@ class IndexProcessor(
         indexDate: LocalDate
     ): List<PriceChange> =
         bars.mapNotNull { bar ->
-            check(bar.regularTradingHours) {
+            check(bar.regularTradingHours || !Measurement.regularHours(measurement)) {
                 "bar data for ticker: ${bar.ticker} on day: $indexDate contains extended hours trades"
             }
 
@@ -145,6 +145,7 @@ class IndexProcessor(
     private fun createIndex(measurement: Measurement, priceChanges: List<PriceChange>): PriceChange {
         val indexBar = calculateIndex(measurement, priceChanges)
             .copy(
+                regularTradingHours = Measurement.regularHours(measurement),
                 measurement = measurement,
                 company = "INDEX",
                 ticker = "INDEX"
@@ -159,6 +160,7 @@ class IndexProcessor(
         when (measurement) {
             Measurement.INDEX_REGULAR_EQUAL_ARITHMETIC_DAILY -> priceChanges.mean()
             Measurement.INDEX_REGULAR_EQUAL_GEOMETRIC_DAILY -> priceChanges.geometricMean()
+            Measurement.INDEX_EXTENDED_EQUAL_ARITHMETIC_DAILY -> priceChanges.mean()
             else -> throw IllegalArgumentException("Invalid measurement: $measurement for index calculation")
         }
 
