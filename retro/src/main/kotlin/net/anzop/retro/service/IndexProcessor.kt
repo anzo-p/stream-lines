@@ -5,9 +5,11 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import net.anzop.retro.config.AlpacaProps
 import net.anzop.retro.helpers.date.generateWeekdayRange
+import net.anzop.retro.helpers.date.getPreviousBankDay
 import net.anzop.retro.helpers.date.toInstant
 import net.anzop.retro.helpers.date.toLocalDate
 import net.anzop.retro.model.IndexMember
+import net.anzop.retro.model.PrevDayData
 import net.anzop.retro.model.marketData.BarData
 import net.anzop.retro.model.marketData.Measurement
 import net.anzop.retro.model.marketData.PriceChange
@@ -32,11 +34,16 @@ class IndexProcessor(
 
     fun run() {
         Measurement.indexMeasurements.forEach(this::process)
+
         cacheRepository.deleteIndexStaleFrom()
+        marketDataFacade.saveAsync(asyncRecordsToInsert)
+        asyncRecordsToInsert.clear()
     }
 
     private fun process(measurement: Measurement) {
-        val startDate = cacheRepository.getIndexStaleFrom()?.minusDays(1)
+        val startDate = cacheRepository
+            .getIndexStaleFrom()
+            ?.getPreviousBankDay()
             ?: run {
                 cacheRepository.deleteMemberSecurities(measurement)
                 alpacaProps.earliestHistoricalDate
@@ -56,14 +63,23 @@ class IndexProcessor(
         logger.info("Final Index Value is: $latestIndexValue")
     }
 
-    fun loop(
+    private fun loop(
         measurement: Measurement,
-        period: List<LocalDate>,
-        initialIndexValue: Double
+        processingPeriod: List<LocalDate>,
+        initialIndexValue: Double,
     ): Double {
         val securities = cacheRepository.getMemberSecurities(measurement).toMutableMap()
 
-        val latestIndexValue = period.fold(initialIndexValue) { currIndexValue, date ->
+        val initialDay = processingPeriod.first().getPreviousBankDay()
+
+        val initialPrices = marketDataFacade
+            .getSourceBarData(
+                date = initialDay,
+                onlyRegularTradingHours = Measurement.regularHours(measurement)
+            )
+            .associate { it.ticker to it.volumeWeightedAvgPrice }
+
+        val latestIndexValue = processingPeriod.fold(initialIndexValue) { currIndexValue, date ->
             if (ChronoUnit.DAYS.between(alpacaProps.earliestHistoricalDate, date) % 61 == 0L) {
                 logger.info("Processing ${measurement.code}. Current date: $date, current index value: $currIndexValue")
             }
@@ -72,26 +88,40 @@ class IndexProcessor(
                 date = date,
                 onlyRegularTradingHours = Measurement.regularHours(measurement)
             )
+
             bars.forEach { bar ->
                 securities.computeIfAbsent(bar.ticker) {
+
                     validateMember(bar.ticker, date)
                     IndexMember(
                         ticker = bar.ticker,
                         measurement = measurement,
                         indexValueWhenIntroduced = currIndexValue,
                         introductionPrice = bar.volumeWeightedAvgPrice,
-                        prevDayPrice = bar.volumeWeightedAvgPrice,
+                        prevDayData = PrevDayData(
+                            date = date,
+                            avgPrice = bar.volumeWeightedAvgPrice
+                        )
                     )
+                }
+
+                if (date == processingPeriod.first()) {
+                    securities.keys.forEach { ticker ->
+                        securities[ticker] = securities[ticker]!!.copy(
+                            prevDayData = PrevDayData(
+                                date = initialDay,
+                                avgPrice = initialPrices[ticker] ?: bar.volumeWeightedAvgPrice
+                            )
+                        )
+                    }
                 }
             }
 
             val priceChanges = processBars(measurement, securities, bars, date)
             asyncRecordsToInsert.addAll(priceChanges)
-            resolveNewIndexValue(measurement, priceChanges, currIndexValue)
-        }
 
-        marketDataFacade.saveAsync(asyncRecordsToInsert)
-        asyncRecordsToInsert.clear()
+            resolveIndexValue(measurement, priceChanges, currIndexValue)
+        }
 
         cacheRepository.storeMemberSecurities(measurement, securities)
 
@@ -106,33 +136,39 @@ class IndexProcessor(
     ): List<PriceChange> =
         bars.mapNotNull { bar ->
             check(bar.regularTradingHours || !Measurement.regularHours(measurement)) {
-                "bar data for ticker: ${bar.ticker} on day: $indexDate contains extended hours trades"
+                "bar data for ticker: ${bar.ticker} on day: $indexDate contains extended hours trades\n" +
+                    bar.toString()
             }
 
             securities[bar.ticker]?.let { entry ->
                 fun normalize(price: Double): Double =
                     (price / entry.introductionPrice) * entry.indexValueWhenIntroduced
 
-                securities[bar.ticker] = entry.copy(prevDayPrice = bar.volumeWeightedAvgPrice)
+                securities[bar.ticker] = entry.copy(
+                    prevDayData = PrevDayData(
+                        date = indexDate,
+                        avgPrice = bar.volumeWeightedAvgPrice
+                    )
+                )
 
                 PriceChange(
                     measurement = Measurement.securitiesForIndex(measurement),
                     company = bar.company,
                     ticker = bar.ticker,
-                    regularTradingHours = bar.regularTradingHours,
+                    regularTradingHours = Measurement.regularHours(measurement),
                     marketTimestamp = indexDate.toInstant(),
                     priceChangeOpen = normalize(bar.openingPrice),
                     priceChangeClose = normalize(bar.closingPrice),
                     priceChangeHigh = normalize(bar.highPrice),
                     priceChangeLow = normalize(bar.lowPrice),
                     priceChangeAvg = normalize(bar.volumeWeightedAvgPrice),
-                    prevPriceChangeAvg = normalize(entry.prevDayPrice),
+                    prevPriceChangeAvg = normalize(entry.prevDayData.avgPrice),
                     totalTradingValue = bar.totalTradingValue
                 )
             }
         }
 
-    private fun resolveNewIndexValue(
+    private fun resolveIndexValue(
         measurement: Measurement,
         priceChanges: List<PriceChange>,
         indexValue: Double

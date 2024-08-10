@@ -37,15 +37,20 @@ class MarketDataFacade (
                 ticker = ticker,
                 regularTradingHours = it
             )
-        }.max()
+        }.maxOrNull()
 
-    fun getSourceBarData(date: LocalDate, onlyRegularTradingHours: Boolean): List<BarData> {
+    fun getSourceBarData(
+        date: LocalDate,
+        onlyRegularTradingHours: Boolean,
+        ticker: String? = null
+    ): List<BarData> {
         val (from, til) = nyseTradingHoursOr24h(date, onlyRegularTradingHours) ?: return emptyList()
 
         return getMeasurements(
             measurement = Measurement.SECURITY_RAW_SEMI_HOURLY,
             from = from,
             til = til,
+            ticker = ticker,
             clazz = BarData::class.java
         )
     }

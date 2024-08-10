@@ -2,6 +2,7 @@ package net.anzop.retro.repository.dynamodb
 
 import java.time.LocalDate
 import net.anzop.retro.model.IndexMember
+import net.anzop.retro.model.PrevDayData
 import net.anzop.retro.model.marketData.Measurement
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue
 
@@ -23,30 +24,31 @@ fun IndexMember.toAttrib(): AttributeValue =
             "measurement" to this.measurement.code.toAttrib(),
             "indexValueWhenIntroduced" to this.indexValueWhenIntroduced.toAttrib(),
             "introductionPrice" to this.introductionPrice.toAttrib(),
-            "prevDayPrice" to this.prevDayPrice.toAttrib(),
+            "prevDayData" to AttributeValue.builder().m(
+                mapOf(
+                    "date" to this.prevDayData.date.toAttrib(),
+                    "avgPrice" to this.prevDayData.avgPrice.toAttrib()
+                )
+            ).build()
         )
     ).build()
 
-fun Map<String, IndexMember>.toAttrib(): AttributeValue {
-    val securityMap = this.mapValues { it.value.toAttrib() }
-    return AttributeValue.builder().m(securityMap).build()
-}
+fun Map<String, IndexMember>.toAttrib(): AttributeValue =
+    AttributeValue.builder().m(
+        this.mapValues { it.value.toAttrib() }
+    ).build()
 
-fun AttributeValue?.toDoubleOrDefault(default: Double = 0.0): Double {
-    return this?.n()?.toDoubleOrNull() ?: default
-}
+fun AttributeValue?.toDoubleOrDefault(default: Double = 0.0): Double =
+    this?.n()?.toDoubleOrNull() ?: default
 
-fun AttributeValue?.toStringOrDefault(default: String = ""): String {
-    return this?.s() ?: default
-}
+fun AttributeValue?.toStringOrDefault(default: String = ""): String =
+    this?.s() ?: default
 
-fun AttributeValue?.toIntOrDefault(default: Int = 0): Int {
-    return this?.n()?.toIntOrNull() ?: default
-}
+fun AttributeValue?.toIntOrDefault(default: Int = 0): Int =
+    this?.n()?.toIntOrNull() ?: default
 
-fun AttributeValue?.toMapOrDefault(default: AttribMap = emptyMap()): AttribMap {
-    return this?.m() ?: default
-}
+fun AttributeValue?.toMapOrDefault(default: AttribMap = emptyMap()): AttribMap =
+    this?.m() ?: default
 
 fun getMemberSecurities(item: AttribMap): Map<String, IndexMember> =
     convertAttributeValueMap(
@@ -54,20 +56,27 @@ fun getMemberSecurities(item: AttribMap): Map<String, IndexMember> =
         ::attribToMemberSecurity
     )
 
-fun attribToMemberSecurity(attributes: AttribMap): IndexMember =
-    IndexMember(
+fun attribToMemberSecurity(attributes: AttribMap): IndexMember {
+    val prevDayData = attributes["prevDayData"].toMapOrDefault().let {
+        PrevDayData(
+            date = LocalDate.parse(it["date"].toStringOrDefault()),
+            avgPrice = it["avgPrice"].toDoubleOrDefault()
+        )
+    }
+
+    return IndexMember(
         ticker = attributes["ticker"].toStringOrDefault(),
         measurement = Measurement.fromCode(attributes["measurement"].toStringOrDefault()),
         indexValueWhenIntroduced = attributes["indexValueWhenIntroduced"].toDoubleOrDefault(),
         introductionPrice = attributes["introductionPrice"].toDoubleOrDefault(),
-        prevDayPrice = attributes["prevDayPrice"].toDoubleOrDefault(),
+        prevDayData = prevDayData
     )
+}
 
 fun <T> convertAttributeValueMap(
     attributes: AttribMap,
     converter: (AttribMap) -> T
-): Map<String, T> {
-    return attributes.mapValues { (_, value) ->
+): Map<String, T> =
+    attributes.mapValues { (_, value) ->
         converter(value.m())
     }
-}
