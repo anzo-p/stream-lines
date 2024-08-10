@@ -29,7 +29,7 @@ private val variableHolidays: Set<VariableHoliday> = setOf(
 )
 
 fun LocalDate.isHoliday(): Boolean {
-    val fixed = fixedHolidays.contains(this.monthValue to this.dayOfMonth)
+    val fixed = fixedHolidays.contains(this.dayOfMonth to this.monthValue)
 
     val variable = variableHolidays.any { (month, dayOfWeek, n) ->
         this.monthValue == month && this.dayOfWeek == dayOfWeek && run {
