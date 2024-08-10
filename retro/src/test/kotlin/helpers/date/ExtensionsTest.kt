@@ -6,6 +6,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 import net.anzop.retro.helpers.date.asAmericaNyToInstant
 import net.anzop.retro.helpers.date.isWeekend
+import net.anzop.retro.helpers.date.getPreviousBankDay
 import net.anzop.retro.helpers.date.toLocalDate
 import net.anzop.retro.helpers.date.toOffsetDateTime
 import org.assertj.core.api.Assertions.assertThat
@@ -40,6 +41,20 @@ internal class ExtensionsTest {
         listOf(5, 6).forEach { dayOfWeek ->
             assertThat(monday.plusDays(dayOfWeek.toLong()).isWeekend()).isTrue()
         }
+    }
+
+    @Test
+    fun `LocalDate previousBankDay() should return previous banking day`() {
+        val pastThanksGiving = LocalDate.of(2026, 11, 27)
+        val priorWednesday = LocalDate.of(2026, 11, 25)
+
+        assertThat(pastThanksGiving.getPreviousBankDay()).isEqualTo(priorWednesday)
+
+
+        val christmasDay = LocalDate.of(2029, 12, 26)
+        val priorFriday = LocalDate.of(2029, 12, 21)
+
+        assertThat(christmasDay.getPreviousBankDay()).isEqualTo(priorFriday)
     }
 
     @Test
