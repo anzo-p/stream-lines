@@ -44,6 +44,7 @@ class BarDataFetcher(
     }
 
     private fun resolveStartDate(ticker: String): OffsetDateTime {
+        // re-fetching latest bar reveals that ticker in url param still valid
         val latestMarketTimestamp = marketDataFacade.getLatestSourceBarDataEntry(ticker)
         logger.info("Last known marketTimestamp for $ticker is $latestMarketTimestamp")
 

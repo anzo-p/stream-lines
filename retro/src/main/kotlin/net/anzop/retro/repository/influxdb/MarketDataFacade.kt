@@ -39,6 +39,12 @@ class MarketDataFacade (
             )
         }.maxOrNull()
 
+    fun getLatestIndexEntry(measurement: Measurement): Instant? =
+        marketDataRepository.getLatestMeasurementTime(
+            measurement = measurement,
+            ticker = "INDEX"
+        )
+
     fun getSourceBarData(
         date: LocalDate,
         onlyRegularTradingHours: Boolean,

@@ -6,6 +6,7 @@ import java.time.temporal.ChronoUnit
 import net.anzop.retro.config.AlpacaProps
 import net.anzop.retro.helpers.date.generateWeekdayRange
 import net.anzop.retro.helpers.date.getPreviousBankDay
+import net.anzop.retro.helpers.date.minOfOptWithFallback
 import net.anzop.retro.helpers.date.toInstant
 import net.anzop.retro.helpers.date.toLocalDate
 import net.anzop.retro.model.IndexMember
@@ -41,13 +42,10 @@ class IndexProcessor(
     }
 
     private fun process(measurement: Measurement) {
-        val startDate = cacheRepository
-            .getIndexStaleFrom()
-            ?.getPreviousBankDay()
-            ?: run {
-                cacheRepository.deleteMemberSecurities(measurement)
-                alpacaProps.earliestHistoricalDate
-            }
+        val startDate = resolveStartDate(
+            measurement = measurement,
+            fallbackAction = { cacheRepository.deleteIndexStaleFrom() }
+        )
         logger.info("Processing index for ${measurement.code} from $startDate")
 
         val initialIndexValue = marketDataFacade.getIndexValueAt(measurement, startDate) ?: 1.0
@@ -62,6 +60,16 @@ class IndexProcessor(
         val latestIndexValue = loop(measurement, processingPeriod, initialIndexValue)
         logger.info("Final Index Value is: $latestIndexValue")
     }
+
+    fun resolveStartDate(measurement: Measurement, fallbackAction: () -> Unit) =
+        minOfOptWithFallback(
+            instant1 = cacheRepository.getIndexStaleFrom()?.toInstant(),
+            instant2 = marketDataFacade.getLatestIndexEntry(measurement),
+            fallbackAction = fallbackAction
+        )
+            ?.toLocalDate()
+            ?.getPreviousBankDay()
+            ?: alpacaProps.earliestHistoricalDate
 
     private fun loop(
         measurement: Measurement,
