@@ -1,6 +1,6 @@
 // linear index value development over entire span
 from(bucket: "stream-lines-daily-bars")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> range(start: v.timeRangeStart, stop: now())
   |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
   |> aggregateWindow(every: 1w, fn: mean, createEmpty: false)
@@ -10,12 +10,12 @@ from(bucket: "stream-lines-daily-bars")
 import "math"
 
 from(bucket: "stream-lines-daily-bars")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> range(start: v.timeRangeStart, stop: now())
   |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
   |> keep(columns: ["_time", "_value", "regularTradingHours"])
   // min, max, first, last, mean, median, sum, count
-  |> aggregateWindow(every: 1w, fn: mean, createEmpty: false)
+  |> aggregateWindow(every: 1w, fn: last, createEmpty: false)
   |> map(fn: (r) => ({ r with _value: math.log(x: r._value) }))
   |> yield(name: "_value")
   |> movingAverage(n: 50)
@@ -36,13 +36,13 @@ from(bucket: "stream-lines-daily-bars")
   |> map(fn: (r) => ({ r with _value: math.log(x: r._value) }))
 
 
-// daily change in value over entire time range
+// daily change in index value over entire time range
 base_filter = (r) =>
   r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
   and (r["_field"] == "priceChangeAvg" or  r["_field"] == "prevPriceChangeAvg")
 
 from(bucket: "stream-lines-daily-bars")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> range(start: (time(v: "2016-01-05")), stop: now())
   |> filter(fn: base_filter)
   |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
   |> map(fn: (r) => ({
@@ -51,13 +51,13 @@ from(bucket: "stream-lines-daily-bars")
   }))
 
 
-// daily change in value over selected time range
+// daily change in index value over selected time range
 base_filter = (r) =>
   r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
   and (r["_field"] == "priceChangeAvg" or  r["_field"] == "prevPriceChangeAvg")
 
 from(bucket: "stream-lines-daily-bars")
-  |> range(start: -6mo, stop: now())
+  |> range(start: -7mo, stop: now())
   |> filter(fn: base_filter)
   |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
   |> map(fn: (r) => ({
@@ -72,14 +72,14 @@ base_filter = (r) =>
   and r._field == "totalTradingValue"
 
 hifreq = from(bucket: "stream-lines-daily-bars")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> range(start: v.timeRangeStart, stop: now())
   |> filter(fn: base_filter)
   |> aggregateWindow(every: 1w, fn: mean, createEmpty: false)
   |> keep(columns: ["_time", "_value"])
   |> yield(name: "_value")
 
 smooth = from(bucket: "stream-lines-daily-bars")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> range(start: v.timeRangeStart, stop: now())
   |> filter(fn: base_filter)
   |> aggregateWindow(every: 4mo, fn: mean, createEmpty: false)
   |> timeShift(duration: -6w)
@@ -99,13 +99,13 @@ join(
 measurement = "ix_reg_arith_d" // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
 
 dailyTradingValue = from(bucket: "stream-lines-daily-bars")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> range(start: v.timeRangeStart, stop: now())
   |> filter(fn: (r) => r["_measurement"] == measurement)
   |> filter(fn: (r) => r._field == "totalTradingValue")
   |> keep(columns: ["_time", "_value"])
 
 dailyPriceChange = from(bucket: "stream-lines-daily-bars")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> range(start: v.timeRangeStart, stop: now())
   |> filter(fn: (r) => r["_measurement"] == measurement)
   |> filter(fn: (r) => r._field == "priceChangeAvg")
   |> keep(columns: ["_time", "_value"])
@@ -121,7 +121,7 @@ normalizedTradingVolume = join(
 
 // trend of normalized trading volumes over selected time range
 measurement = "ix_reg_arith_d" // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
-start = -12mo
+start = -13mo
 stop = now()
 
 dailyTradingValue = from(bucket: "stream-lines-daily-bars")
@@ -146,7 +146,7 @@ normalizedTradingVolume = join(
 
 // dumping or hoarding index selected range
 // unusual highs (lows) or several recent higher highs (lower lows) suggest hoarding (dumping)
-start = -6mo
+start = -7mo
 stop = now()
 
 base_filter = (r) =>
@@ -172,7 +172,7 @@ startValues = time(v: "2016-01-01")
 startResults = time(v: "2017-01-01")
 
 from(bucket: "stream-lines-daily-bars")
-  |> range(start: startResults, stop: v.timeRangeStop)
+  |> range(start: startResults, stop: now())
   |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
   |> filter(fn: (r) => r["_time"] > startResults)
@@ -186,13 +186,15 @@ from(bucket: "stream-lines-daily-bars")
 // logarithmic trend of individual stocks
 import "math"
 
-excluded = []
+included = []
+excluded = ["AMD", "NVDA", "TSLA"]
 
 from(bucket: "stream-lines-daily-bars")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> range(start: v.timeRangeStart, stop: now())
   |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_reg_geo_d, sec_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
-  |> filter(fn: (r) => not contains(value: r.ticker, set: excluded))
+  |> filter(fn: (r) => (length(arr: included) == 0 or contains(value: r.ticker, set: included))) // only when not empty
+  |> filter(fn: (r) => (length(arr: excluded) == 0 or not contains(value: r.ticker, set: excluded))) // o/wise all except these 
   |> keep(columns: ["_time", "_value", "_field", "company", "ticker"])
   // optionally filter only for stocks that actually gained value
   |> filter(fn: (r) => r._value > 1.0)
@@ -200,11 +202,25 @@ from(bucket: "stream-lines-daily-bars")
   |> map(fn: (r) => ({ r with _value: math.log(x: r._value) }))
 
 
+// logarithmic trend of selected securities for selected time range
+import "math"
+
+included = []
+
+from(bucket: "stream-lines-daily-bars")
+  |> range(start: -7mo, stop: now())
+  |> filter(fn: (r) => r["_measurement"] == "sec_xh_arith_d") // sec_reg_arith_d, sec_reg_geo_d, sec_xh_arith_d
+  |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
+  |> filter(fn: (r) => (length(arr: included) == 0 or contains(value: r.ticker, set: included))) // only when not empty
+  |> keep(columns: ["_time", "_value", "_field", "company", "ticker"])
+  |> map(fn: (r) => ({ r with _value: math.log(x: r._value) }))
+
+
 // daily change in value for individual securities over selected time range
 included = [] // or all
 
 from(bucket: "stream-lines-daily-bars")
-  |> range(start: -4w, stop: now())
+  |> range(start: -5w, stop: now())
   |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_reg_geo_d, sec_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg" or  r["_field"] == "prevPriceChangeAvg")
   |> filter(fn: (r) => (length(arr: included) == 0 or contains(value: r.ticker, set: included)))
@@ -221,7 +237,7 @@ from(bucket: "stream-lines-daily-bars")
 excluded = []
 
 from(bucket: "stream-lines-daily-bars")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> range(start: v.timeRangeStart, stop: now())
   |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_reg_geo_d, sec_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "totalTradingValue")
   |> filter(fn: (r) => not contains(value: r.ticker, set: excluded))
@@ -233,7 +249,7 @@ from(bucket: "stream-lines-daily-bars")
 excluded = []
 
 from(bucket: "stream-lines-daily-bars")
-  |> range(start: -2w, stop: now())
+  |> range(start: -5w, stop: now())
   |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_reg_geo_d, sec_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "totalTradingValue")
   |> filter(fn: (r) => not contains(value: r.ticker, set: excluded))
@@ -242,7 +258,7 @@ from(bucket: "stream-lines-daily-bars")
 // dumping or hoarding? individual securities, selected range
 included = [] 
 excluded = [] 
-start = -4w
+start = -5w
 stop = now()
 
 isEmpty = (arr) => length(arr) == 0
