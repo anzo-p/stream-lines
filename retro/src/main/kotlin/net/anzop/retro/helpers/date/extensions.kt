@@ -16,15 +16,15 @@ fun LocalDate.asAmericaNyToInstant(): Instant =
 fun LocalDate.isWeekend() =
     this.dayOfWeek in listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
 
-fun LocalDate.getPreviousBankDay(): LocalDate {
-    var day = this.minusDays(1)
-    var limit = 7
-    while (limit > 0 && (day.isWeekend() || day.isHoliday())) {
-        day = day.minusDays(1)
-        limit--
+fun LocalDate.getPreviousBankDay(limit: Int = 7): LocalDate =
+    this.minusDays(1).let {
+        return if (limit == 0 || (!it.isWeekend() && !it.isHoliday())) {
+            it
+        } else {
+            it.getPreviousBankDay(limit - 1)
+        }
+
     }
-    return day
-}
 
 fun LocalDate.toInstant(zoneOffset: ZoneOffset? = ZoneOffset.UTC): Instant =
     this.atStartOfDay().toInstant(zoneOffset)

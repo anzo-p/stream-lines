@@ -58,13 +58,10 @@ internal class HelpersTest {
 
     @Test
     fun `minOfOpt should return either non-null argument`() {
-        val before = Instant.parse("2026-01-01T00:00:00Z")
-        val after = before.plusMillis(1)
+        val instant = Instant.parse("2026-01-01T00:00:00Z")
 
-        assertThat(minOfOpt(before, null)).isEqualTo(before)
-        assertThat(minOfOpt(null, before)).isEqualTo(before)
-        assertThat(minOfOpt(after, null)).isEqualTo(after)
-        assertThat(minOfOpt(null, after)).isEqualTo(after)
+        assertThat(minOfOpt(instant, null)).isEqualTo(instant)
+        assertThat(minOfOpt(null, instant)).isEqualTo(instant)
     }
 
     @Test

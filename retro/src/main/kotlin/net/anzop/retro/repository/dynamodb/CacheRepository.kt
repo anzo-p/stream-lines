@@ -2,7 +2,7 @@ package net.anzop.retro.repository.dynamodb
 
 import java.time.LocalDate
 import net.anzop.retro.config.AwsConfig
-import net.anzop.retro.model.IndexMember
+import net.anzop.retro.model.IndexMembers
 import net.anzop.retro.model.marketData.Measurement
 import org.springframework.stereotype.Repository
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient
@@ -49,7 +49,7 @@ class CacheRepository(
             )
         )
 
-    fun storeMemberSecurities(measurement: Measurement, securities: Map<String, IndexMember>) =
+    fun storeMemberSecurities(measurement: Measurement, securities: IndexMembers) =
         saveItem(
             mapOf(
                 "PK" to "memberSecurity".toAttrib(),
@@ -58,14 +58,14 @@ class CacheRepository(
             )
         )
 
-    fun getMemberSecurities(measurement: Measurement): Map<String, IndexMember> {
+    fun getMemberSecurities(measurement: Measurement): IndexMembers {
         val key = mapOf(
             "PK" to "memberSecurity".toAttrib(),
             "SK" to "measurement#${measurement.code}".toAttrib(),
         )
         return getItem(key)
             ?.let { getMemberSecurities(it) }
-            ?: emptyMap()
+            ?: mutableMapOf()
     }
 
     fun deleteMemberSecurities(measurement: Measurement) =

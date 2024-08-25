@@ -2,6 +2,7 @@ package net.anzop.retro.repository.dynamodb
 
 import java.time.LocalDate
 import net.anzop.retro.model.IndexMember
+import net.anzop.retro.model.IndexMembers
 import net.anzop.retro.model.PrevDayData
 import net.anzop.retro.model.marketData.Measurement
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue
@@ -33,10 +34,13 @@ fun IndexMember.toAttrib(): AttributeValue =
         )
     ).build()
 
-fun Map<String, IndexMember>.toAttrib(): AttributeValue =
+fun IndexMembers.toAttrib(): AttributeValue =
     AttributeValue.builder().m(
         this.mapValues { it.value.toAttrib() }
     ).build()
+
+fun AttributeValue?.toIntOrDefault(default: Int = 0): Int =
+    this?.n()?.toIntOrNull() ?: default
 
 fun AttributeValue?.toDoubleOrDefault(default: Double = 0.0): Double =
     this?.n()?.toDoubleOrNull() ?: default
@@ -44,17 +48,14 @@ fun AttributeValue?.toDoubleOrDefault(default: Double = 0.0): Double =
 fun AttributeValue?.toStringOrDefault(default: String = ""): String =
     this?.s() ?: default
 
-fun AttributeValue?.toIntOrDefault(default: Int = 0): Int =
-    this?.n()?.toIntOrNull() ?: default
-
 fun AttributeValue?.toMapOrDefault(default: AttribMap = emptyMap()): AttribMap =
     this?.m() ?: default
 
-fun getMemberSecurities(item: AttribMap): Map<String, IndexMember> =
+fun getMemberSecurities(item: AttribMap): IndexMembers =
     convertAttributeValueMap(
         item["memberSecurities"].toMapOrDefault(),
         ::attribToMemberSecurity
-    )
+    ).toMutableMap()
 
 fun attribToMemberSecurity(attributes: AttribMap): IndexMember {
     val prevDayData = attributes["prevDayData"].toMapOrDefault().let {

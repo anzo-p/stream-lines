@@ -3,6 +3,8 @@ package net.anzop.retro.model
 import java.time.LocalDate
 import net.anzop.retro.model.marketData.Measurement
 
+typealias IndexMembers = MutableMap<String, IndexMember>
+
 data class PrevDayData(
     val date: LocalDate,
     val avgPrice: Double,

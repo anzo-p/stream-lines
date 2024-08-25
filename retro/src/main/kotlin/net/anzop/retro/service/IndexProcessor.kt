@@ -10,6 +10,7 @@ import net.anzop.retro.helpers.date.minOfOptWithFallback
 import net.anzop.retro.helpers.date.toInstant
 import net.anzop.retro.helpers.date.toLocalDate
 import net.anzop.retro.model.IndexMember
+import net.anzop.retro.model.IndexMembers
 import net.anzop.retro.model.PrevDayData
 import net.anzop.retro.model.marketData.BarData
 import net.anzop.retro.model.marketData.Measurement
@@ -21,8 +22,6 @@ import net.anzop.retro.repository.influxdb.MarketDataFacade
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
-private typealias IndexMembers = MutableMap<String, IndexMember>
-
 @Service
 class IndexProcessor(
     private val alpacaProps: AlpacaProps,
@@ -31,10 +30,10 @@ class IndexProcessor(
 ) {
     private val logger = LoggerFactory.getLogger(IndexProcessor::class.java)
 
-    private var asyncRecordsToInsert = mutableListOf<Any>()
+    private var asyncRecordsToInsert = mutableListOf<PriceChange>()
 
     fun run() {
-        Measurement.indexMeasurements.forEach(this::process)
+        Measurement.indexMeasurements.forEach(::process)
 
         cacheRepository.deleteIndexStaleFrom()
         marketDataFacade.saveAsync(asyncRecordsToInsert)
@@ -61,7 +60,7 @@ class IndexProcessor(
         logger.info("Final Index Value is: $latestIndexValue")
     }
 
-    fun resolveStartDate(measurement: Measurement, fallbackAction: () -> Unit) =
+    fun resolveStartDate(measurement: Measurement, fallbackAction: () -> Unit): LocalDate =
         minOfOptWithFallback(
             instant1 = cacheRepository.getIndexStaleFrom()?.toInstant(),
             instant2 = marketDataFacade.getLatestIndexEntry(measurement),
@@ -99,8 +98,8 @@ class IndexProcessor(
 
             bars.forEach { bar ->
                 securities.computeIfAbsent(bar.ticker) {
-
                     validateMember(bar.ticker, date)
+
                     IndexMember(
                         ticker = bar.ticker,
                         measurement = measurement,
