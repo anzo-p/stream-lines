@@ -17,38 +17,42 @@ import org.springframework.validation.annotation.Validated
 data class BarDataDto(
 
     @SerialName("c")
-    @field:Positive
+    @field:Positive(message = "must be positive")
     val closingPrice: Double,
 
     @SerialName("h")
-    @field:Positive
+    @field:Positive(message = "must be positive")
     val highPrice: Double,
 
     @SerialName("l")
-    @field:Positive
+    @field:Positive(message = "must be positive")
     val lowPrice: Double,
 
     @SerialName("o")
-    @field:Positive
+    @field:Positive(message = "must be positive")
     val openingPrice: Double,
 
     @SerialName("t")
     @Serializable(with = OffsetDateTimeSerializer::class)
-    @field:NotNull
+    @field:NotNull(message = "must be provided")
     val marketTimestamp: OffsetDateTime,
 
     @SerialName("v")
-    @field:Positive
+    @field:Positive(message = "must be positive")
     val volume: Long,
 
     @SerialName("vw")
-    @field:Positive
+    @field:Positive(message = "must be positive")
     val volumeWeightedAvgPrice: Double,
 
 ) {
     fun toModel(measurement: Measurement, ticker: Ticker): BarData {
-        validate(this).takeIf { it.isNotEmpty() }?.let {
-            throw IllegalArgumentException("Validation failed: $this fails in $it")
+        validate(this).takeIf { it.isNotEmpty() }?.let { violations ->
+            val errorMessages = violations.joinToString("; ") { violation ->
+                val propertyName = violation.propertyPath.iterator().asSequence().last().name
+                "'$propertyName' ${violation.message}"
+            }
+            throw IllegalArgumentException("Validation failed for ${this::class.simpleName}: $errorMessages")
         }
 
         val time = marketTimestamp.toInstant()
