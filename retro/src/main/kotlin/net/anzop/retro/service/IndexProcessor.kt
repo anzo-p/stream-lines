@@ -15,7 +15,6 @@ import net.anzop.retro.model.PrevDayData
 import net.anzop.retro.model.marketData.BarData
 import net.anzop.retro.model.marketData.Measurement
 import net.anzop.retro.model.marketData.PriceChange
-import net.anzop.retro.model.marketData.geometricMean
 import net.anzop.retro.model.marketData.mean
 import net.anzop.retro.repository.dynamodb.CacheRepository
 import net.anzop.retro.repository.influxdb.MarketDataFacade
@@ -34,7 +33,6 @@ class IndexProcessor(
 
     fun run() {
         Measurement.indexMeasurements.forEach(::process)
-
         cacheRepository.deleteIndexStaleFrom()
         marketDataFacade.saveAsync(asyncRecordsToInsert)
         asyncRecordsToInsert.clear()
@@ -45,19 +43,28 @@ class IndexProcessor(
             measurement = measurement,
             fallbackAction = { cacheRepository.deleteIndexStaleFrom() }
         )
-        logger.info("Processing index for ${measurement.code} from $startDate")
-
-        val initialIndexValue = marketDataFacade.getIndexValueAt(measurement, startDate) ?: 1.0
-        logger.info("Starting Index Value is: $initialIndexValue")
-
         val processingPeriod = generateWeekdayRange(
             startDate = startDate,
             endDate = Instant.now().toLocalDate()
         )
-        logger.info("${processingPeriod.size} days to process the index for")
+        logger.info("Processing index for ${measurement.code} from $startDate for ${processingPeriod.size} days")
 
-        val latestIndexValue = loop(measurement, processingPeriod, initialIndexValue)
+        val securities = cacheRepository
+            .getMemberSecurities(measurement)
+            .toMutableMap()
+
+        val initialIndexValue = marketDataFacade.getIndexValueAt(measurement, startDate) ?: 1.0
+        logger.info("Starting Index Value is: $initialIndexValue")
+
+        val latestIndexValue = processPeriod(
+            measurement = measurement,
+            period = processingPeriod,
+            securities = securities,
+            initIndexValue = initialIndexValue
+        )
         logger.info("Final Index Value is: $latestIndexValue")
+
+        cacheRepository.storeMemberSecurities(measurement, securities)
     }
 
     fun resolveStartDate(measurement: Measurement, fallbackAction: () -> Unit): LocalDate =
@@ -70,14 +77,15 @@ class IndexProcessor(
             ?.getPreviousBankDay()
             ?: alpacaProps.earliestHistoricalDate
 
-    private fun loop(
+    private fun processPeriod(
         measurement: Measurement,
-        processingPeriod: List<LocalDate>,
-        initialIndexValue: Double,
+        period: List<LocalDate>,
+        securities: IndexMembers,
+        initIndexValue: Double
     ): Double {
-        val securities = cacheRepository.getMemberSecurities(measurement).toMutableMap()
-
-        val initialDay = processingPeriod.first().getPreviousBankDay()
+        val initialDay = period
+            .first()
+            .getPreviousBankDay()
 
         val initialPrices = marketDataFacade
             .getSourceBarData(
@@ -86,7 +94,25 @@ class IndexProcessor(
             )
             .associate { it.ticker to it.volumeWeightedAvgPrice }
 
-        val latestIndexValue = processingPeriod.fold(initialIndexValue) { currIndexValue, date ->
+        return foldPeriod(
+            measurement = measurement,
+            period = period,
+            securities = securities,
+            initDay = initialDay,
+            initPrices = initialPrices,
+            initIndexValue = initIndexValue
+        )
+    }
+
+    private fun foldPeriod(
+        measurement: Measurement,
+        period: List<LocalDate>,
+        securities: IndexMembers,
+        initDay: LocalDate,
+        initPrices: Map<String, Double>,
+        initIndexValue: Double
+    ): Double =
+        period.fold(initIndexValue) { currIndexValue, date ->
             if (ChronoUnit.DAYS.between(alpacaProps.earliestHistoricalDate, date) % 61 == 0L) {
                 logger.info("Processing ${measurement.code}. Current date: $date, current index value: $currIndexValue")
             }
@@ -112,12 +138,12 @@ class IndexProcessor(
                     )
                 }
 
-                if (date == processingPeriod.first()) {
+                if (date == period.first()) {
                     securities.keys.forEach { ticker ->
                         securities[ticker] = securities[ticker]!!.copy(
                             prevDayData = PrevDayData(
-                                date = initialDay,
-                                avgPrice = initialPrices[ticker] ?: bar.volumeWeightedAvgPrice
+                                date = initDay,
+                                avgPrice = initPrices[ticker] ?: bar.volumeWeightedAvgPrice
                             )
                         )
                     }
@@ -129,11 +155,6 @@ class IndexProcessor(
 
             resolveIndexValue(measurement, priceChanges, currIndexValue)
         }
-
-        cacheRepository.storeMemberSecurities(measurement, securities)
-
-        return latestIndexValue
-    }
 
     private fun processBars(
         measurement: Measurement,
@@ -202,7 +223,6 @@ class IndexProcessor(
     private fun calculateIndex(measurement: Measurement, priceChanges: List<PriceChange>): PriceChange =
         when (measurement) {
             Measurement.INDEX_REGULAR_EQUAL_ARITHMETIC_DAILY -> priceChanges.mean()
-            Measurement.INDEX_REGULAR_EQUAL_GEOMETRIC_DAILY -> priceChanges.geometricMean()
             Measurement.INDEX_EXTENDED_EQUAL_ARITHMETIC_DAILY -> priceChanges.mean()
             else -> throw IllegalArgumentException("Invalid measurement: $measurement for index calculation")
         }
