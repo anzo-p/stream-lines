@@ -10,11 +10,6 @@ enum class Measurement(val code: String, val description: String) {
         "Current prices compared to introduction day prices during regular trading hours " +
         "of a security as input to an equally wighted index using an arithmetic mean"
     ),
-    SECURITY_REGULAR_PRICE_CHANGE_GEOMETRIC_DAILY(
-        "sec_reg_geo_d",
-        "Current prices compared to introduction day prices during regular trading hours " +
-        "of a security as input to an equally wighted index using a geometric mean"
-    ),
     SECURITY_EXTENDED_PRICE_CHANGE_ARITHMETIC_DAILY(
         "sec_xh_arith_d",
         "Current prices compared to introduction day prices including extended trading hours " +
@@ -24,13 +19,9 @@ enum class Measurement(val code: String, val description: String) {
         "ix_reg_arith_d",
         "Index using arithmetic mean from daily regular trading hours data"
     ),
-    INDEX_REGULAR_EQUAL_GEOMETRIC_DAILY(
-        "ix_reg_geo_d",
-        "Index using geometric mean from daily regular trading hours data"
-    ),
     INDEX_EXTENDED_EQUAL_ARITHMETIC_DAILY(
-    "ix_xh_arith_d",
-    "Index using arithmetic mean from daily data including extended hours"
+        "ix_xh_arith_d",
+        "Index using arithmetic mean from daily data including extended hours"
     );
 
     companion object {
@@ -44,7 +35,6 @@ enum class Measurement(val code: String, val description: String) {
         fun securitiesForIndex(index: Measurement) =
             when (index) {
                 INDEX_REGULAR_EQUAL_ARITHMETIC_DAILY -> SECURITY_REGULAR_PRICE_CHANGE_ARITHMETIC_DAILY
-                INDEX_REGULAR_EQUAL_GEOMETRIC_DAILY -> SECURITY_REGULAR_PRICE_CHANGE_GEOMETRIC_DAILY
                 INDEX_EXTENDED_EQUAL_ARITHMETIC_DAILY -> SECURITY_EXTENDED_PRICE_CHANGE_ARITHMETIC_DAILY
                 else -> throw IllegalArgumentException("Measurement: $index does not have assigned securities measurement")
             }
@@ -52,7 +42,6 @@ enum class Measurement(val code: String, val description: String) {
         fun regularHours(index: Measurement) =
             when (index) {
                 INDEX_REGULAR_EQUAL_ARITHMETIC_DAILY -> true
-                INDEX_REGULAR_EQUAL_GEOMETRIC_DAILY -> true
                 INDEX_EXTENDED_EQUAL_ARITHMETIC_DAILY -> false
                 else -> throw IllegalArgumentException("Measurement: $index does not have assigned securities measurement")
             }
