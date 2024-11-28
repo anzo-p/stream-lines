@@ -1,7 +1,7 @@
 // linear index value development over entire span
 from(bucket: "stream-lines-daily-bars")
   |> range(start: v.timeRangeStart, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
+  |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
   |> aggregateWindow(every: 1w, fn: mean, createEmpty: false)
 
@@ -11,7 +11,7 @@ import "math"
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: v.timeRangeStart, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
+  |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
   |> keep(columns: ["_time", "_value", "regularTradingHours"])
   // min, max, first, last, mean, median, sum, count
@@ -29,7 +29,7 @@ fields = ["priceChangeAvg", "priceChangeHigh", "priceChangeLow"]
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: -13mo, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
+  |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_xh_arith_d
   |> filter(fn: (r) => contains(value: r._field, set: fields))
   |> keep(columns: ["_time", "_value", "_field"])
   // uncomment to toggle logarithmic - linear
@@ -38,7 +38,7 @@ from(bucket: "stream-lines-daily-bars")
 
 // daily change in index value over entire time range
 base_filter = (r) =>
-  r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
+  r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
   and (r["_field"] == "priceChangeAvg" or  r["_field"] == "prevPriceChangeAvg")
 
 from(bucket: "stream-lines-daily-bars")
@@ -53,7 +53,7 @@ from(bucket: "stream-lines-daily-bars")
 
 // daily change in index value over selected time range
 base_filter = (r) =>
-  r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
+  r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
   and (r["_field"] == "priceChangeAvg" or  r["_field"] == "prevPriceChangeAvg")
 
 from(bucket: "stream-lines-daily-bars")
@@ -68,7 +68,7 @@ from(bucket: "stream-lines-daily-bars")
 
 // trend of total trading value on index
 base_filter = (r) =>
-  r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
+  r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
   and r._field == "totalTradingValue"
 
 hifreq = from(bucket: "stream-lines-daily-bars")
@@ -86,17 +86,9 @@ smooth = from(bucket: "stream-lines-daily-bars")
   |> keep(columns: ["_time", "_value"])
   |> yield(name: "b")
 
-// moving average would be too jagged
-join(
-  tables: {a: hifreq, b: smooth},
-  on: ["_time"],
-  method: "inner"
-)
-  |> keep(columns: ["_time", "_value"])
-
 
 // trend of normalized trading volumes over entire time range
-measurement = "ix_reg_arith_d" // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
+measurement = "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
 
 dailyTradingValue = from(bucket: "stream-lines-daily-bars")
   |> range(start: v.timeRangeStart, stop: now())
@@ -120,7 +112,7 @@ normalizedTradingVolume = join(
 
 
 // trend of normalized trading volumes over selected time range
-measurement = "ix_reg_arith_d" // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
+measurement = "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
 start = -13mo
 stop = now()
 
@@ -150,7 +142,7 @@ start = -7mo
 stop = now()
 
 base_filter = (r) =>
-  r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
+  r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
   and (r._field == "priceChangeAvg" or r._field == "prevPriceChangeAvg" or r._field == "totalTradingValue")
 
 from(bucket: "stream-lines-daily-bars")
@@ -173,7 +165,7 @@ startResults = time(v: "2017-01-01")
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: startResults, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_reg_geo_d, ix_xh_arith_d
+  |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
   |> filter(fn: (r) => r["_time"] > startResults)
   |> aggregateWindow(every: 2w, fn: median)
@@ -191,7 +183,7 @@ excluded = ["AMD", "NVDA", "TSLA"]
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: v.timeRangeStart, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_reg_geo_d, sec_xh_arith_d
+  |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
   |> filter(fn: (r) => (length(arr: included) == 0 or contains(value: r.ticker, set: included))) // only when not empty
   |> filter(fn: (r) => (length(arr: excluded) == 0 or not contains(value: r.ticker, set: excluded))) // o/wise all except these 
@@ -209,7 +201,7 @@ included = []
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: -7mo, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "sec_xh_arith_d") // sec_reg_arith_d, sec_reg_geo_d, sec_xh_arith_d
+  |> filter(fn: (r) => r["_measurement"] == "sec_xh_arith_d") // sec_reg_arith_d, sec_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
   |> filter(fn: (r) => (length(arr: included) == 0 or contains(value: r.ticker, set: included))) // only when not empty
   |> keep(columns: ["_time", "_value", "_field", "company", "ticker"])
@@ -217,13 +209,17 @@ from(bucket: "stream-lines-daily-bars")
 
 
 // daily change in value for individual securities over selected time range
-included = [] // or all
+included = []
+excluded = []
+start = -5w
+stop = now()
 
 from(bucket: "stream-lines-daily-bars")
-  |> range(start: -5w, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_reg_geo_d, sec_xh_arith_d
+  |> range(start: start, stop: stop)
+  |> filter(fn: (r) => r["_measurement"] == "sec_xh_arith_d") // sec_reg_arith_d, sec_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg" or  r["_field"] == "prevPriceChangeAvg")
-  |> filter(fn: (r) => (length(arr: included) == 0 or contains(value: r.ticker, set: included)))
+  |> filter(fn: (r) => (length(arr: included) == 0 or contains(value: r.ticker, set: included))) // only when not empty
+  |> filter(fn: (r) => (length(arr: excluded) == 0 or not contains(value: r.ticker, set: excluded))) // o/wise all except these 
   |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
   |> map(fn: (r) => ({
       _time: r._time,
@@ -234,11 +230,11 @@ from(bucket: "stream-lines-daily-bars")
 
 
 // trend of total trading values on individual stocks over entire time range
-excluded = []
+excluded = ["AAPL", "AMD", "AMZN", "BA", "META", "MSFT", "NVDA", "TSLA"]
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: v.timeRangeStart, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_reg_geo_d, sec_xh_arith_d
+  |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "totalTradingValue")
   |> filter(fn: (r) => not contains(value: r.ticker, set: excluded))
   |> aggregateWindow(every: 1w, fn: mean, createEmpty: false)
@@ -250,7 +246,7 @@ excluded = []
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: -5w, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_reg_geo_d, sec_xh_arith_d
+  |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "totalTradingValue")
   |> filter(fn: (r) => not contains(value: r.ticker, set: excluded))
 
@@ -264,7 +260,7 @@ stop = now()
 isEmpty = (arr) => length(arr) == 0
 
 base_filter = (r) =>
-  r._measurement == "sec_reg_arith_d" // sec_reg_arith_d, sec_reg_geo_d, sec_xh_arith_d
+  r._measurement == "sec_xh_arith_d" // sec_reg_arith_d, sec_xh_arith_d
   and (r._field == "priceChangeAvg" or r._field == "prevPriceChangeAvg" or r._field == "totalTradingValue")
   and (length(arr: included) == 0 or contains(value: r.ticker, set: included)) // only when not empty
   and (length(arr: excluded) == 0 or not contains(value: r.ticker, set: excluded)) // o/wise all except these 

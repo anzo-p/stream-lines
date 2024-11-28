@@ -28,6 +28,7 @@ class MarketDataRepository (
         clazz: Class<T>
     ): List<T> {
         val tilInstant = til ?: from.plusOneDayAlmost()
+
         val baseQ = Flux
             .from(influxDBConfig.bucket)
             .range(from, tilInstant)
