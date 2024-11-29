@@ -1,0 +1,24 @@
+spring:
+  config:
+    import: "tickers.yml"
+
+alpaca:
+  authentication:
+    api_key: ${ALPACA_API_KEY}
+    api_secret: ${ALPACA_API_SECRET}
+  bar_data_time_frame: 30Min
+  daily_bars_url: https://data.alpaca.markets/v2/stocks/bars
+  data_source: sip
+  earliest_historical_date: 2016-01-02
+  max_calls_per_minute: 200
+
+aws:
+  region: ${AWS_REGION}
+  dynamodb:
+    table-name: ${GATHER_DYNAMODB_TABLE_NAME}
+
+influxdb:
+  bucket: ${INFLUXDB_DAILY_BARS_BUCKET}
+  organization: ${INFLUXDB_ORG}
+  token: ${INFLUXDB_DAILY_BARS_TOKEN}
+  url: http://localhost:8086
