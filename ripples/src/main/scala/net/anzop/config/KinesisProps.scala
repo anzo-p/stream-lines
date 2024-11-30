@@ -1,4 +1,4 @@
-package net.anzop.appconfig
+package net.anzop.config
 
 import net.anzop.helpers.Extensions.EnvOps
 import org.apache.flink.kinesis.shaded.org.apache.flink.connector.aws.config.AWSConfigConstants

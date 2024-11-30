@@ -2,7 +2,7 @@ package net.anzop
 
 import com.amazonaws.services.kinesis.model.{AccessDeniedException, LimitExceededException, ResourceNotFoundException}
 import net.anzop.sinks.KinesisSink.loggingKinesisSink
-import net.anzop.appconfig.{InfluxDetails, KinesisProps, StreamConfig, WindowConfig}
+import net.anzop.config.{InfluxDetails, KinesisProps, StreamConfig, WindowConfig}
 import net.anzop.helpers.StreamHelpers
 import net.anzop.processors.QuotationWindow
 import net.anzop.results.WindowedQuotationVolumes
@@ -16,7 +16,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.Properties
 
-object FlinkApp {
+object Ripples {
   val logger: Logger = LoggerFactory.getLogger(getClass)
 
   private def flinkStream(influxDetails: InfluxDetails, kinesisProps: Properties): Unit = {

@@ -1,16 +1,16 @@
-name: Analytics CI/CD
+name: Ripples CI/CD
 
 on:
   push:
     branches:
       - main
     paths:
-      - "analytics/**"
+      - "ripples/**"
   pull_request:
     branches:
       - main
     paths:
-      - "analytics/**"
+      - "ripples/**"
   workflow_dispatch:
 
 jobs:
@@ -38,7 +38,7 @@ jobs:
 
       - name: Build, tag, and push image to Amazon ECR
         run: |
-          cd analytics
+          cd ripples
           sbt clean compile universal:packageBin
           docker buildx create --use
           docker buildx build --platform linux/arm64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG . --push

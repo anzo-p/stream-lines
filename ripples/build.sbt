@@ -4,7 +4,7 @@ ThisBuild / scalaVersion := "2.12.15"
 
 lazy val root = (project in file("."))
   .settings(
-    name := "analytics",
+    name := "ripples",
     version := "0.1",
     Compile / mainClass := Some("net.anzop.FlinkApp")
   )

@@ -11,7 +11,7 @@ flowchart LR
   influxdb[(InfluxDB)]
   kinesisUpstream["AWS Kinesis"]
   kinesisDownstream["AWS Kinesis"]
-  analytics("`**Analytics**
+  ripples("`**Ripples**
   Scala
   Apache Flink`")
   backend("`**Backend**
@@ -27,13 +27,13 @@ flowchart LR
 
   alpaca --> ingest
   ingest --> kinesisUpstream
-  kinesisUpstream --> analytics
-    analytics --> influxdb
+  kinesisUpstream --> ripples
+    ripples --> influxdb
   subgraph "query path"
     influxdb --> backend
   end
     backend --> dashboard
-  analytics --> kinesisDownstream
+  ripples --> kinesisDownstream
   subgraph "real-time path"
     kinesisDownstream --> apigateway
   end
@@ -44,16 +44,14 @@ flowchart LR
 
 Consumes a websocket from an external provider. In this case market data feed from [Alpaca](https://alpaca.markets/data). This data is cached internally onto Kinesis from where it can be processed by data stream processing jobs.
 
-### Analytics
+### Ripples
 
 Compute any interesting values ot of that data stream. These could quickly and easily become many DataStreams and even Flink Apps that feed input to each others to do further, deeper computations.
 
-Importantly Analytics ouputs into two paths:
+Importantly Ripples ouputs into two paths:
 
 - InxfluxDB - for diagrams to initialize themselves upon queries
 - Downstream Kinesis - for updates to diagrams without having to re-fetch full dataset.
-
-The term 'analytics' is misleading. Must come up with a better name. In reality any linear algorithm should do, with a little remodeling if necessary.
 
 ### Backend
 

@@ -5,7 +5,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 
-export class AnalyticsStack extends cdk.NestedStack {
+export class RipplesStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,
@@ -19,7 +19,7 @@ export class AnalyticsStack extends cdk.NestedStack {
 
     const securityGroup = new ec2.SecurityGroup(
       this,
-      'AnalyticsSecurityGroup',
+      'RipplesSecurityGroup',
       {
         vpc: ecsCluster.vpc,
         allowAllOutbound: true
@@ -51,9 +51,9 @@ export class AnalyticsStack extends cdk.NestedStack {
 
     const taskDefinition = new ecs.FargateTaskDefinition(
       this,
-      'AnalyticsTaskDefinition',
+      'RipplesTaskDefinition',
       {
-        family: 'AnalyticsTaskDefinition',
+        family: 'RipplesTaskDefinition',
         executionRole,
         taskRole,
         runtimePlatform: {
@@ -71,7 +71,7 @@ export class AnalyticsStack extends cdk.NestedStack {
       'stream-lines-compute'
     );
 
-    taskDefinition.addContainer('AnalyticsContainer', {
+    taskDefinition.addContainer('RipplesContainer', {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       memoryLimitMiB: 1024,
       cpu: 512,
@@ -84,10 +84,10 @@ export class AnalyticsStack extends cdk.NestedStack {
         KINESIS_DOWNSTREAM_NAME: `${process.env.KINESIS_RESULTS_DOWNSTREAM}`,
         KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`
       },
-      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'analytics' })
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'ripples' })
     });
 
-    new ecs.FargateService(this, 'AnalyticsEcsService', {
+    new ecs.FargateService(this, 'RipplesEcsService', {
       cluster: ecsCluster,
       taskDefinition,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },

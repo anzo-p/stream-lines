@@ -1,4 +1,4 @@
-package net.anzop.appconfig
+package net.anzop.config
 
 import net.anzop.helpers.Extensions.EnvOps
 import net.anzop.types.{MarketDataDeserializer, MarketDataMessage}

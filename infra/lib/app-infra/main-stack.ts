@@ -1,7 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { AlbStack } from './alb-stack';
-import { AnalyticsStack } from './analytics-stack';
 import { BackendStack } from './backend-stack';
 import { DashboardStack } from './dashboard-stack';
 import { EcsClusterStack } from './ecs-cluster-stack';
@@ -9,6 +8,7 @@ import { EcsTaskExecutionRole } from './ecs-task-exec-role';
 import { InfluxDbStack } from './influxdb-stack';
 import { IngestStack } from './ingest-stack';
 import { KinesisStreamsStack } from './kinesis-stack';
+import { RipplesStack } from './ripples-stack';
 import { VpcStack } from './vpc-stack';
 import { WebSocketApiGatewayStack } from './api-gateway-stack';
 
@@ -61,16 +61,16 @@ export class AppInfraStack extends cdk.Stack {
     );
     ingestStack.addDependency(kinesisStack);
 
-    const analyticsStack = new AnalyticsStack(
+    const ripplesStack = new RipplesStack(
       this,
-      'AnalyticsStack',
+      'ripplesStack',
       ecsCluster.ecsCluster,
       taskExecRoleStack.role,
       kinesisStack.readUpstreamPerms,
       kinesisStack.writeDownstreamPerms
     );
-    analyticsStack.addDependency(kinesisStack);
-    analyticsStack.addDependency(influxStack);
+    ripplesStack.addDependency(kinesisStack);
+    ripplesStack.addDependency(influxStack);
 
     const backendStack = new BackendStack(
       this,
