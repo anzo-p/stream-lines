@@ -1,7 +1,7 @@
-package net.anzop.processors
+package net.anzop.processors.RegressionTrend
 
 import breeze.linalg.DenseVector
-import net.anzop.config.TrendDiscoveryConfig
+import net.anzop.config.TrendConfig
 import net.anzop.helpers.ArrayHelpers
 import net.anzop.helpers.StatisticsHelpers.{linearRegression, tippingPoint}
 import net.anzop.models.Types.DV
@@ -10,7 +10,7 @@ import net.anzop.models.{MarketData, TrendSegment}
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
-class TrendDiscoverer(trendConfig: TrendDiscoveryConfig) extends Serializable {
+class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
 
   private def appendFromHead[T : ClassTag](
       dest: DV[T],
@@ -53,8 +53,6 @@ class TrendDiscoverer(trendConfig: TrendDiscoveryConfig) extends Serializable {
         linearRegression     = overallTrend
       )
 
-      println(s"Discovered new $trendSegment")
-
       val (newTailSegment, newRemainingData) =
         appendFromHead(tailSegment, remainingData, tippingIndex, fixedSizeDest = true)
 
@@ -71,12 +69,12 @@ class TrendDiscoverer(trendConfig: TrendDiscoveryConfig) extends Serializable {
       remainingData: DV[MarketData],
       discoveredTrend: List[TrendSegment]
     ): (List[TrendSegment], DV[MarketData]) =
-    if (remainingData.length < trendConfig.minimumWindow) {
+    if (remainingData.length < trendConfig.minimumTrendWindow) {
       (discoveredTrend, remainingData)
     }
     else {
       val (incWindow, decRemaining) = appendFromHead(currentWindow, remainingData, 1)
-      val taiSegmentStart           = incWindow.length - trendConfig.minimumWindow
+      val taiSegmentStart           = incWindow.length - trendConfig.minimumTrendWindow
       val tailSegment               = incWindow(taiSegmentStart until incWindow.length)
 
       val (maybeTrendSegment, updatedWindow, updatedRemaining) =
@@ -91,12 +89,12 @@ class TrendDiscoverer(trendConfig: TrendDiscoveryConfig) extends Serializable {
     }
 
   def processChunk(dataChunk: DV[MarketData]): (List[TrendSegment], DV[MarketData]) =
-    if (dataChunk.length < 2 * trendConfig.minimumWindow) {
+    if (dataChunk.length < 2 * trendConfig.minimumTrendWindow) {
       (List.empty, dataChunk)
     }
     else {
-      val initialWindow = dataChunk(0 until trendConfig.minimumWindow - 1)
-      val remainingData = dataChunk(trendConfig.minimumWindow until dataChunk.length)
+      val initialWindow = dataChunk(0 until trendConfig.minimumTrendWindow - 1)
+      val remainingData = dataChunk(trendConfig.minimumTrendWindow until dataChunk.length)
       processChunk(initialWindow, remainingData, List.empty)
     }
 }

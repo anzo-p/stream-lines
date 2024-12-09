@@ -92,7 +92,7 @@ object StatisticsHelpers {
       }
       .map {
         case (point, _, index) =>
-          println(s"tippingPoint: $point, index: $index")
+          //println(s"tippingPoint: $point, index: $index")
           (point, getMetadata(point), index)
       }
   }

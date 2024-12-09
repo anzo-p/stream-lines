@@ -1,4 +1,4 @@
-package net.anzop.processors
+package net.anzop.processors.RegressionTrend
 
 import breeze.linalg.DenseVector
 import net.anzop.models.Types.DV

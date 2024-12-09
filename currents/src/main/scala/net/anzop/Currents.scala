@@ -1,28 +1,22 @@
 package net.anzop
 
-import net.anzop.config.{InfluxDetails, TrendDiscoveryConfig}
-import net.anzop.models.{MarketData, TrendSegment}
-import net.anzop.processors.{TrendDiscoverer, TrendProcessor}
+import net.anzop.config.{InfluxDetails, TrendConfig}
+import net.anzop.models.{DrawdownData, MarketData, TrendSegment}
+import net.anzop.processors.Drawdown.Drawdown
+import net.anzop.processors.RegressionTrend.{TrendDiscoverer, TrendProcessor}
 import net.anzop.sources.IndexDataSource
 import org.apache.flink.api.common.ExecutionConfig
-import org.apache.flink.streaming.api.functions.sink.SinkFunction
-import org.apache.flink.streaming.api.functions.source.SourceFunction
 import org.apache.flink.streaming.api.scala._
+import org.apache.flink.streaming.api.windowing.assigners.GlobalWindows
+import org.apache.flink.streaming.api.windowing.triggers.CountTrigger
+import org.apache.flink.streaming.api.windowing.windows.GlobalWindow
+import org.apache.flink.util.Collector
 
 object Currents {
 
-  class TrendSink() extends SinkFunction[List[TrendSegment]] {
-    override def invoke(value: List[TrendSegment], context: SinkFunction.Context): Unit = {
-      value.foreach { segment =>
-        println(
-          s"Segment: ${segment.begins} -> ${segment.ends} | Slope: ${segment.regressionSlope} | Variance: ${segment.regressionVariance}")
-      }
-    }
-  }
-
   def main(args: Array[String]): Unit = {
-
-    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    val trendConfig = TrendConfig.values
+    val env         = StreamExecutionEnvironment.getExecutionEnvironment
 
     env
       .getConfig
@@ -32,18 +26,30 @@ object Currents {
         }
       })
 
-    val influxSource: SourceFunction[List[MarketData]] =
-      new IndexDataSource(InfluxDetails.make())
+    val dataStream: DataStream[MarketData] =
+      env.addSource(new IndexDataSource(InfluxDetails.make()))
 
-    val dataStream: DataStream[List[MarketData]] = env.addSource(influxSource)
+    val batchedStream: DataStream[List[MarketData]] =
+      dataStream
+        .windowAll(GlobalWindows.create())
+        .trigger(CountTrigger.of(trendConfig.flinkWindowCount))
+        .apply((_: GlobalWindow, elements: Iterable[MarketData], out: Collector[List[MarketData]]) => {
+          out.collect(elements.toList)
+        })
 
-    val keyedStream = dataStream.keyBy(point => point.map(_.timestamp).toString)
+    val trendStream: DataStream[List[TrendSegment]] =
+      batchedStream
+        .keyBy(_.head.field)
+        .flatMap(new TrendProcessor(new TrendDiscoverer(trendConfig)))
 
-    val trendStream: DataStream[List[TrendSegment]] = keyedStream.flatMap(
-      new TrendProcessor(new TrendDiscoverer(TrendDiscoveryConfig.values))
-    )
+    trendStream.print()
 
-    trendStream.addSink(new TrendSink())
+    val drawDownStream: DataStream[DrawdownData] =
+      dataStream
+        .keyBy(_.field)
+        .process(new Drawdown())
+
+    drawDownStream.print()
 
     env.execute("InfluxDB Source Example")
   }
