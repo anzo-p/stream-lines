@@ -1,6 +1,7 @@
 package net.anzop.helpers
 
 import breeze.linalg._
+import net.anzop.models.Types.DV
 
 import scala.reflect.ClassTag
 
@@ -8,7 +9,7 @@ case class LinearRegression(slope: Double, intercept: Double, variance: Double)
 
 object StatisticsHelpers {
 
-  def linearRegression(dataSet: DenseVector[Double]): LinearRegression = {
+  def linearRegression(dataSet: DV[Double]): LinearRegression = {
     val normalizedData = Analytical.asPercentageChange(dataSet)
 
     // Create x-values (0 to dataSet.length - 1)
@@ -30,8 +31,8 @@ object StatisticsHelpers {
   }
 
   def maxDeviationPoint[T : ClassTag](
-      deviatingTrend: DenseVector[T],
-      overallTrend: DenseVector[T],
+      deviatingTrend: DV[T],
+      overallTrend: DV[T],
       alpha: Double, // 0.2 // 0 tends to edges - 1.0 biases towards the center
       getMetadata: T => Long,
       getValue: T => Double
@@ -61,8 +62,8 @@ object StatisticsHelpers {
   }
 
   def tippingPoint[T : ClassTag](
-      deviatingTrend: DenseVector[T],
-      overallTrend: DenseVector[T],
+      deviatingTrend: DV[T],
+      overallTrend: DV[T],
       tolerance: Double,
       getMetadata: T => Long,
       getValue: T => Double

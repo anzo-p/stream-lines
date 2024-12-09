@@ -4,6 +4,7 @@ import breeze.linalg.DenseVector
 import net.anzop.config.TrendDiscoveryConfig
 import net.anzop.helpers.ArrayHelpers
 import net.anzop.helpers.StatisticsHelpers.{linearRegression, tippingPoint}
+import net.anzop.models.Types.DV
 import net.anzop.models.{MarketData, TrendSegment}
 
 import scala.annotation.tailrec
@@ -12,21 +13,21 @@ import scala.reflect.ClassTag
 class TrendDiscoverer(trendConfig: TrendDiscoveryConfig) extends Serializable {
 
   private def appendFromHead[T : ClassTag](
-      dest: DenseVector[T],
-      src: DenseVector[T],
+      dest: DV[T],
+      src: DV[T],
       n: Int,
       fixedSizeDest: Boolean = false
-    ): (DenseVector[T], DenseVector[T]) = {
+    ): (DV[T], DV[T]) = {
     val (newDest, newSrc) = ArrayHelpers.appendFromHead(dest.toArray, src.toArray, n)
     val fixedDest         = if (fixedSizeDest) newDest.drop(n) else newDest
     (DenseVector(fixedDest), DenseVector(newSrc))
   }
 
   private def discoverTrendSegment(
-      window: DenseVector[MarketData],
-      tailSegment: DenseVector[MarketData],
-      remainingData: DenseVector[MarketData]
-    ): (Option[TrendSegment], DenseVector[MarketData], DenseVector[MarketData]) = {
+      window: DV[MarketData],
+      tailSegment: DV[MarketData],
+      remainingData: DV[MarketData]
+    ): (Option[TrendSegment], DV[MarketData], DV[MarketData]) = {
     val overallTrend = linearRegression(window.map(_.value))
     val tailTrend    = linearRegression(tailSegment.map(_.value))
     val slopeDiff    = Math.abs(overallTrend.slope - tailTrend.slope)
@@ -66,10 +67,10 @@ class TrendDiscoverer(trendConfig: TrendDiscoveryConfig) extends Serializable {
 
   @tailrec
   private def processChunk(
-      currentWindow: DenseVector[MarketData],
-      remainingData: DenseVector[MarketData],
+      currentWindow: DV[MarketData],
+      remainingData: DV[MarketData],
       discoveredTrend: List[TrendSegment]
-    ): (List[TrendSegment], DenseVector[MarketData]) =
+    ): (List[TrendSegment], DV[MarketData]) =
     if (remainingData.length < trendConfig.minimumWindow) {
       (discoveredTrend, remainingData)
     }
@@ -89,7 +90,7 @@ class TrendDiscoverer(trendConfig: TrendDiscoveryConfig) extends Serializable {
       processChunk(updatedWindow, updatedRemaining, updatedTrend)
     }
 
-  def processChunk(dataChunk: DenseVector[MarketData]): (List[TrendSegment], DenseVector[MarketData]) =
+  def processChunk(dataChunk: DV[MarketData]): (List[TrendSegment], DV[MarketData]) =
     if (dataChunk.length < 2 * trendConfig.minimumWindow) {
       (List.empty, dataChunk)
     }
