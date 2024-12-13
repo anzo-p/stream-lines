@@ -5,10 +5,10 @@ import net.anzop.models.{DrawdownData, MarketData, TrendSegment}
 import net.anzop.processors.Drawdown.Drawdown
 import net.anzop.processors.RegressionTrend.{TrendDiscoverer, TrendProcessor}
 import net.anzop.sources.IndexDataSource
+import net.anzop.triggers.CountOrTimerTrigger
 import org.apache.flink.api.common.ExecutionConfig
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners.GlobalWindows
-import org.apache.flink.streaming.api.windowing.triggers.CountTrigger
 import org.apache.flink.streaming.api.windowing.windows.GlobalWindow
 import org.apache.flink.util.Collector
 
@@ -32,9 +32,12 @@ object Currents {
     val batchedStream: DataStream[List[MarketData]] =
       dataStream
         .windowAll(GlobalWindows.create())
-        .trigger(CountTrigger.of(trendConfig.flinkWindowCount))
+        .trigger(CountOrTimerTrigger.of(trendConfig.flinkWindowCount, trendConfig.flinkWindowInterval))
         .apply((_: GlobalWindow, elements: Iterable[MarketData], out: Collector[List[MarketData]]) => {
-          out.collect(elements.toList)
+          val batch = elements.toList
+          if (batch.nonEmpty) {
+            out.collect(batch)
+          }
         })
 
     val trendStream: DataStream[List[TrendSegment]] =
@@ -46,7 +49,7 @@ object Currents {
 
     val drawDownStream: DataStream[DrawdownData] =
       dataStream
-        .keyBy(_.field)
+        .keyBy(_.timestamp.toString)
         .process(new Drawdown())
 
     drawDownStream.print()
