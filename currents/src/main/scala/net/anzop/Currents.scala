@@ -1,9 +1,10 @@
 package net.anzop
 
 import net.anzop.config.{InfluxDetails, TrendConfig}
-import net.anzop.models.{DrawdownData, MarketData, TrendSegment}
-import net.anzop.processors.Drawdown.Drawdown
-import net.anzop.processors.RegressionTrend.{TrendDiscoverer, TrendProcessor}
+import net.anzop.models.MarketData
+import net.anzop.processors.Drawdown.{Drawdown, DrawdownProcessor, DrawdownSerDes}
+import net.anzop.processors.RegressionTrend.{ListTrendSegmentSerDes, TrendDiscoverer, TrendProcessor, TrendSegment}
+import net.anzop.sinks.ResultSink
 import net.anzop.sources.IndexDataSource
 import net.anzop.triggers.CountOrTimerTrigger
 import org.apache.flink.api.common.ExecutionConfig
@@ -15,8 +16,9 @@ import org.apache.flink.util.Collector
 object Currents {
 
   def main(args: Array[String]): Unit = {
-    val trendConfig = TrendConfig.values
-    val env         = StreamExecutionEnvironment.getExecutionEnvironment
+    val influxDetails = InfluxDetails.make()
+    val trendConfig   = TrendConfig.values
+    val env           = StreamExecutionEnvironment.getExecutionEnvironment
 
     env
       .getConfig
@@ -27,7 +29,7 @@ object Currents {
       })
 
     val dataStream: DataStream[MarketData] =
-      env.addSource(new IndexDataSource(InfluxDetails.make()))
+      env.addSource(new IndexDataSource(influxDetails))
 
     val batchedStream: DataStream[List[MarketData]] =
       dataStream
@@ -47,12 +49,14 @@ object Currents {
 
     trendStream.print()
 
-    val drawDownStream: DataStream[DrawdownData] =
-      dataStream
-        .keyBy(_.timestamp.toString)
-        .process(new Drawdown())
+    trendStream.addSink(new ResultSink(influxDetails, ListTrendSegmentSerDes()))
 
-    drawDownStream.print()
+    val drawDownStream: DataStream[Drawdown] =
+      dataStream
+        .keyBy(_.field)
+        .process(new DrawdownProcessor())
+
+    drawDownStream.addSink(new ResultSink(influxDetails, DrawdownSerDes()))
 
     env.execute("InfluxDB Source Example")
   }

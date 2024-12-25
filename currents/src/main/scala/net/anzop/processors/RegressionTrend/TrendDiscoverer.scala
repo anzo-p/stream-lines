@@ -5,7 +5,7 @@ import net.anzop.config.TrendConfig
 import net.anzop.helpers.ArrayHelpers
 import net.anzop.helpers.StatisticsHelpers.{linearRegression, tippingPoint}
 import net.anzop.models.Types.DV
-import net.anzop.models.{MarketData, TrendSegment}
+import net.anzop.models.MarketData
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag

@@ -1,4 +1,4 @@
-package net.anzop.models
+package net.anzop.processors.RegressionTrend
 
 import net.anzop.helpers.{DateHelpers, LinearRegression}
 

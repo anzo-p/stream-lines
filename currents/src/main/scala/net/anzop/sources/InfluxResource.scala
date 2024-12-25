@@ -10,7 +10,7 @@ import scala.jdk.CollectionConverters._
 
 class InfluxResource(influxDetails: InfluxDetails) extends Serializable {
   private val client: InfluxDBClient = InfluxDBClientFactory.create(
-    influxDetails.uri.toString,
+    influxDetails.sourceUrl.toString,
     influxDetails.token.toCharArray,
     influxDetails.org
   )
@@ -26,8 +26,7 @@ class InfluxResource(influxDetails: InfluxDetails) extends Serializable {
        |  |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d")
        |  |> filter(fn: (r) => contains(value: r._field, set: fields))
        |  |> keep(columns: ["_time", "_value", "_field"])
-       |  // uncomment to toggle logarithmic - linear
-       |  |> map(fn: (r) => ({ r with _value: math.log(x: r._value) }))
+       |  // results appear more accurate on true value and not on its log
        |""".stripMargin
 
   private val queryApi = client.getQueryApi
