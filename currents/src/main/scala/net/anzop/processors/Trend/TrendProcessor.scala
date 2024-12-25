@@ -1,8 +1,8 @@
 package net.anzop.processors.Trend
 
 import breeze.linalg.DenseVector
-import net.anzop.models.MarketData
 import net.anzop.models.Types.DV
+import net.anzop.models.MarketData
 import org.apache.flink.api.common.functions.RichFlatMapFunction
 import org.apache.flink.api.common.state.{ListState, ListStateDescriptor}
 import org.apache.flink.configuration.Configuration

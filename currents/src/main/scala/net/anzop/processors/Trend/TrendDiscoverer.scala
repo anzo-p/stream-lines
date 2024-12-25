@@ -4,8 +4,8 @@ import breeze.linalg.DenseVector
 import net.anzop.config.TrendConfig
 import net.anzop.helpers.StatisticsHelpers.{linearRegression, tippingPoint}
 import net.anzop.helpers.{ArrayHelpers, LinearRegression}
-import net.anzop.models.MarketData
 import net.anzop.models.Types.DV
+import net.anzop.models.MarketData
 
 import java.time.{Duration, Instant}
 import scala.annotation.tailrec
@@ -65,15 +65,6 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
     val tailTrend    = linearRegression(tailSegment.map(_.value))
     val slopeDiff    = Math.abs(overallTrend.slope - tailTrend.slope)
     val varianceDiff = Math.abs(overallTrend.variance - tailTrend.variance)
-
-    /*
-      the first segment should assume trend against 0 at 1.1.2016
-
-      the segments should learn than the next segment continues the trend
-      - if the recovery look alike is very small
-
-      it should project the ongoing unfinished trend so that it ends up at analytics
-     */
 
     if (slopeDiff > trendConfig.regressionSlopeThreshold &&
         (overallTrend.slope < 0 || varianceDiff < trendConfig.regressionVarianceLimit)) {
