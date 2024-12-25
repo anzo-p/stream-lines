@@ -5,6 +5,7 @@ import org.apache.flink.streaming.api.windowing.triggers.{Trigger, TriggerResult
 import org.apache.flink.streaming.api.windowing.windows.GlobalWindow
 
 class CountOrTimerTrigger(triggerCount: Long, triggerInterval: Long) extends Trigger[Any, GlobalWindow] {
+  private val logger = org.slf4j.LoggerFactory.getLogger(getClass)
 
   private def getPartitionedState(ctx: Trigger.TriggerContext, name: String): ValueState[Long] =
     ctx.getPartitionedState(new ValueStateDescriptor(name, classOf[Long]))
@@ -50,6 +51,7 @@ class CountOrTimerTrigger(triggerCount: Long, triggerInterval: Long) extends Tri
       if (currentCount > 0) {
         countState.clear()
         lastFiredState.update(time)
+        logger.info(s"Triggering processing of tail elements on delay at $time")
         TriggerResult.FIRE_AND_PURGE
       }
       else {
