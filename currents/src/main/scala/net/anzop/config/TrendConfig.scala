@@ -6,9 +6,9 @@ import org.slf4j.{Logger, LoggerFactory}
 case class TrendConfig(
     flinkWindowCount: Int,
     flinkWindowInterval: Long,
-    minimumTrendWindow: Int,
+    minimumWindow: Int,
     regressionSlopeThreshold: Double,
-    regressionVarianceThreshold: Double,
+    regressionVarianceLimit: Double,
     tippingPointThreshold: Double
   )
 
@@ -18,12 +18,12 @@ object TrendConfig {
   private val config: Config = ConfigFactory.load()
 
   val values: TrendConfig = TrendConfig(
-    flinkWindowCount            = config.getInt("trend_discovery.flink_window_count"),
-    flinkWindowInterval         = config.getLong("trend_discovery.flink_window_interval"),
-    minimumTrendWindow          = config.getInt("trend_discovery.minimum_trend_window"),
-    regressionSlopeThreshold    = config.getDouble("trend_discovery.regression_slope_threshold"),
-    regressionVarianceThreshold = config.getDouble("trend_discovery.regression_variance_threshold"),
-    tippingPointThreshold       = config.getDouble("trend_discovery.tipping_point_threshold")
+    flinkWindowCount         = config.getInt("trend_discovery.flink_window_count"),
+    flinkWindowInterval      = config.getLong("trend_discovery.flink_window_interval"),
+    minimumWindow            = config.getInt("trend_discovery.minimum_window"),
+    regressionSlopeThreshold = config.getDouble("trend_discovery.regression_slope_threshold"),
+    regressionVarianceLimit  = config.getDouble("trend_discovery.regression_variance_limit"),
+    tippingPointThreshold    = config.getDouble("trend_discovery.tipping_point_threshold")
   )
   logger.info(s"trend discovery configuration loaded")
 }

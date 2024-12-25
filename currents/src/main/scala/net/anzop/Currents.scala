@@ -3,7 +3,7 @@ package net.anzop
 import net.anzop.config.{InfluxDetails, TrendConfig}
 import net.anzop.models.MarketData
 import net.anzop.processors.Drawdown.{Drawdown, DrawdownProcessor, DrawdownSerDes}
-import net.anzop.processors.RegressionTrend.{ListTrendSegmentSerDes, TrendDiscoverer, TrendProcessor, TrendSegment}
+import net.anzop.processors.Trend.{ListTrendSegmentSerDes, TrendDiscoverer, TrendProcessor, TrendSegment}
 import net.anzop.sinks.ResultSink
 import net.anzop.sources.IndexDataSource
 import net.anzop.triggers.CountOrTimerTrigger
@@ -46,8 +46,6 @@ object Currents {
       batchedStream
         .keyBy(_.head.field)
         .flatMap(new TrendProcessor(new TrendDiscoverer(trendConfig)))
-
-    trendStream.print()
 
     trendStream.addSink(new ResultSink(influxDetails, ListTrendSegmentSerDes()))
 

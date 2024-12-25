@@ -1,11 +1,11 @@
-package net.anzop.processors.RegressionTrend
+package net.anzop.processors.Trend
 
 import net.anzop.helpers.{DateHelpers, LinearRegression}
 
 case class TrendSegment(
     begins: Long,
     ends: Long,
-    trendAngleAnnualized: Double,
+    growth: Double,
     regressionSlope: Double,
     regressionIntercept: Double,
     regressionVariance: Double
@@ -15,7 +15,7 @@ case class TrendSegment(
     s"""TrendSegment(
        |begins: ${DateHelpers.epochToStringDate(begins)},
        |ends: ${DateHelpers.epochToStringDate(ends)},
-       |trendAngleAnnualized: $trendAngleAnnualized,
+       |growth: $growth,
        |regressionSlope: $regressionSlope,
        |regressionIntercept: $regressionIntercept,
        |regressionVariance: $regressionVariance)
@@ -27,14 +27,8 @@ object TrendSegment {
   def make(
       begins: Long,
       ends: Long,
-      trendAngleAnnualized: Double,
+      growth: Double,
       linearRegression: LinearRegression
     ): TrendSegment =
-    TrendSegment(
-      begins,
-      ends,
-      trendAngleAnnualized,
-      linearRegression.slope,
-      linearRegression.intercept,
-      linearRegression.variance)
+    TrendSegment(begins, ends, growth, linearRegression.slope, linearRegression.intercept, linearRegression.variance)
 }

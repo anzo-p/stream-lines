@@ -62,8 +62,8 @@ object StatisticsHelpers {
   }
 
   def tippingPoint[T : ClassTag](
-      deviatingTrend: DV[T],
       overallTrend: DV[T],
+      deviatingTrend: DV[T],
       tolerance: Double,
       getMetadata: T => Long,
       getValue: T => Double

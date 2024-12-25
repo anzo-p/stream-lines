@@ -19,7 +19,6 @@ val slf4jVersion       = "2.0.5"
 val typesafeVersion    = "1.4.2"
 
 libraryDependencies ++= Seq(
-  "com.typesafe"                   % "config"                     % typesafeVersion,
   "org.apache.flink"               % "flink-clients"              % apacheFlinkVersion,
   "org.apache.flink"               % "flink-statebackend-rocksdb" % apacheFlinkVersion,
   "org.apache.flink"               % "flink-s3-fs-hadoop"         % apacheFlinkVersion,
@@ -30,10 +29,11 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.core"     % "jackson-databind"           % jacksonVersion,
   "com.fasterxml.jackson.module"   %% "jackson-module-scala"      % jacksonVersion,
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310"    % jacksonVersion,
+  "ch.qos.logback"                 % "logback-classic"            % logbackVersion,
   "org.scala-lang.modules"         %% "scala-collection-compat"   % "2.11.0",
   "org.scalanlp"                   %% "breeze"                    % "2.1.0",
   "org.slf4j"                      % "slf4j-api"                  % slf4jVersion,
-  "ch.qos.logback"                 % "logback-classic"            % logbackVersion
+  "com.typesafe"                   % "config"                     % typesafeVersion
 )
 
 libraryDependencies ++= Seq(

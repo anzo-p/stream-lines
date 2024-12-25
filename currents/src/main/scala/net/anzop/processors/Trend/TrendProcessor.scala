@@ -1,4 +1,4 @@
-package net.anzop.processors.RegressionTrend
+package net.anzop.processors.Trend
 
 import breeze.linalg.DenseVector
 import net.anzop.models.MarketData

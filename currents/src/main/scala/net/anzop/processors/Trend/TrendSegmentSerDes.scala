@@ -1,4 +1,4 @@
-package net.anzop.processors.RegressionTrend
+package net.anzop.processors.Trend
 
 import net.anzop.sinks.DataSerializer
 
@@ -7,7 +7,7 @@ class TrendSegmentSerDes extends DataSerializer[TrendSegment] with Serializable 
   override def serialize(data: TrendSegment): String = {
     val timestamp = data.ends * 1000000L
     s"trend-segment begins=${data.begins},ends=${data.ends}," +
-      s"trendAngleAnnualized=${setScale(data.trendAngleAnnualized)}," +
+      s"growth=${setScale(data.growth)}," +
       s"regression_slope=${setScale(data.regressionSlope)}," +
       s"regression_intercept=${setScale(data.regressionIntercept)}," +
       s"regression_variance=${setScale(data.regressionVariance)} $timestamp"
