@@ -1,29 +1,19 @@
 package net.anzop.processors.Trend
 
-import breeze.linalg.DenseVector
 import net.anzop.config.TrendConfig
+import net.anzop.helpers.ArrayHelpers.appendFromHead
+import net.anzop.helpers.LinearRegression
 import net.anzop.helpers.StatisticsHelpers.{linearRegression, tippingPoint}
-import net.anzop.helpers.{ArrayHelpers, LinearRegression}
-import net.anzop.models.Types.DV
 import net.anzop.models.MarketData
+import net.anzop.models.Types.DV
 
 import java.time.{Duration, Instant}
 import scala.annotation.tailrec
-import scala.reflect.ClassTag
 
 class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
   final private case class TrendSegmentConfirmation(segment: TrendSegment, tippingElementAtTailSegment: Int)
 
-  private def appendFromHead[T : ClassTag](
-      src: DV[T],
-      dest: DV[T],
-      n: Int,
-      fixedSizeDest: Boolean = false
-    ): (DV[T], DV[T]) = {
-    val (newDest, newSrc) = ArrayHelpers.appendFromHead(dest.toArray, src.toArray, n)
-    val fixedDest         = if (fixedSizeDest) newDest.drop(n) else newDest
-    (DenseVector(fixedDest), DenseVector(newSrc))
-  }
+  private val minimumSegmentAndTail: Int = 2 * trendConfig.minimumWindow
 
   private def createSegment(
       window: DV[MarketData],
@@ -66,11 +56,9 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
     val slopeDiff    = Math.abs(overallTrend.slope - tailTrend.slope)
     val varianceDiff = Math.abs(overallTrend.variance - tailTrend.variance)
 
-    if (slopeDiff > trendConfig.regressionSlopeThreshold &&
-        (overallTrend.slope < 0 || varianceDiff < trendConfig.regressionVarianceLimit)) {
-
+    if (slopeDiff > trendConfig.regressionSlopeThreshold && varianceDiff < trendConfig.regressionVarianceLimit) {
       val trendSegment = createSegment(window, tailSegment, overallTrend)
-      val (newTailSegment, newRemainingData) =
+      val (newRemainingData, newTailSegment) =
         appendFromHead(
           src           = remainingData,
           dest          = tailSegment,
@@ -89,12 +77,12 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
       currentWindow: DV[MarketData],
       remainingData: DV[MarketData],
       discoveredTrend: List[TrendSegment]
-    ): (List[TrendSegment], DV[MarketData]) =
-    if (remainingData.length < trendConfig.minimumWindow) {
-      (discoveredTrend, remainingData)
+    ): List[TrendSegment] =
+    if (remainingData.length < minimumSegmentAndTail) {
+      discoveredTrend
     }
     else {
-      val (incWindow, decRemaining) = appendFromHead(remainingData, currentWindow, 1)
+      val (decRemaining, incWindow) = appendFromHead(remainingData, currentWindow, 1)
       val taiSegmentStart           = incWindow.length - trendConfig.minimumWindow
       val tailSegment               = incWindow(taiSegmentStart until incWindow.length)
 
@@ -109,15 +97,15 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
       processChunk(updatedWindow, updatedRemaining, updatedTrend)
     }
 
-  def processChunk(dataChunk: DV[MarketData]): (List[TrendSegment], DV[MarketData]) =
-    if (dataChunk.length < 2 * trendConfig.minimumWindow) {
-      (List.empty, dataChunk)
+  def processChunk(dataChunk: DV[MarketData]): List[TrendSegment] =
+    if (dataChunk.length < minimumSegmentAndTail) {
+      List()
     }
     else {
       processChunk(
-        currentWindow   = dataChunk(0 until trendConfig.minimumWindow - 1),
+        currentWindow   = dataChunk(0 until trendConfig.minimumWindow),
         remainingData   = dataChunk(trendConfig.minimumWindow until dataChunk.length),
-        discoveredTrend = List.empty
+        discoveredTrend = List()
       )
     }
 }

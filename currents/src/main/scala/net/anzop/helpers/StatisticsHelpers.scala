@@ -69,7 +69,8 @@ object StatisticsHelpers {
       getValue: T => Double
     ): Option[(T, Long, Int)] = {
     require(
-      deviatingTrend.length <= overallTrend.length,
+      deviatingTrend.length <= overallTrend.length &&
+        deviatingTrend.toArray.last == overallTrend.toArray.last,
       "Deviating trend must be a subset of the overall trend."
     )
 
@@ -84,16 +85,15 @@ object StatisticsHelpers {
       }
 
     // Find the last point within tolerance
-    Predef
+    val tippingPoint = Predef
       .refArrayOps(residuals.reverse)
-      .find {
-        case (_, residual, _) =>
-          residual <= tolerance
-      }
-      .map {
-        case (point, _, index) =>
-          //println(s"tippingPoint: $point, index: $index")
-          (point, getMetadata(point), index)
-      }
+      .find { case (_, residual, _) => residual <= tolerance }
+      .map { case (point, _, index) => (point, getMetadata(point), index) }
+
+    require(
+      tippingPoint.isEmpty || deviatingTrend.toArray.map(getMetadata).contains(tippingPoint.map(_._2).get),
+      s"tippingPoint not in deviatingTrend"
+    )
+    tippingPoint
   }
 }
