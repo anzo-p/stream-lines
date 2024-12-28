@@ -13,8 +13,23 @@ class MarketDataSource(influxDetails: InfluxDetails) extends SourceFunction[Mark
       dbConn = new InfluxDB(influxDetails)
 
       while (running) {
+        val lastTrendEnding: Option[Long] =
+          dbConn
+            .requestData[Long](
+              fetchConfig = LatestTrendEnding,
+              params      = QueryParams(influxDetails.bucket, influxDetails.trendMeasure)
+            )
+            .headOption
+
         dbConn
-          .requestData[MarketData](IndexData)
+          .requestData[MarketData](
+            fetchConfig = IndexData,
+            params = QueryParams(
+              bucket      = influxDetails.bucket,
+              measurement = influxDetails.indexMeasure,
+              start       = lastTrendEnding
+            )
+          )
           .foreach(ctx.collect)
 
         Thread.sleep(1000 * 60 * 60) // into app config as pollInterval

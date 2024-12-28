@@ -5,7 +5,7 @@ import net.anzop.models.MarketData
 import net.anzop.processors.Drawdown.{Drawdown, DrawdownProcessor, DrawdownSerDes}
 import net.anzop.processors.Trend.{ListTrendSegmentSerDes, TrendDiscoverer, TrendProcessor, TrendSegment}
 import net.anzop.sinks.ResultSink
-import net.anzop.sources.IndexDataSource
+import net.anzop.sources.marketData.MarketDataSource
 import net.anzop.triggers.CountOrTimerTrigger
 import org.apache.flink.api.common.ExecutionConfig
 import org.apache.flink.streaming.api.scala._
@@ -29,7 +29,7 @@ object Currents {
       })
 
     val dataStream: DataStream[MarketData] =
-      env.addSource(new IndexDataSource(influxDetails))
+      env.addSource(new MarketDataSource(influxDetails))
 
     val batchedStream: DataStream[List[MarketData]] =
       dataStream
