@@ -2,32 +2,24 @@ package net.anzop.processors.Trend
 
 import net.anzop.sinks.DataSerializer
 
-class TrendSegmentSerDes extends DataSerializer[TrendSegment] with Serializable {
+class TrendSegmentSerDes(val measurementName: String) extends DataSerializer[List[TrendSegment]] with Serializable {
 
-  override def serialize(data: TrendSegment): String = {
-    val timestamp = data.ends * 1000000L
-    s"trend-segment begins=${data.begins},ends=${data.ends}," +
+  private def serializeOne(data: TrendSegment): String =
+    s"$measurementName begins=${data.begins},ends=${data.ends}," +
       s"growth=${setScale(data.growth)}," +
       s"regression_slope=${setScale(data.regressionSlope)}," +
       s"regression_intercept=${setScale(data.regressionIntercept)}," +
-      s"regression_variance=${setScale(data.regressionVariance)} $timestamp"
-  }
+      s"regression_variance=${setScale(data.regressionVariance)} ${data.ends * 1000000L}"
+
+  def serialize(data: TrendSegment): String =
+    serialize(List(data))
+
+  override def serialize(data: List[TrendSegment]): String =
+    data.map(serializeOne).mkString("\n")
 }
 
 object TrendSegmentSerDes {
-  def apply(): TrendSegmentSerDes = new TrendSegmentSerDes()
-}
 
-class ListTrendSegmentSerDes(segmentSerializer: DataSerializer[TrendSegment])
-    extends DataSerializer[List[TrendSegment]]
-    with Serializable {
-
-  override def serialize(data: List[TrendSegment]): String =
-    data.map(segmentSerializer.serialize).mkString("\n")
-}
-
-object ListTrendSegmentSerDes {
-
-  def apply(segmentSerializer: DataSerializer[TrendSegment] = TrendSegmentSerDes()): ListTrendSegmentSerDes =
-    new ListTrendSegmentSerDes(segmentSerializer)
+  def apply(measurementName: String): TrendSegmentSerDes =
+    new TrendSegmentSerDes(measurementName)
 }

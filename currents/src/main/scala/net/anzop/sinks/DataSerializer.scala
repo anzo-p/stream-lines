@@ -1,6 +1,7 @@
 package net.anzop.sinks
 
 trait DataSerializer[T] {
+  def measurementName: String
   def serialize(data: T): String
 
   def setScale(v: BigDecimal): BigDecimal =

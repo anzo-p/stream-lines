@@ -3,7 +3,7 @@ package net.anzop
 import net.anzop.config.{InfluxDetails, TrendConfig}
 import net.anzop.models.MarketData
 import net.anzop.processors.Drawdown.{Drawdown, DrawdownProcessor, DrawdownSerDes}
-import net.anzop.processors.Trend.{ListTrendSegmentSerDes, TrendDiscoverer, TrendProcessor, TrendSegment}
+import net.anzop.processors.Trend.{TrendDiscoverer, TrendProcessor, TrendSegment, TrendSegmentSerDes}
 import net.anzop.sinks.ResultSink
 import net.anzop.sources.marketData.MarketDataSource
 import net.anzop.triggers.CountOrTimerTrigger
@@ -47,14 +47,14 @@ object Currents {
         .keyBy(_.head.field)
         .flatMap(new TrendProcessor(new TrendDiscoverer(trendConfig)))
 
-    trendStream.addSink(new ResultSink(influxDetails, ListTrendSegmentSerDes()))
+    trendStream.addSink(new ResultSink(influxDetails, TrendSegmentSerDes(influxDetails.trendMeasure)))
 
     val drawDownStream: DataStream[Drawdown] =
       dataStream
         .keyBy(_.field)
         .process(new DrawdownProcessor())
 
-    drawDownStream.addSink(new ResultSink(influxDetails, DrawdownSerDes()))
+    drawDownStream.addSink(new ResultSink(influxDetails, DrawdownSerDes(influxDetails.drawdownMeasure)))
 
     env.execute("InfluxDB Source Example")
   }
