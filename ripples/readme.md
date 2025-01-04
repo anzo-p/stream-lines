@@ -1,3 +1,8 @@
+<p align="center">
+  <img src="doc/images/ripples.png">
+Image generated with DALL-E by OpenAI
+</p>
+
 moving average, moving volume
 bid ask imbalance
 correlation

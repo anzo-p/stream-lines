@@ -2,6 +2,7 @@ package net.anzop.results
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import net.anzop.processors.WindowedVolumesMeasurement
+import net.anzop.serdes.DataSerializer
 import org.apache.flink.api.common.serialization.SerializationSchema
 
 import java.nio.charset.StandardCharsets
@@ -23,10 +24,6 @@ case class WindowedQuotationVolumes(
     @JsonProperty("ask_price_at_window_end") askPriceAtWindowEnd: BigDecimal,
     tags: Map[String, String]
   )
-
-trait DataSerializer[T] {
-  def serialize(data: T): String
-}
 
 object WindowedQuotationVolumes {
 
