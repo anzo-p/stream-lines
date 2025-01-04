@@ -14,7 +14,6 @@ sealed trait DatasetMapping[T] {
     val start = params.start.getOrElse(1)
     val stop  = params.stop.getOrElse(Instant.now().getEpochSecond)
     s"""
-       #import "math"
        #from(bucket: "${params.bucket}")
        # |> range(start: $start, stop: $stop)
        # |> filter(fn: (r) => r["_measurement"] == "${params.measurement}")

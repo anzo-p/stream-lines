@@ -1,6 +1,6 @@
 package net.anzop
 
-import net.anzop.config.{InfluxConfig, StreamConfig, TrendConfig}
+import net.anzop.config.{InfluxConfig, RunConfig, StreamConfig, TrendConfig}
 import net.anzop.models.MarketData
 import net.anzop.processors.Drawdown.{Drawdown, DrawdownProcessor, DrawdownSerDes}
 import net.anzop.processors.Trend.{TrendDiscoverer, TrendProcessor, TrendSegment, TrendSegmentSerDes}
@@ -20,7 +20,7 @@ object Currents {
     val env           = StreamConfig.createExecutionEnvironment()
 
     val dataStream: DataStream[MarketData] =
-      env.addSource(new MarketDataSource(influxDetails))
+      env.addSource(new MarketDataSource(influxDetails, RunConfig.values))
 
     val batchedStream: DataStream[List[MarketData]] =
       dataStream

@@ -1,20 +1,12 @@
 package net.anzop.sources.marketData
 
 import com.influxdb.client.{InfluxDBClient, InfluxDBClientFactory}
-import net.anzop.config.InfluxDetails
+import net.anzop.config.InfluxConfig
 
 import java.io.Serializable
-import java.time.Instant
 import scala.jdk.CollectionConverters._
 
-case class QueryParams(
-    bucket: String,
-    measurement: String,
-    start: Option[Long] = Some(1L),
-    stop: Option[Long]  = Some(Instant.now().getEpochSecond)
-  )
-
-class InfluxDB(influxDetails: InfluxDetails) extends Serializable {
+class InfluxDB(influxDetails: InfluxConfig) extends Serializable {
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass)
 
   private val client: InfluxDBClient = InfluxDBClientFactory.create(
@@ -25,22 +17,18 @@ class InfluxDB(influxDetails: InfluxDetails) extends Serializable {
 
   private val queryApi = client.getQueryApi
 
-  def requestData[T](fetchConfig: DatasetMapping[T], params: QueryParams): List[T] = {
-    logger.info(s"Fetching data from InfluxDB for $fetchConfig with params: $params")
-
+  def requestData[T](mapping: DatasetMapping[T], params: QueryParams): List[T] =
     try {
       queryApi
-        .query(fetchConfig.query(params), influxDetails.org)
+        .query(mapping.query(params), influxDetails.org)
         .asScala
         .toList
-        .flatMap(fetchConfig.tableMapper)
+        .flatMap(mapping.tableMapper)
     } catch {
-      case e: Exception => {
+      case e: Exception =>
         logger.error(s"Failed to fetch data from InfluxDB: $e")
         List.empty
-      }
     }
-  }
 
   def close(): Unit =
     client.close()
