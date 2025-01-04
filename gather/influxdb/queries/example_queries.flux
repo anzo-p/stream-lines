@@ -276,3 +276,42 @@ from(bucket: "stream-lines-daily-bars")
       _value: if r["priceChangeAvg"] > r["prevPriceChangeAvg"] then r["totalTradingValue"] else r["totalTradingValue"] * -1.0
     }))
   |> keep(columns: ["_time", "_value", "ticker", "company"])
+
+
+// drawdowns on index with high low bands
+start = -36mo
+
+minQuery = from(bucket: "stream-lines-daily-bars")
+  |> range(start: start, stop: now())
+  |> filter(fn: (r) => r["_measurement"] == "drawdown")
+  |> filter(fn: (r) => r["_field"] == "drawdown")
+  |> aggregateWindow(every: v.windowPeriod, fn: min, createEmpty: false)
+  |> map(fn: (r) => ({ r with _field: "drawdown_min" }))
+
+maxQuery = from(bucket: "stream-lines-daily-bars")
+  |> range(start: start, stop: now())
+  |> filter(fn: (r) => r["_measurement"] == "drawdown")
+  |> filter(fn: (r) => r["_field"] == "drawdown")
+  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)
+  |> map(fn: (r) => ({ r with _field: "drawdown_max" }))
+
+meanQuery = from(bucket: "stream-lines-daily-bars")
+  |> range(start: start, stop: now())
+  |> filter(fn: (r) => r["_measurement"] == "drawdown")
+  |> filter(fn: (r) => r["_field"] == "drawdown")
+  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+  |> map(fn: (r) => ({ r with _field: "drawdown_mean" }))
+
+union(tables: [minQuery, maxQuery, meanQuery])
+
+
+fields = ["regression_slope", "regression_variance", "growth"]
+
+start = -36mo
+
+from(bucket: "stream-lines-daily-bars")
+  |> range(start: start, stop: now())
+  |> filter(fn: (r) => r["_measurement"] == "trend")
+  |> filter(fn: (r) => contains(value: r._field, set: fields))
+  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+  |> yield(name: "mean")
