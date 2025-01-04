@@ -1,13 +1,12 @@
 package net.anzop
 
-import net.anzop.config.{InfluxDetails, TrendConfig}
+import net.anzop.config.{InfluxConfig, StreamConfig, TrendConfig}
 import net.anzop.models.MarketData
 import net.anzop.processors.Drawdown.{Drawdown, DrawdownProcessor, DrawdownSerDes}
 import net.anzop.processors.Trend.{TrendDiscoverer, TrendProcessor, TrendSegment, TrendSegmentSerDes}
 import net.anzop.sinks.ResultSink
 import net.anzop.sources.marketData.MarketDataSource
 import net.anzop.triggers.CountOrTimerTrigger
-import org.apache.flink.api.common.ExecutionConfig
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners.GlobalWindows
 import org.apache.flink.streaming.api.windowing.windows.GlobalWindow
@@ -16,17 +15,9 @@ import org.apache.flink.util.Collector
 object Currents {
 
   def main(args: Array[String]): Unit = {
-    val influxDetails = InfluxDetails.make()
+    val influxDetails = InfluxConfig.values
     val trendConfig   = TrendConfig.values
-    val env           = StreamExecutionEnvironment.getExecutionEnvironment
-
-    env
-      .getConfig
-      .setGlobalJobParameters(new ExecutionConfig.GlobalJobParameters {
-        override def toMap: java.util.Map[String, String] = {
-          java.util.Collections.singletonMap("log.level", "INFO")
-        }
-      })
+    val env           = StreamConfig.createExecutionEnvironment()
 
     val dataStream: DataStream[MarketData] =
       env.addSource(new MarketDataSource(influxDetails))

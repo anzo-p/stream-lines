@@ -1,6 +1,6 @@
 package net.anzop.sinks
 
-import net.anzop.config.InfluxDetails
+import net.anzop.config.InfluxConfig
 import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunction}
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
@@ -15,7 +15,7 @@ trait InfluxSink[T] extends RichSinkFunction[T] {
 
   lazy val httpClient: CloseableHttpClient = HttpClients.createDefault()
 
-  def influxDetails: InfluxDetails
+  def influxDetails: InfluxConfig
   val serializer: DataSerializer[T]
   val baseUri: String = s"${influxDetails.sinkUrl.toString}&bucket="
   val token: String   = influxDetails.token
@@ -28,10 +28,15 @@ trait InfluxSink[T] extends RichSinkFunction[T] {
   }
 }
 
-class ResultSink[T](val influxDetails: InfluxDetails, val serializer: DataSerializer[T]) extends InfluxSink[T] {
+class ResultSink[T](val influxDetails: InfluxConfig, val serializer: DataSerializer[T]) extends InfluxSink[T] {
   override def invoke(value: T, context: SinkFunction.Context): Unit = {
     val serializedData = serializer.serialize(value)
-    val httpPost       = new HttpPost(baseUri + influxDetails.bucket)
+    if (serializedData.isBlank) {
+      logger.warn("Empty data received, skipping")
+      return
+    }
+
+    val httpPost = new HttpPost(baseUri + influxDetails.bucket)
     httpPost.setEntity(new StringEntity(serializedData))
     httpPost.addHeader("Authorization", s"Token $token")
 
