@@ -32,6 +32,17 @@ impl<'de> Visitor<'de> for MoneyMessageVisitor {
         formatter.write_str("a floating point number for MoneyMessage")
     }
 
+    fn visit_i64<E>(self, value: i64) -> Result<MoneyMessage, E>
+    where
+        E: de::Error,
+    {
+        Ok(MoneyMessage {
+            units: value,
+            nanos: 0,
+            currency: "USD".to_string(),
+        })
+    }
+
     fn visit_f64<E>(self, value: f64) -> Result<MoneyMessage, E>
     where
         E: de::Error,
@@ -42,17 +53,6 @@ impl<'de> Visitor<'de> for MoneyMessageVisitor {
         Ok(MoneyMessage {
             units,
             nanos,
-            currency: "USD".to_string(),
-        })
-    }
-
-    fn visit_i64<E>(self, value: i64) -> Result<MoneyMessage, E>
-    where
-        E: de::Error,
-    {
-        Ok(MoneyMessage {
-            units: value,
-            nanos: 0,
             currency: "USD".to_string(),
         })
     }

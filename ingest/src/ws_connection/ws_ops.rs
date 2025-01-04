@@ -33,7 +33,7 @@ pub async fn acquire_websocket_connection(url_str: &str) -> Result<(), ProcessEr
 
     auth_and_sub_by_url(url_str).await?;
 
-    return Ok(());
+    Ok(())
 }
 
 pub async fn read_from_connection(url_str: &str) -> Result<Option<Message>, ProcessError> {
@@ -47,7 +47,7 @@ pub async fn read_from_connection(url_str: &str) -> Result<Option<Message>, Proc
 
     let mut ws: MutexGuard<_> = ws_arc.lock().await;
     match ws.next().await {
-        Some(Ok(message)) => return Ok(Some(message)),
+        Some(Ok(message)) => Ok(Some(message)),
 
         other => {
             let error_message = if let Some(Err(e)) = other {
@@ -58,7 +58,7 @@ pub async fn read_from_connection(url_str: &str) -> Result<Option<Message>, Proc
 
             log::info!("{} - {}attempting to reconnect...", chrono::Local::now(), error_message,);
             remove_connection(url_str).await;
-            return attempt_reconnect(url_str).await;
+            attempt_reconnect(url_str).await
         }
     }
 }
