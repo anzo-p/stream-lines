@@ -27,11 +27,10 @@ class AwsConfig {
     lateinit var dynamodb: DynamoDbProperties
 
     @Bean
-    fun dynamoDbClient(): DynamoDbClient {
-        return DynamoDbClient.builder()
+    fun dynamoDbClient(): DynamoDbClient =
+        DynamoDbClient.builder()
             .region(Region.of(region))
             .credentialsProvider(DefaultCredentialsProvider.create())
             .httpClient(ApacheHttpClient.create())
             .build()
-    }
 }

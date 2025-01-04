@@ -44,20 +44,17 @@ tickers:
   - symbol: AMAT
     company: "Applied Materials, Inc."
 
-  - symbol: AMGN
-    company: "Amgen, Inc."
-
   - symbol: AMD
     company: "Advanced Micro Devices, Inc."
 
-  - symbol: AMT
-    company: "American Tower Corporation"
-
-  - symbol: APD
-    company: "Air Products and Chemicals, Inc."
+  - symbol: AMGN
+    company: "Amgen, Inc."
 
   - symbol: AMP
     company: "Ameriprise Financial, Inc."
+
+  - symbol: AMT
+    company: "American Tower Corporation"
 
   - symbol: AMZN
     company: "Amazon.com, Inc."
@@ -71,6 +68,9 @@ tickers:
 
   - symbol: APH
     company: "Amphenol Corporation"
+
+  - symbol: APD
+    company: "Air Products and Chemicals, Inc."
 
   - symbol: AVGO
     company: "Broadcom, Inc."

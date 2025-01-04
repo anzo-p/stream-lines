@@ -47,22 +47,24 @@ data class BarDataDto(
 
 ) {
     fun toModel(measurement: Measurement, ticker: Ticker): BarData {
-        validate(this).takeIf { it.isNotEmpty() }?.let { violations ->
-            val errorMessages = violations.joinToString("; ") { violation ->
-                val propertyName = violation.propertyPath.iterator().asSequence().last().name
-                "'$propertyName' ${violation.message}"
+        validate(this)
+            .takeIf { it.isNotEmpty() }
+            ?.let { violations ->
+                val errorMessages = violations.joinToString("; ") { violation ->
+                    val propertyName = violation.propertyPath.iterator().asSequence().last().name
+                    "'$propertyName' ${violation.message}"
+                }
+                throw IllegalArgumentException("Validation failed for ${this::class.simpleName}: $errorMessages")
             }
-            throw IllegalArgumentException("Validation failed for ${this::class.simpleName}: $errorMessages")
-        }
 
-        val time = marketTimestamp.toInstant()
+        val utcTime = marketTimestamp.toInstant()
 
         return BarData(
             measurement = measurement,
             ticker = ticker.symbol,
             company = ticker.company,
-            marketTimestamp = time,
-            regularTradingHours = nyseTradingHours.isOpenAt(time),
+            marketTimestamp = utcTime,
+            regularTradingHours = nyseTradingHours.isOpenAt(utcTime),
             openingPrice = openingPrice,
             closingPrice = closingPrice,
             highPrice = highPrice,

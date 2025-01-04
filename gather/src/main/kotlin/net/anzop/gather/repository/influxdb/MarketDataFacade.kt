@@ -76,11 +76,5 @@ class MarketDataFacade (
         ticker: String? = null,
         clazz: Class<T>
     ): List<T> =
-        marketDataRepository.getMeasurements(
-            measurement = measurement,
-            from = from,
-            til = til,
-            ticker = ticker,
-            clazz = clazz
-        )
+        marketDataRepository.getMeasurements(measurement, from, til, ticker, clazz)
 }

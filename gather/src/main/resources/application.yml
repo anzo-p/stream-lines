@@ -21,4 +21,4 @@ influxdb:
   bucket: ${INFLUXDB_DAILY_BARS_BUCKET}
   organization: ${INFLUXDB_ORG}
   token: ${INFLUXDB_DAILY_BARS_TOKEN}
-  url: http://localhost:8086
+  url: ${INFLUXDB_URL}

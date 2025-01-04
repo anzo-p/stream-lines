@@ -13,7 +13,7 @@ enum class Measurement(val code: String, val description: String) {
     SECURITY_EXTENDED_PRICE_CHANGE_ARITHMETIC_DAILY(
         "sec_xh_arith_d",
         "Current prices compared to introduction day prices including extended trading hours " +
-                "of a security as input to an equally wighted index using an arithmetic mean"
+        "of a security as input to an equally wighted index using an arithmetic mean"
     ),
     INDEX_REGULAR_EQUAL_ARITHMETIC_DAILY(
         "ix_reg_arith_d",
