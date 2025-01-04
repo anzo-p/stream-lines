@@ -1,5 +1,6 @@
 package net.anzop.processors.Trend
 
+import breeze.linalg.DenseVector
 import net.anzop.config.TrendConfig
 import net.anzop.helpers.ArrayHelpers.appendFromHead
 import net.anzop.helpers.LinearRegression
@@ -56,7 +57,7 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
     val slopeDiff    = Math.abs(overallTrend.slope - tailTrend.slope)
     val varianceDiff = Math.abs(overallTrend.variance - tailTrend.variance)
 
-    if (slopeDiff > trendConfig.regressionSlopeThreshold && varianceDiff < trendConfig.regressionVarianceLimit) {
+    if (slopeDiff > trendConfig.regressionSlopeThreshold) {
       val trendSegment = createSegment(window, tailSegment, overallTrend)
       val (newRemainingData, newTailSegment) =
         appendFromHead(
@@ -77,9 +78,9 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
       currentWindow: DV[MarketData],
       remainingData: DV[MarketData],
       discoveredTrend: List[TrendSegment]
-    ): List[TrendSegment] =
+    ): (List[TrendSegment], DV[MarketData]) =
     if (remainingData.length < minimumSegmentAndTail) {
-      discoveredTrend
+      (discoveredTrend, DenseVector.vertcat(currentWindow, remainingData))
     }
     else {
       val (decRemaining, incWindow) = appendFromHead(remainingData, currentWindow, 1)
@@ -97,13 +98,13 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
       processChunk(updatedWindow, updatedRemaining, updatedTrend)
     }
 
-  def processChunk(dataChunk: DV[MarketData]): List[TrendSegment] =
+  def processChunk(dataChunk: DV[MarketData]): (List[TrendSegment], DV[MarketData]) =
     if (dataChunk.length < minimumSegmentAndTail) {
-      List()
+      (List(), dataChunk)
     }
     else {
       processChunk(
-        currentWindow   = dataChunk(0 until trendConfig.minimumWindow),
+        currentWindow   = dataChunk(0 until trendConfig.minimumWindow - 1),
         remainingData   = dataChunk(trendConfig.minimumWindow until dataChunk.length),
         discoveredTrend = List()
       )
