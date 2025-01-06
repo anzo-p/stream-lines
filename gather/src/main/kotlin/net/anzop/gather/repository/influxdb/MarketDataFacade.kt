@@ -24,6 +24,9 @@ class MarketDataFacade (
     fun <T> saveAsync(entities: List<T>) =
         marketDataRepository.saveAsync(entities)
 
+    fun deleteBarData(ticker: String, since: Instant) =
+        marketDataRepository.deleteBarData(ticker, since)
+
     fun getEarliestSourceBarDataEntry(ticker: String): Instant? =
         marketDataRepository.getFirstMeasurementTime(
             measurement = Measurement.SECURITY_RAW_SEMI_HOURLY,

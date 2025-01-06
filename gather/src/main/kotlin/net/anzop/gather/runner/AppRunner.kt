@@ -1,6 +1,9 @@
 package net.anzop.gather.runner
 
-import java.util.concurrent.locks.ReentrantLock
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import net.anzop.gather.service.BarDataFetcher
 import net.anzop.gather.service.IndexProcessor
 import org.slf4j.LoggerFactory
@@ -13,28 +16,41 @@ class AppRunner(
 ) {
     private val logger = LoggerFactory.getLogger(AppRunner::class.java)
 
-    private val lock = ReentrantLock()
+    private val mutex = Mutex()
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
     @Volatile private var isRunning = false
 
-    fun fetchAndProcess() {
-        if (lock.tryLock()) {
+    fun fetchAndProcess(redoIndex: Boolean = false): RunnerCallResult =
+        if (!mutex.tryLock()) {
+            logger.info("${RunnerCallResult.LOCK_UNAVAILABLE.message} - Exiting...")
+            RunnerCallResult.LOCK_UNAVAILABLE
+        } else {
             try {
                 if (isRunning) {
-                    logger.info("Lock acquirable but task is already running. Exiting...")
-                    return
+                    logger.info("${RunnerCallResult.ALREADY_RUNNING.message} - Exiting...")
+                    RunnerCallResult.ALREADY_RUNNING
                 }
-                isRunning = true
 
-                logger.info("Executing tasks...")
-                barDataFetcher.run()
-                indexProcessor.run()
-                logger.info("Done.")
-            } finally {
+                isRunning = true
+                logger.info("Launching tasks...")
+                coroutineScope.launch {
+                    try {
+                        if (!redoIndex) {
+                            barDataFetcher.run()
+                        }
+                        indexProcessor.run()
+                        logger.info("AppRunner.fetchAndProcess tasks completed.")
+                    } finally {
+                        isRunning = false
+                        mutex.unlock()
+                    }
+                }
+
+                RunnerCallResult.SUCCESS
+            } catch (e: Exception) {
                 isRunning = false
-                lock.unlock()
+                mutex.unlock()
+                throw e
             }
-        } else {
-            logger.info("Cannot acquire lock, assuming task already running. Exiting...")
         }
-    }
 }

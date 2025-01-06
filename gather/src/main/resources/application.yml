@@ -1,6 +1,8 @@
 spring:
   config:
-    import: "tickers.yml"
+    import:
+      - "tickers.yml"
+      - "security.yml"
 
 alpaca:
   authentication:

@@ -2,6 +2,7 @@ package net.anzop.gather.repository.influxdb.repository
 
 import com.influxdb.client.InfluxDBClient
 import com.influxdb.client.WriteApi
+import com.influxdb.client.domain.DeletePredicateRequest
 import com.influxdb.client.write.Point
 import com.influxdb.query.FluxTable
 import com.influxdb.query.dsl.Flux
@@ -10,6 +11,7 @@ import com.influxdb.query.dsl.functions.restriction.Restrictions
 import java.time.Instant
 import net.anzop.gather.config.InfluxDBConfig
 import net.anzop.gather.helpers.date.plusOneDayAlmost
+import net.anzop.gather.helpers.date.toOffsetDateTime
 import net.anzop.gather.model.marketData.MarketData
 import net.anzop.gather.model.marketData.Measurement
 import org.springframework.stereotype.Repository
@@ -120,6 +122,18 @@ class MarketDataRepository (
 
     fun <T> saveAsync(entities: List<T>) =
         write(entities.map { toPoint(it) })
+
+    fun deleteBarData(
+        ticker: String,
+        since: Instant
+    ) = DeletePredicateRequest()
+        .apply {
+            start = since.toOffsetDateTime()
+            stop = Instant.now().plusSeconds(1L).toOffsetDateTime()
+            predicate = "_measurement=\"${Measurement.SECURITY_RAW_SEMI_HOURLY.code}\" AND ticker=\"$ticker\""
+        }.let {
+            influxDBClient.deleteApi.delete(it, influxDBConfig.bucket, influxDBConfig.organization)
+        }
 
     private fun baseFlux(
         measurement: Measurement,
