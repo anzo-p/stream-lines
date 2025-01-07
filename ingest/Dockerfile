@@ -1,4 +1,4 @@
-FROM rust:1.69.0 as builder
+FROM rust:1.80 as builder
 
 USER root
 RUN cargo new --bin ingest
@@ -6,16 +6,13 @@ WORKDIR /ingest
 
 COPY ./Cargo.lock ./Cargo.toml ./
 
-# Cache dependencies
-RUN cargo build --release && \
-    rm -f src/*.rs
+RUN cargo fetch
 
 COPY ./src ./src
 
 RUN rm -f ./target/release/deps/ingest* && \
     cargo build --release
 
-#FROM arm64v8/debian:bullseye-slim
 FROM debian:bullseye-20240211-slim
 
 # OpenSSL
