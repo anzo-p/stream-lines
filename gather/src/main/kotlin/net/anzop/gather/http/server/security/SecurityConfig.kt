@@ -1,4 +1,4 @@
-package net.anzop.gather.http.security
+package net.anzop.gather.http.server.security
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

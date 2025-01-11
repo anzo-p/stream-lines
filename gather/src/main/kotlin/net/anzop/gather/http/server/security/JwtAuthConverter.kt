@@ -1,4 +1,4 @@
-package net.anzop.gather.http.security
+package net.anzop.gather.http.server.security
 
 import org.springframework.core.convert.converter.Converter
 import org.springframework.security.core.GrantedAuthority

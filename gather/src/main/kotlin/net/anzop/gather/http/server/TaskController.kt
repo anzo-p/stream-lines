@@ -1,4 +1,4 @@
-package net.anzop.gather.http
+package net.anzop.gather.http.server
 
 import java.time.LocalDate
 import net.anzop.gather.helpers.date.toInstant

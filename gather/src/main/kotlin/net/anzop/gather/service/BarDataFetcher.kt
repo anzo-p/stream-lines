@@ -6,10 +6,10 @@ import net.anzop.gather.config.AlpacaProps
 import net.anzop.gather.config.tickerConfig.TickerConfig
 import net.anzop.gather.dto.bars.BarDataDto
 import net.anzop.gather.dto.bars.BarsResponse
-import net.anzop.gather.helpers.buildHistoricalBarsUri
 import net.anzop.gather.helpers.date.asAmericaNyToInstant
 import net.anzop.gather.helpers.date.toOffsetDateTime
-import net.anzop.gather.helpers.getRequest
+import net.anzop.gather.http.client.WebFluxExtensions.getRequest
+import net.anzop.gather.http.client.buildHistoricalBarsUri
 import net.anzop.gather.model.Ticker
 import net.anzop.gather.model.marketData.Measurement
 import net.anzop.gather.repository.dynamodb.CacheRepository
@@ -44,7 +44,7 @@ class BarDataFetcher(
     }
 
     private fun resolveStartDate(ticker: String): OffsetDateTime {
-        // re-fetching latest bar reveals that ticker in url param still valid
+        // re-fetching latest bar reveals that the ticker in url param still valid
         val latestMarketTimestamp = marketDataFacade.getLatestSourceBarDataEntry(ticker)
         logger.info("Last known marketTimestamp for $ticker is $latestMarketTimestamp")
 

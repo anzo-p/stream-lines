@@ -1,4 +1,4 @@
-package net.anzop.gather.helpers
+package net.anzop.gather.http.client
 
 import java.net.URI
 import java.time.OffsetDateTime
