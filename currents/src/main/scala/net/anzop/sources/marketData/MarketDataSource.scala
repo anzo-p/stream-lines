@@ -37,31 +37,36 @@ class MarketDataSource(influxConfig: InfluxConfig, runConfig: RunConfig) extends
     }
   }
 
+  private def fetchCollect(ctx: SourceFunction.SourceContext[MarketData]): Unit = {
+    val lastTrendEnding: Option[Long] =
+      dbConn
+        .requestData[Long](
+          mapping = LatestTrendEnding,
+          params  = QueryParams(influxConfig.bucket, influxConfig.trendMeasure)
+        )
+        .headOption
+
+    dbConn
+      .requestData[MarketData](
+        mapping = IndexData,
+        params = QueryParams(
+          bucket      = influxConfig.bucket,
+          measurement = influxConfig.indexMeasure,
+          start       = lastTrendEnding
+        )
+      )
+      .foreach(ctx.collect)
+  }
+
   override def run(ctx: SourceFunction.SourceContext[MarketData]): Unit =
     try {
       dbConn = new InfluxDB(influxConfig)
+      logger.info(s"Executing initial ${getClass.getName}.run task")
+      fetchCollect(ctx)
 
       while (running) {
-        checkAndSetTimer(() => {
-          val lastTrendEnding: Option[Long] =
-            dbConn
-              .requestData[Long](
-                mapping = LatestTrendEnding,
-                params  = QueryParams(influxConfig.bucket, influxConfig.trendMeasure)
-              )
-              .headOption
-
-          dbConn
-            .requestData[MarketData](
-              mapping = IndexData,
-              params = QueryParams(
-                bucket      = influxConfig.bucket,
-                measurement = influxConfig.indexMeasure,
-                start       = lastTrendEnding
-              )
-            )
-            .foreach(ctx.collect)
-        })
+        logger.info(s"Executing timed ${getClass.getName}.run task")
+        checkAndSetTimer(() => fetchCollect(ctx))
       }
     } catch {
       case ex: Exception =>
