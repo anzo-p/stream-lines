@@ -2,9 +2,9 @@ package net.anzop
 
 import net.anzop.config.{InfluxConfig, RunConfig, StreamConfig, TrendConfig}
 import net.anzop.models.MarketData
-import net.anzop.processors.Drawdown.{Drawdown, DrawdownProcessor, DrawdownSerDes}
-import net.anzop.processors.Trend.{TrendDiscoverer, TrendProcessor, TrendSegment, TrendSegmentSerDes}
-import net.anzop.sinks.ResultSink
+import net.anzop.processors.Drawdown.{Drawdown, DrawdownProcessor}
+import net.anzop.processors.Trend.{TrendDiscoverer, TrendProcessor, TrendSegment}
+import net.anzop.sinks.influxdb.InfluxHttpSink
 import net.anzop.sources.marketData.MarketDataSource
 import net.anzop.triggers.CountOrTimerTrigger
 import org.apache.flink.streaming.api.scala._
@@ -38,14 +38,17 @@ object Currents {
         .keyBy(_.head.field)
         .flatMap(new TrendProcessor(new TrendDiscoverer(trendConfig)))
 
-    trendStream.addSink(new ResultSink(influxDetails, TrendSegmentSerDes(influxDetails.trendMeasure)))
+    val flattenedTrendStream: DataStream[TrendSegment] =
+      trendStream.flatMap(_.iterator)
+
+    flattenedTrendStream.addSink(new InfluxHttpSink[TrendSegment](influxDetails))
 
     val drawDownStream: DataStream[Drawdown] =
       dataStream
         .keyBy(_.field)
         .process(new DrawdownProcessor())
 
-    drawDownStream.addSink(new ResultSink(influxDetails, DrawdownSerDes(influxDetails.drawdownMeasure)))
+    drawDownStream.addSink(new InfluxHttpSink[Drawdown](influxDetails))
 
     env.execute("InfluxDB Source Example")
   }

@@ -8,11 +8,9 @@ case class InfluxConfig(
     sourceUrl: URL,
     sinkUrl: URL,
     org: String,
-    token: String,
-    bucket: String,
-    indexMeasure: String,
-    trendMeasure: String,
-    drawdownMeasure: String
+    readToken: String,
+    writeToken: String,
+    bucket: String
   ) extends Serializable
 
 object InfluxConfig {
@@ -22,14 +20,12 @@ object InfluxConfig {
     val org     = sys.env.getOrThrow("INFLUXDB_ORG", "INFLUXDB_ORG is not set")
 
     InfluxConfig(
-      sourceUrl       = new URL(baseUrl),
-      sinkUrl         = new URL(s"$baseUrl/api/v2/write?org=$org"),
-      org             = org,
-      token           = sys.env.getOrThrow("INFLUXDB_DAILY_BARS_TOKEN", "INFLUXDB_TOKEN is not set").replace("\"", ""),
-      bucket          = sys.env.getOrThrow("INFLUXDB_DAILY_BARS_BUCKET", "INFLUXDB_BUCKET is not set"),
-      indexMeasure    = sys.env.getOrThrow("INFLUXDB_MEASURE_INDEX", "INFLUXDB_MEASURE_INDEX is not set"),
-      trendMeasure    = sys.env.getOrThrow("INFLUXDB_MEASURE_TREND", "INFLUXDB_MEASURE_TREND is not set"),
-      drawdownMeasure = sys.env.getOrThrow("INFLUXDB_MEASURE_DRAWDOWN", "INFLUXDB_MEASURE_DRAWDOWN is not set")
+      sourceUrl  = new URL(baseUrl),
+      sinkUrl    = new URL(s"$baseUrl/api/v2/write?org=$org"),
+      org        = org,
+      readToken  = sys.env.getOrThrow("INFLUXDB_READ_TOKEN", "INFLUXDB_READ_TOKEN is not set").replace("\"", ""),
+      writeToken = sys.env.getOrThrow("INFLUXDB_WRITE_TOKEN", "INFLUXDB_WRITE_TOKEN is not set").replace("\"", ""),
+      bucket     = sys.env.getOrThrow("INFLUXDB_BUCKET", "INFLUXDB_BUCKET is not set")
     )
   }
 }

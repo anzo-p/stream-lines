@@ -42,7 +42,7 @@ class MarketDataSource(influxConfig: InfluxConfig, runConfig: RunConfig) extends
       dbConn
         .requestData[Long](
           mapping = LatestTrendEnding,
-          params  = QueryParams(influxConfig.bucket, influxConfig.trendMeasure)
+          params  = QueryParams(influxConfig.bucket)
         )
         .headOption
 
@@ -50,9 +50,8 @@ class MarketDataSource(influxConfig: InfluxConfig, runConfig: RunConfig) extends
       .requestData[MarketData](
         mapping = IndexData,
         params = QueryParams(
-          bucket      = influxConfig.bucket,
-          measurement = influxConfig.indexMeasure,
-          start       = lastTrendEnding
+          bucket = influxConfig.bucket,
+          start  = lastTrendEnding
         )
       )
       .foreach(ctx.collect)
