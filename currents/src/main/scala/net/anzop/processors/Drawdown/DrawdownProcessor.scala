@@ -32,23 +32,21 @@ class DrawdownProcessor extends KeyedProcessFunction[String, MarketData, Drawdow
       return
     }
 
-    val updatedMaxValue = Math.max(lastMaxValue, elem.value)
+    val updatedMaxValue  = Math.max(lastMaxValue, elem.value)
+    val elemDateMidnight = Instant.ofEpochMilli(elem.timestamp).truncatedTo(ChronoUnit.DAYS)
+    val todayMidnight    = Instant.now().truncatedTo(ChronoUnit.DAYS)
+    val drawdown         = (elem.value / updatedMaxValue) * 100
 
-    val updatedTs = {
-      if (Instant.ofEpochMilli(elem.timestamp).isBefore(Instant.now().truncatedTo(ChronoUnit.DAYS)))
-        elem.timestamp
-      else
-        lastTs
+    if (elemDateMidnight.isBefore(todayMidnight)) {
+      maxValueState.update(elem.timestamp -> updatedMaxValue)
     }
-
-    maxValueState.update(updatedTs -> updatedMaxValue)
 
     out.collect(
       Drawdown(
-        timestamp = elem.timestamp,
-        field     = elem.field,
-        value     = elem.value,
-        drawdown  = (elem.value / updatedMaxValue) * 100
+        elem.timestamp,
+        elem.field,
+        elem.value,
+        drawdown
       ))
   }
 }
