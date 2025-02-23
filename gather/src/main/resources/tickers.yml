@@ -450,6 +450,9 @@ tickers:
   - symbol: PLD
     company: "Prologis, Inc."
 
+  - symbol: PLTR
+    company: "Palantir Technologies, Inc."
+
   - symbol: PG
     company: "The Procter & Gamble Company"
 
