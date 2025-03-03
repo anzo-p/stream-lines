@@ -1,6 +1,6 @@
 package net.anzop.processors.Drawdown
 
-import net.anzop.helpers.DateHelpers.epochToStringDate
+import net.anzop.helpers.DateAndTimeHelpers.epochToStringDate
 import net.anzop.sinks.influxdb.InfluxSerializable
 
 case class Drawdown(

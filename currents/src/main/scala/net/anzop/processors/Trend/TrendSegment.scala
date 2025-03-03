@@ -1,6 +1,6 @@
 package net.anzop.processors.Trend
 
-import net.anzop.helpers.{DateHelpers, LinearRegression}
+import net.anzop.helpers.{DateAndTimeHelpers, LinearRegression}
 import net.anzop.sinks.influxdb.InfluxSerializable
 
 case class TrendSegment(
@@ -30,8 +30,8 @@ case class TrendSegment(
 
   override def toString: String =
     s"""TrendSegment(
-       |begins: ${DateHelpers.epochToStringDate(begins)},
-       |ends: ${DateHelpers.epochToStringDate(ends)},
+       |begins: ${DateAndTimeHelpers.epochToStringDate(begins)},
+       |ends: ${DateAndTimeHelpers.epochToStringDate(ends)},
        |growth: $growth,
        |regressionSlope: $regressionSlope,
        |regressionIntercept: $regressionIntercept,

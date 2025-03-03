@@ -1,6 +1,7 @@
 package net.anzop.sources.marketData
 
 import net.anzop.config.{InfluxConfig, RunConfig}
+import net.anzop.helpers.DateAndTimeHelpers.millisToMinutes
 import net.anzop.models.MarketData
 import org.apache.flink.streaming.api.functions.source.SourceFunction
 
@@ -13,12 +14,10 @@ class MarketDataSource(influxConfig: InfluxConfig, runConfig: RunConfig) extends
   @transient private var dbConn: InfluxDB = _
 
   private def checkAndSetTimer(runnable: Runnable): Unit = {
-    val now           = LocalDateTime.now(ZoneId.of("UTC"))
-    val dayOfWeek     = now.getDayOfWeek.getValue
-    val hour          = now.getHour
-    val nextExecTime  = now.plusHours(runConfig.interval - (hour % runConfig.interval))
-    val delayNextExec = java.time.Duration.between(now, nextExecTime).toMillis
-    val delayNextTry  = java.time.Duration.between(now, now.plusMinutes(10)).toMillis
+    val now          = LocalDateTime.now(ZoneId.of("America/New_York")) // NYSE
+    val dayOfWeek    = now.getDayOfWeek.getValue
+    val hour         = now.getHour
+    val nextExecTime = now.plusMinutes(millisToMinutes(runConfig.interval))
 
     if (dayOfWeek <= DayOfWeek.FRIDAY.getValue &&
         hour >= runConfig.dawn && hour <= runConfig.dusk &&
@@ -30,11 +29,8 @@ class MarketDataSource(influxConfig: InfluxConfig, runConfig: RunConfig) extends
         case ex: Exception =>
           logger.warn(s"Error during task execution: ${ex.getMessage}")
       }
-      Thread.sleep(delayNextExec)
     }
-    else {
-      Thread.sleep(delayNextTry)
-    }
+    Thread.sleep(java.time.Duration.between(now, nextExecTime).toMillis)
   }
 
   private def fetchCollect(ctx: SourceFunction.SourceContext[MarketData]): Unit = {

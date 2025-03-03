@@ -1,7 +1,7 @@
 package net.anzop.processors.Trend
 
 import breeze.linalg.DenseVector
-import net.anzop.helpers.DateHelpers.oneWeekInMillis
+import net.anzop.helpers.DateAndTimeHelpers.oneWeekInMillis
 import net.anzop.models.MarketData
 import net.anzop.models.Types.DV
 import org.apache.flink.api.common.functions.RichFlatMapFunction
