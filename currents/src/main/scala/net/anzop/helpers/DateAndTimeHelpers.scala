@@ -1,8 +1,8 @@
 package net.anzop.helpers
 
-import java.time.Instant
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 object DateAndTimeHelpers {
 
@@ -10,9 +10,15 @@ object DateAndTimeHelpers {
 
   def millisToMinutes(value: Long): Long = value / (60 * 1000)
 
-  def epochToStringDate(value: Long, zoneId: String = "UTC"): String = {
-    val instant   = Instant.ofEpochMilli(value)
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of(zoneId))
-    formatter.format(instant)
-  }
+  def epochToStringDate(value: Long, zoneId: String = "UTC"): String =
+    DateTimeFormatter
+      .ofPattern("yyyy-MM-dd HH:mm:ss")
+      .withZone(ZoneId.of(zoneId))
+      .format(Instant.ofEpochMilli(value))
+
+  def isBeforeToday(ts: Long): Boolean =
+    ts < Instant.now().truncatedTo(ChronoUnit.DAYS).toEpochMilli
+
+  def nowAtNyse(): LocalDateTime =
+    LocalDateTime.now(ZoneId.of("America/New_York"))
 }

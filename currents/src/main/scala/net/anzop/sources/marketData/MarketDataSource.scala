@@ -1,11 +1,12 @@
 package net.anzop.sources.marketData
 
 import net.anzop.config.{InfluxConfig, RunConfig}
+import net.anzop.helpers.DateAndTimeHelpers
 import net.anzop.helpers.DateAndTimeHelpers.millisToMinutes
 import net.anzop.models.MarketData
 import org.apache.flink.streaming.api.functions.source.SourceFunction
 
-import java.time.{DayOfWeek, LocalDateTime, ZoneId}
+import java.time.DayOfWeek
 
 class MarketDataSource(influxConfig: InfluxConfig, runConfig: RunConfig) extends SourceFunction[MarketData] {
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass)
@@ -14,14 +15,12 @@ class MarketDataSource(influxConfig: InfluxConfig, runConfig: RunConfig) extends
   @transient private var dbConn: InfluxDB = _
 
   private def checkAndSetTimer(runnable: Runnable): Unit = {
-    val now          = LocalDateTime.now(ZoneId.of("America/New_York")) // NYSE
-    val dayOfWeek    = now.getDayOfWeek.getValue
-    val hour         = now.getHour
-    val nextExecTime = now.plusMinutes(millisToMinutes(runConfig.interval))
+    val now       = DateAndTimeHelpers.nowAtNyse()
+    val dayOfWeek = now.getDayOfWeek.getValue
+    val hour      = now.getHour
 
     if (dayOfWeek <= DayOfWeek.FRIDAY.getValue &&
-        hour >= runConfig.dawn && hour <= runConfig.dusk &&
-        hour % runConfig.interval == 0) {
+        hour >= runConfig.dawn && hour <= runConfig.dusk) {
       try {
         logger.info(s"Executing timed ${getClass.getName}.run task")
         runnable.run()
@@ -30,7 +29,6 @@ class MarketDataSource(influxConfig: InfluxConfig, runConfig: RunConfig) extends
           logger.warn(s"Error during task execution: ${ex.getMessage}")
       }
     }
-    Thread.sleep(java.time.Duration.between(now, nextExecTime).toMillis)
   }
 
   private def fetchCollect(ctx: SourceFunction.SourceContext[MarketData]): Unit = {
@@ -44,6 +42,8 @@ class MarketDataSource(influxConfig: InfluxConfig, runConfig: RunConfig) extends
           )
         )
         .headOption
+
+    logger.info(s"Last trend ending: $lastTrendEnding")
 
     dbConn
       .requestData[MarketData](
@@ -64,6 +64,11 @@ class MarketDataSource(influxConfig: InfluxConfig, runConfig: RunConfig) extends
       fetchCollect(ctx)
 
       while (running) {
+        // wait immediately to prevent duplicates with init run
+        val now          = DateAndTimeHelpers.nowAtNyse()
+        val nextExecTime = now.plusMinutes(millisToMinutes(runConfig.interval))
+        Thread.sleep(java.time.Duration.between(now, nextExecTime).toMillis)
+
         logger.info(s"Executing timed ${getClass.getName}.run task")
         checkAndSetTimer(() => fetchCollect(ctx))
       }

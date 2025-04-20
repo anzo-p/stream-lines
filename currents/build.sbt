@@ -13,6 +13,8 @@ lazy val root = (project in file("."))
 
 val apacheFlinkVersion = "1.17.2"
 val apacheHttpVersion  = "4.5.14"
+val awsSdkVersion      = "2.20.0"
+val influxDbVersion    = "6.9.0"
 val jacksonVersion     = "2.13.4"
 val logbackVersion     = "1.4.12"
 val slf4jVersion       = "2.0.5"
@@ -24,7 +26,8 @@ libraryDependencies ++= Seq(
   "org.apache.flink"               % "flink-s3-fs-hadoop"         % apacheFlinkVersion,
   "org.apache.flink"               %% "flink-streaming-scala"     % apacheFlinkVersion,
   "org.apache.httpcomponents"      % "httpclient"                 % apacheHttpVersion,
-  "com.influxdb"                   % "influxdb-client-java"       % "6.9.0",
+  "software.amazon.awssdk"         % "dynamodb"                   % awsSdkVersion,
+  "com.influxdb"                   % "influxdb-client-java"       % influxDbVersion,
   "com.fasterxml.jackson.core"     % "jackson-core"               % jacksonVersion,
   "com.fasterxml.jackson.core"     % "jackson-databind"           % jacksonVersion,
   "com.fasterxml.jackson.module"   %% "jackson-module-scala"      % jacksonVersion,
