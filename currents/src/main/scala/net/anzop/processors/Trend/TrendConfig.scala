@@ -1,4 +1,4 @@
-package net.anzop.config
+package net.anzop.processors.Trend
 
 import com.typesafe.config.{Config, ConfigFactory}
 import org.slf4j.{Logger, LoggerFactory}

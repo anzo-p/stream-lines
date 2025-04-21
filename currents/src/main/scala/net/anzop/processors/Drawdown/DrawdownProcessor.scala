@@ -11,14 +11,15 @@ import org.apache.flink.util.Collector
 
 import scala.util.chaining._
 
-class DrawdownProcessor() extends KeyedProcessFunction[String, MarketData, Drawdown] {
+class DrawdownProcessor(config: DrawdownConfig) extends KeyedProcessFunction[String, MarketData, Drawdown] {
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass)
 
+  private val initState: (Long, Double)                 = (0L, 0.0)
+  private val saveDelay: Long                           = 15 * 1000L
   private var maxValueState: ValueState[(Long, Double)] = _
   private var timerState: ValueState[Long]              = _
-  private val saveDelay: Long                           = 15 * 1000L
 
-  private def resolveState(): (Long, Double) =
+  private def getOrFetchState(): (Long, Double) =
     Option(maxValueState.value()) match {
       case Some(state) => state
       case None =>
@@ -28,8 +29,17 @@ class DrawdownProcessor() extends KeyedProcessFunction[String, MarketData, Drawd
             state
           case _ =>
             logger.info("No state found, even in DynamoDB - initializing with starting state")
-            (0L, 0.0)
+            initState
         }
+    }
+
+  private def resolveState(ts: Long): (Long, Double) =
+    if (ts <= config.earliestHistoricalDate.toEpochMilli) {
+      logger.info(s"Data elements indicates a redo from beginning - initializing with starting state")
+      initState
+    }
+    else {
+      getOrFetchState().tap(maxValueState.update)
     }
 
   override def open(parameters: Configuration): Unit = {
@@ -46,9 +56,9 @@ class DrawdownProcessor() extends KeyedProcessFunction[String, MarketData, Drawd
       ctx: KeyedProcessFunction[String, MarketData, Drawdown]#Context,
       out: Collector[Drawdown]
     ): Unit = {
-    val (lastTs, lastMaxValue) = resolveState().tap(maxValueState.update)
+    val (lastTs, lastMaxValue) = resolveState(elem.timestamp)
 
-    if (elem.timestamp <= lastTs) {
+    if (lastTs > initState._1 && elem.timestamp <= lastTs) {
       logger.info(s"Skipping out-of-order event: $elem (latest timestamp: $lastTs)")
       return
     }
