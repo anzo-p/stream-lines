@@ -1,6 +1,6 @@
 package net.anzop.sources.marketData
 
-import net.anzop.config.{InfluxConfig, RunConfig}
+import net.anzop.config.{InfluxConfig, SourceRunnerConfig}
 import net.anzop.helpers.DateAndTimeHelpers
 import net.anzop.helpers.DateAndTimeHelpers.millisToMinutes
 import net.anzop.models.MarketData
@@ -8,7 +8,7 @@ import org.apache.flink.streaming.api.functions.source.SourceFunction
 
 import java.time.DayOfWeek
 
-class MarketDataSource(influxConfig: InfluxConfig, runConfig: RunConfig) extends SourceFunction[MarketData] {
+class MarketDataSource(influxConfig: InfluxConfig, config: SourceRunnerConfig) extends SourceFunction[MarketData] {
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass)
 
   @volatile private var running           = true
@@ -20,7 +20,7 @@ class MarketDataSource(influxConfig: InfluxConfig, runConfig: RunConfig) extends
     val hour      = now.getHour
 
     if (dayOfWeek <= DayOfWeek.FRIDAY.getValue &&
-        hour >= runConfig.dawn && hour <= runConfig.dusk) {
+        hour >= config.dawn && hour <= config.dusk) {
       try {
         logger.info(s"Executing timed ${getClass.getName}.run task")
         runnable.run()
@@ -66,7 +66,7 @@ class MarketDataSource(influxConfig: InfluxConfig, runConfig: RunConfig) extends
       while (running) {
         // wait immediately to prevent duplicates with init run
         val now          = DateAndTimeHelpers.nowAtNyse()
-        val nextExecTime = now.plusMinutes(millisToMinutes(runConfig.interval))
+        val nextExecTime = now.plusMinutes(millisToMinutes(config.interval))
         Thread.sleep(java.time.Duration.between(now, nextExecTime).toMillis)
 
         logger.info(s"Executing timed ${getClass.getName}.run task")
