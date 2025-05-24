@@ -1,3 +1,11 @@
+//
+// Performance guidelines
+// 1. filter raw data - time, measurement, fields
+// 2. aggregate as soon as feasible, not sooner
+// 3. pivot as soon as feasible, though after aggregate
+// 3. filter, map, pivot only upon aggregated results if possible
+//
+
 // linear index value development over entire span
 from(bucket: "stream-lines-daily-bars")
   |> range(start: v.timeRangeStart, stop: now())
@@ -26,119 +34,129 @@ from(bucket: "stream-lines-daily-bars")
 import "math"
 
 fields = ["priceChangeAvg", "priceChangeHigh", "priceChangeLow"]
+start = -48mo
+
+// the prefixes provides alphabetical sorting that tends to more pleasing colors in influxdb data explorer
+sortForColors = (r) =>
+  if r._field == "priceChangeAvg" then "c_price_change_avg"
+  else if r._field == "priceChangeHigh" then "b_price_change_high"
+  else if r._field == "priceChangeLow" then "a_price_change_low"
+  else r._field
 
 from(bucket: "stream-lines-daily-bars")
-  |> range(start: -13mo, stop: now())
+  |> range(start: start, stop: now())
   |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_xh_arith_d
   |> filter(fn: (r) => contains(value: r._field, set: fields))
+  |> aggregateWindow(every: v.windowPeriod, fn: min, createEmpty: false)
   |> keep(columns: ["_time", "_value", "_field"])
-  // uncomment to toggle logarithmic - linear
-  |> map(fn: (r) => ({ r with _value: math.log(x: r._value) }))
-
-
-// daily change in index value over entire time range
-base_filter = (r) =>
-  r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
-  and (r["_field"] == "priceChangeAvg" or  r["_field"] == "prevPriceChangeAvg")
-
-from(bucket: "stream-lines-daily-bars")
-  |> range(start: (time(v: "2016-01-05")), stop: now())
-  |> filter(fn: base_filter)
-  |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
   |> map(fn: (r) => ({
-      _time: r._time,
-      _value: (r["priceChangeAvg"] - r["prevPriceChangeAvg"]) / r["prevPriceChangeAvg"] * 100.0,
+    r with 
+    _value: math.log(x: r._value),
+    _field: sortForColors(r)
   }))
 
 
-// daily change in index value over selected time range
+// daily change in index value
+start = -7mo
+// time(v: "2016-01-05") // for beginning plus a week
+
 base_filter = (r) =>
   r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
   and (r["_field"] == "priceChangeAvg" or  r["_field"] == "prevPriceChangeAvg")
 
+priceChangePercentage = (r) => (r["priceChangeAvg"] - r["prevPriceChangeAvg"]) / r["prevPriceChangeAvg"] * 100.0
+
 from(bucket: "stream-lines-daily-bars")
-  |> range(start: -7mo, stop: now())
+  |> range(start: start, stop: now())
   |> filter(fn: base_filter)
   |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
   |> map(fn: (r) => ({
       _time: r._time,
-      _value: (r["priceChangeAvg"] - r["prevPriceChangeAvg"]) / r["prevPriceChangeAvg"] * 100.0,
+      _value: priceChangePercentage(r)
   }))
 
 
 // trend of total trading value on index
-base_filter = (r) =>
-  r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
-  and r._field == "totalTradingValue"
+import "experimental"
 
-hifreq = from(bucket: "stream-lines-daily-bars")
+data = from(bucket: "stream-lines-daily-bars")
   |> range(start: v.timeRangeStart, stop: now())
-  |> filter(fn: base_filter)
+  |> filter(fn: (r) =>
+        r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
+        and r._field == "totalTradingValue"
+      )
+
+granular = data
   |> aggregateWindow(every: 1w, fn: mean, createEmpty: false)
   |> keep(columns: ["_time", "_value"])
-  |> yield(name: "_value")
+  |> yield(name: "tradingValue")
 
-smooth = from(bucket: "stream-lines-daily-bars")
-  |> range(start: v.timeRangeStart, stop: now())
-  |> filter(fn: base_filter)
+smooth = data
   |> aggregateWindow(every: 4mo, fn: mean, createEmpty: false)
   |> timeShift(duration: -6w)
+  |> filter(fn: (r) => r._time < experimental.addDuration(d: -6w, to: now()))
   |> keep(columns: ["_time", "_value"])
-  |> yield(name: "b")
+  |> yield(name: "movingAverage")
 
 
 // trend of normalized trading volumes over entire time range
 measurement = "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
 
-dailyTradingValue = from(bucket: "stream-lines-daily-bars")
-  |> range(start: v.timeRangeStart, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == measurement)
-  |> filter(fn: (r) => r._field == "totalTradingValue")
-  |> keep(columns: ["_time", "_value"])
+getField = (field) => 
+  from(bucket: "stream-lines-daily-bars")
+    |> range(start: v.timeRangeStart, stop: now())
+    |> filter(fn: (r) => r["_measurement"] == measurement)
+    |> filter(fn: (r) => r._field == field)
+    |> aggregateWindow(every: 1w, fn: mean)
+    |> keep(columns: ["_time", "_value"])
 
-dailyPriceChange = from(bucket: "stream-lines-daily-bars")
-  |> range(start: v.timeRangeStart, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == measurement)
-  |> filter(fn: (r) => r._field == "priceChangeAvg")
-  |> keep(columns: ["_time", "_value"])
-
-normalizedTradingVolume = join(
-    tables: {volume: dailyTradingValue, price: dailyPriceChange},
+join(
+    tables: {
+      volume: getField(field: "totalTradingValue"),
+      price: getField(field: "priceChangeAvg"),
+    },
     on: ["_time"]
 )
   |> map(fn: (r) => ({ r with _value: r._value_volume / r._value_price }))
-  |> aggregateWindow(every: 1w, fn: mean)
-  |> yield(name: "result")
 
 
 // trend of normalized trading volumes over selected time range
-measurement = "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
-start = -13mo
+import "experimental"
+
+start = -48mo
 stop = now()
 
-dailyTradingValue = from(bucket: "stream-lines-daily-bars")
-  |> range(start: start, stop: stop)
-  |> filter(fn: (r) => r["_measurement"] == measurement)
-  |> filter(fn: (r) => r._field == "totalTradingValue")
-  |> keep(columns: ["_time", "_value"])
+getField = (field) => 
+  from(bucket: "stream-lines-daily-bars")
+    |> range(start: start, stop: stop)
+    |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_xh_arith_d
+    |> filter(fn: (r) => r._field == field)
 
-dailyPriceChange = from(bucket: "stream-lines-daily-bars")
-  |> range(start: start, stop: stop)
-  |> filter(fn: (r) => r["_measurement"] == measurement)
-  |> filter(fn: (r) => r._field == "priceChangeAvg")
-  |> keep(columns: ["_time", "_value"])
-
-normalizedTradingVolume = join(
-    tables: {volume: dailyTradingValue, price: dailyPriceChange},
+data = join(
+    tables: {
+      volume: getField(field: "totalTradingValue"),
+      price: getField(field: "priceChangeAvg")
+    },
     on: ["_time"]
 )
   |> map(fn: (r) => ({ r with _value: r._value_volume / r._value_price }))
-  |> yield(name: "result")
+
+data
+  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+  |> keep(columns: ["_time", "_value"])
+  |> yield(name: "volume")
+
+data
+  |> aggregateWindow(every: 4mo, fn: mean, createEmpty: false)
+  |> timeShift(duration: -6w) // 6w to 4mo makes a nice visual symmetry
+  |> filter(fn: (r) => r._time < experimental.addDuration(d: -6w, to: now()))
+  |> keep(columns: ["_time", "_value"])
+  |> yield(name: "ma")
 
 
 // dumping or hoarding index selected range
 // unusual highs (lows) or several recent higher highs (lower lows) suggest hoarding (dumping)
-start = -7mo
+start = -13mo
 stop = now()
 
 base_filter = (r) =>
@@ -168,9 +186,9 @@ from(bucket: "stream-lines-daily-bars")
   |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
   |> filter(fn: (r) => r["_time"] > startResults)
-  |> aggregateWindow(every: 2w, fn: median)
   |> filter(fn: (r) => r["_value"] > 1.0)
-  |> map(fn: (r) => ({ r with daysBetween: (int(v: r._time) - int(v: startValues)) / (24 * 60 * 60 * 1000000000) }))
+  |> aggregateWindow(every: 2w, fn: median)
+  |> map(fn: (r) => ({ r with daysBetween: (int(v: r._time) - int(v: startValues)) / (24 * 60 * 60 * 1000 * 1000 * 1000) }))
   |> map(fn: (r) => ({ r with yearsBetween: float(v: r.daysBetween) / 365.0 }))
   |> map(fn: (r) => ({ r with _value: (math.pow(x: r._value, y: 1.0 / r.yearsBetween) - 1.0) * 100.0 }))
 
@@ -179,18 +197,17 @@ from(bucket: "stream-lines-daily-bars")
 import "math"
 
 included = []
-excluded = ["AMD", "NVDA", "TSLA"]
+excluded = []
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: v.timeRangeStart, stop: now())
   |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
+  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+  |> filter(fn: (r) => r._value > 1.0)
   |> filter(fn: (r) => (length(arr: included) == 0 or contains(value: r.ticker, set: included))) // only when not empty
   |> filter(fn: (r) => (length(arr: excluded) == 0 or not contains(value: r.ticker, set: excluded))) // o/wise all except these 
   |> keep(columns: ["_time", "_value", "_field", "company", "ticker"])
-  // optionally filter only for stocks that actually gained value
-  |> filter(fn: (r) => r._value > 1.0)
-  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
   |> map(fn: (r) => ({ r with _value: math.log(x: r._value) }))
 
 
@@ -200,7 +217,7 @@ import "math"
 included = []
 
 from(bucket: "stream-lines-daily-bars")
-  |> range(start: -7mo, stop: now())
+  |> range(start: -13mo, stop: now())
   |> filter(fn: (r) => r["_measurement"] == "sec_xh_arith_d") // sec_reg_arith_d, sec_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
   |> filter(fn: (r) => (length(arr: included) == 0 or contains(value: r.ticker, set: included))) // only when not empty
@@ -211,8 +228,10 @@ from(bucket: "stream-lines-daily-bars")
 // daily change in value for individual securities over selected time range
 included = []
 excluded = []
-start = -5w
+start = -11w
 stop = now()
+
+priceChangePercentage = (r) => (r["priceChangeAvg"] - r["prevPriceChangeAvg"]) / r["prevPriceChangeAvg"] * 100.0
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: start, stop: stop)
@@ -225,20 +244,23 @@ from(bucket: "stream-lines-daily-bars")
       _time: r._time,
       ticker: r.ticker,
       company: r.company,
-      _value: (r["priceChangeAvg"] - r["prevPriceChangeAvg"]) / r["prevPriceChangeAvg"] * 100.0
+      _value: priceChangePercentage(r)
     }))
 
 
 // trend of total trading values on individual stocks over entire time range
-excluded = ["AAPL", "AMD", "AMZN", "BA", "META", "MSFT", "NVDA", "TSLA"]
+import "math"
+
+excluded = [] //["AAPL", "AMD", "AMZN", "BA", "META", "MSFT", "NFLX", "NVDA", "TSLA"]
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: v.timeRangeStart, stop: now())
   |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_xh_arith_d
   |> filter(fn: (r) => r["_field"] == "totalTradingValue")
+  |> aggregateWindow(every: 1w, fn: last, createEmpty: false)
   |> filter(fn: (r) => not contains(value: r.ticker, set: excluded))
-  |> aggregateWindow(every: 1w, fn: mean, createEmpty: false)
-  |> yield(name: "mean")
+  //|> map(fn: (r) => ({ r with _value: math.log(x: r._value) }))
+  |> yield(name: "last")
 
 
 // trend of total trading values on individual stocks over selected time range
@@ -254,7 +276,7 @@ from(bucket: "stream-lines-daily-bars")
 // dumping or hoarding? individual securities, selected range
 included = [] 
 excluded = [] 
-start = -5w
+start = -13w
 stop = now()
 
 isEmpty = (arr) => length(arr) == 0
@@ -278,36 +300,31 @@ from(bucket: "stream-lines-daily-bars")
   |> keep(columns: ["_time", "_value", "ticker", "company"])
 
 
-// drawdowns on index with high low bands
-start = -36mo
+// drawdown on index as windowed in min, mean, and max over Avg Price Change
+start = -48mo
+stop = now()
 
-minQuery = from(bucket: "stream-lines-daily-bars")
-  |> range(start: start, stop: now())
+baseQuery = from(bucket: "stream-lines-daily-bars")
+  |> range(start: start, stop: stop)
   |> filter(fn: (r) => r["_measurement"] == "drawdown")
   |> filter(fn: (r) => r["_field"] == "drawdown")
-  |> aggregateWindow(every: v.windowPeriod, fn: min, createEmpty: false)
-  |> map(fn: (r) => ({ r with _field: "drawdown_min" }))
+  |> keep(columns: ["_time", "_value", "_field"])
 
-maxQuery = from(bucket: "stream-lines-daily-bars")
-  |> range(start: start, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "drawdown")
-  |> filter(fn: (r) => r["_field"] == "drawdown")
-  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)
-  |> map(fn: (r) => ({ r with _field: "drawdown_max" }))
+aggregateField = (table, fn, alias) => 
+  table
+    |> aggregateWindow(every: v.windowPeriod, fn: fn, createEmpty: false)
+    |> map(fn: (r) => ({ r with _field: alias, _value: r._value }))
 
-meanQuery = from(bucket: "stream-lines-daily-bars")
-  |> range(start: start, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "drawdown")
-  |> filter(fn: (r) => r["_field"] == "drawdown")
-  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
-  |> map(fn: (r) => ({ r with _field: "drawdown_mean" }))
-
-union(tables: [minQuery, maxQuery, meanQuery])
+union(tables: [
+  aggregateField(table: baseQuery, fn: min, alias: "a_drawdown_min"),
+  aggregateField(table: baseQuery, fn: max, alias: "b_drawdown_max"),
+  aggregateField(table: baseQuery, fn: mean, alias: "c_drawdown_mean")
+])
 
 
+// trend analysis
 fields = ["regression_slope", "regression_variance", "growth"]
-
-start = -36mo
+start = -48mo
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: start, stop: now())
