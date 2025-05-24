@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component
 class Scheduler(private val appRunner: AppRunner) {
     private val logger = LoggerFactory.getLogger(Scheduler::class.java)
 
-    @Scheduled(cron = "0 20 10-23 * * MON-FRI")
-    @Scheduled(cron = "0 20 0 * * TUE-SAT")
+    @Scheduled(cron = "0 5 10-23 * * MON-FRI")
+    @Scheduled(cron = "0 5 0 * * TUE-SAT")
     fun scheduledJob() {
         logger.info("Scheduled task running...")
         appRunner.fetchAndProcess()
