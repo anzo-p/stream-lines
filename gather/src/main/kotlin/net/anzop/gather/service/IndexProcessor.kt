@@ -9,9 +9,7 @@ import net.anzop.gather.helpers.date.getPreviousBankDay
 import net.anzop.gather.helpers.date.minOfOptWithFallback
 import net.anzop.gather.helpers.date.toInstant
 import net.anzop.gather.helpers.date.toLocalDate
-import net.anzop.gather.model.IndexMember
 import net.anzop.gather.model.IndexMembers
-import net.anzop.gather.model.PrevDayData
 import net.anzop.gather.model.marketData.BarData
 import net.anzop.gather.model.marketData.Measurement
 import net.anzop.gather.model.marketData.PriceChange
@@ -25,24 +23,26 @@ import org.springframework.stereotype.Service
 class IndexProcessor(
     private val alpacaProps: AlpacaProps,
     private val cacheRepository: CacheRepository,
+    private val indexMemberCreator: IndexMemberCreator,
     private val marketDataFacade: MarketDataFacade,
 ) {
     private val logger = LoggerFactory.getLogger(IndexProcessor::class.java)
 
     private var asyncRecordsToInsert = mutableListOf<PriceChange>()
 
-    fun run() {
-        Measurement.indexMeasurements.forEach(::process)
-        cacheRepository.deleteIndexStaleFrom()
-        marketDataFacade.saveAsync(asyncRecordsToInsert)
-        asyncRecordsToInsert.clear()
-    }
+    fun run() =
+        try {
+            Measurement.indexMeasurements.forEach(::process)
+            marketDataFacade.saveAsync(asyncRecordsToInsert)
+        } catch (e: Exception) {
+            logger.error("IndexProcessor failed", e)
+        } finally {
+            cacheRepository.deleteIndexStaleFrom()
+            asyncRecordsToInsert.clear()
+        }
 
     private fun process(measurement: Measurement) {
-        val startDate = resolveStartDate(
-            measurement = measurement,
-            fallbackAction = { cacheRepository.deleteIndexStaleFrom() }
-        )
+        val startDate = resolveStartDate(measurement)
         val processingPeriod = generateWeekdayRange(
             startDate = startDate,
             endDate = Instant.now().toLocalDate()
@@ -67,7 +67,8 @@ class IndexProcessor(
         cacheRepository.storeMemberSecurities(measurement, securities)
     }
 
-    fun resolveStartDate(measurement: Measurement, fallbackAction: () -> Unit): LocalDate =
+    // Calculating only stale and/or missing data leads to near 100% optimization on regular runs
+    fun resolveStartDate(measurement: Measurement): LocalDate =
         cacheRepository
             .getIndexStaleFrom()
             ?.toInstant()
@@ -75,11 +76,10 @@ class IndexProcessor(
                 minOfOptWithFallback(
                     instant1 = indexStaleFrom,
                     instant2 = marketDataFacade.getLatestIndexEntry(measurement),
-                    fallbackAction = fallbackAction
+                    fallbackAction = { cacheRepository.deleteIndexStaleFrom() }
                 )
                     ?.toLocalDate()
-                    ?.getPreviousBankDay()
-            }
+                    ?.getPreviousBankDay() }
             ?: alpacaProps.earliestHistoricalDate
 
     private fun processPeriod(
@@ -129,27 +129,24 @@ class IndexProcessor(
 
             bars.forEach { bar ->
                 securities.computeIfAbsent(bar.ticker) {
-                    validateMember(bar.ticker, date)
-
-                    IndexMember(
-                        ticker = bar.ticker,
+                    indexMemberCreator.createIndexMember(
+                        bar = bar,
                         measurement = measurement,
-                        indexValueWhenIntroduced = currIndexValue,
-                        introductionPrice = bar.volumeWeightedAvgPrice,
-                        prevDayData = PrevDayData(
-                            date = date,
-                            avgPrice = bar.volumeWeightedAvgPrice
-                        )
+                        inclusionDate = date,
+                        indexValueAtInclusion = currIndexValue
                     )
                 }
 
                 if (date == period.first()) {
                     securities.keys.forEach { ticker ->
-                        securities[ticker] = securities[ticker]!!.copy(
-                            prevDayData = PrevDayData(
-                                date = initDay,
-                                avgPrice = initPrices[ticker] ?: bar.volumeWeightedAvgPrice
-                            )
+                        val existingMember = requireNotNull(securities[ticker]) {
+                            "IndexMember entry for ticker $ticker is missing"
+                        }
+
+                        securities[ticker] = indexMemberCreator.updatePrevDay(
+                            indexMember = existingMember,
+                            prevDayDate = initDay,
+                            prevDayAvgPrice = initPrices[ticker] ?: bar.volumeWeightedAvgPrice
                         )
                     }
                 }
@@ -177,11 +174,10 @@ class IndexProcessor(
                 fun normalize(price: Double): Double =
                     (price / entry.introductionPrice) * entry.indexValueWhenIntroduced
 
-                securities[bar.ticker] = entry.copy(
-                    prevDayData = PrevDayData(
-                        date = indexDate,
-                        avgPrice = bar.volumeWeightedAvgPrice
-                    )
+                securities[bar.ticker] = indexMemberCreator.updatePrevDay(
+                    indexMember = entry,
+                    prevDayDate = indexDate,
+                    prevDayAvgPrice = bar.volumeWeightedAvgPrice
                 )
 
                 PriceChange(
@@ -230,15 +226,5 @@ class IndexProcessor(
             Measurement.INDEX_REGULAR_EQUAL_ARITHMETIC_DAILY -> priceChanges.mean()
             Measurement.INDEX_EXTENDED_EQUAL_ARITHMETIC_DAILY -> priceChanges.mean()
             else -> throw IllegalArgumentException("Invalid measurement: $measurement for index calculation")
-        }
-
-    private fun validateMember(ticker: String, date: LocalDate) =
-        marketDataFacade.getEarliestSourceBarDataEntry(ticker)?.let { firstEntry ->
-            if (firstEntry.toLocalDate() != date) {
-                cacheRepository.deleteIndexStaleFrom()
-                throw IllegalStateException(
-                    "Date: $date is not when ticker: $ticker gets introduced, $firstEntry would be."
-                )
-            }
         }
 }
