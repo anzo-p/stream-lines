@@ -12,7 +12,7 @@ alpaca:
   daily_bars_url: https://data.alpaca.markets/v2/stocks/bars
   data_source: sip
   earliest_historical_date: 2016-01-02
-  max_calls_per_minute: 200
+  max_calls_per_minute: 190 # Safe side from actual 200
 
 aws:
   region: ${AWS_REGION}
