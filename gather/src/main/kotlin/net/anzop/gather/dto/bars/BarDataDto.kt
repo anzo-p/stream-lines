@@ -5,7 +5,8 @@ import jakarta.validation.constraints.Positive
 import java.time.OffsetDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import net.anzop.gather.dto.bars.serdes.OffsetDateTimeSerializer
+import net.anzop.gather.dto.serdes.OffsetDateTimeSerializer
+import net.anzop.gather.dto.validate
 import net.anzop.gather.helpers.date.nyseTradingHours
 import net.anzop.gather.model.Ticker
 import net.anzop.gather.model.marketData.BarData
@@ -34,7 +35,7 @@ data class BarDataDto(
 
     @SerialName("t")
     @Serializable(with = OffsetDateTimeSerializer::class)
-    @field:NotNull(message = "must be provided")
+    @field:NotNull(message = "cannot be null")
     val marketTimestamp: OffsetDateTime,
 
     @SerialName("v")

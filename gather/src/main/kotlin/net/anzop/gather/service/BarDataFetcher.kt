@@ -44,14 +44,18 @@ class BarDataFetcher(
     }
 
     private fun resolveStartDate(ticker: String): OffsetDateTime {
-        // re-fetching latest bar reveals that the ticker in url param still valid
-        val latestMarketTimestamp = marketDataFacade.getLatestSourceBarDataEntry(ticker)
-        logger.info("Last known marketTimestamp for $ticker is $latestMarketTimestamp")
+        val startDate = marketDataFacade
+            // re-fetching latest bar reveals that the ticker in url param still valid
+            .getLatestSourceBarDataEntry(ticker)
+            .also { logger.info("Last known marketTimestamp for $ticker is $it") }
+            ?: alpacaProps
+                .earliestHistoricalDate
+                .asAmericaNyToInstant()
+                .also { logger.info("No db entry for $ticker, defaulting to alpaca earliest at $it") }
 
-        val fallBackDate = alpacaProps.earliestHistoricalDate.asAmericaNyToInstant()
-        val startDateTime = (latestMarketTimestamp ?: fallBackDate).toOffsetDateTime()
-        logger.info("startDate was set to $startDateTime")
-        return startDateTime
+        return startDate
+            .toOffsetDateTime()
+            .also { logger.info("startDate was set to $it") }
     }
 
     private tailrec fun processTicker(
@@ -121,6 +125,6 @@ class BarDataFetcher(
     }
 
     private fun throttle() {
-        Thread.sleep((60000 / alpacaProps.maxCallsPerMinute).toLong())
+        Thread.sleep((60 * 1000 / alpacaProps.maxCallsPerMinute).toLong())
     }
 }
