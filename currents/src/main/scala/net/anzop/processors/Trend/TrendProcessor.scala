@@ -4,16 +4,21 @@ import breeze.linalg.DenseVector
 import net.anzop.helpers.DateAndTimeHelpers.oneWeekInMillis
 import net.anzop.models.MarketData
 import net.anzop.models.Types.DV
+import net.anzop.processors.AutoResettingProcessor
 import org.apache.flink.api.common.functions.RichFlatMapFunction
 import org.apache.flink.api.common.state.{MapState, MapStateDescriptor}
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.util.Collector
+import org.slf4j.Logger
 
 import scala.collection.compat.toTraversableLikeExtensionMethods
 import scala.jdk.CollectionConverters.iterableAsScalaIterableConverter
 
-class TrendProcessor(trendDiscoverer: TrendDiscoverer)
-    extends RichFlatMapFunction[List[MarketData], List[TrendSegment]] {
+class TrendProcessor(config: TrendConfig, trendDiscoverer: TrendDiscoverer)
+    extends RichFlatMapFunction[List[MarketData], List[TrendSegment]]
+    with AutoResettingProcessor {
+
+  private val logger: Logger = org.slf4j.LoggerFactory.getLogger(getClass)
 
   @transient private var trendState: MapState[Long, Array[MarketData]] = _
 
@@ -38,6 +43,10 @@ class TrendProcessor(trendDiscoverer: TrendDiscoverer)
       trendState.put(chunk.last.timestamp, chunk)
     }
 
+  override val earliestExpectedElemTimestamp: Long = config.earliestHistoricalDate.toEpochMilli
+
+  override def resetOp: () => Unit = trendState.clear
+
   override def open(parameters: Configuration): Unit =
     trendState = getRuntimeContext.getMapState(
       new MapStateDescriptor[Long, Array[MarketData]](
@@ -49,6 +58,13 @@ class TrendProcessor(trendDiscoverer: TrendDiscoverer)
 
   override def flatMap(chunk: List[MarketData], out: Collector[List[TrendSegment]]): Unit = {
     val newChunk = chunk.toArray
+
+    newChunk
+      .headOption
+      .foreach(elem =>
+        if (autoResetState(elem.timestamp)) {
+          logger.info(s"Trend - Data indicates reset; clearing state")
+        })
 
     val data: DV[MarketData] = findPrevBatchRemains(newChunk(0).timestamp) match {
       case Some((entryKey, remains)) =>

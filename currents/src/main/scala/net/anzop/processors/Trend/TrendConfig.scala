@@ -1,9 +1,13 @@
 package net.anzop.processors.Trend
 
 import com.typesafe.config.{Config, ConfigFactory}
+import net.anzop.helpers.DateAndTimeHelpers.dateToUtcMidnight
 import org.slf4j.{Logger, LoggerFactory}
 
+import java.time.Instant
+
 case class TrendConfig(
+    earliestHistoricalDate: Instant,
     flinkWindowCount: Int,
     flinkWindowInterval: Long,
     minimumWindow: Int,
@@ -18,6 +22,7 @@ object TrendConfig {
   private val config: Config = ConfigFactory.load()
 
   val values: TrendConfig = TrendConfig(
+    earliestHistoricalDate   = dateToUtcMidnight(config.getString("alpaca.earliest_historical_date")),
     flinkWindowCount         = config.getInt("trend_discovery.flink_window_count"),
     flinkWindowInterval      = config.getLong("trend_discovery.flink_window_interval"),
     minimumWindow            = config.getInt("trend_discovery.minimum_window"),

@@ -32,6 +32,7 @@ class MarketDataSource(influxConfig: InfluxConfig, config: SourceRunnerConfig) e
   }
 
   private def fetchCollect(ctx: SourceFunction.SourceContext[MarketData]): Unit = {
+    // delete trend measurement for a full redo; processors will know to recalculate everything
     val lastTrendEnding: Option[Long] =
       dbConn
         .requestData[Long](

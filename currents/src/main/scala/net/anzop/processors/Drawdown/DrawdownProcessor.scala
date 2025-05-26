@@ -3,44 +3,47 @@ package net.anzop.processors.Drawdown
 import net.anzop.helpers.DateAndTimeHelpers.isBeforeToday
 import net.anzop.models.MarketData
 import net.anzop.processors.Drawdown.DynamoDbMapper._
+import net.anzop.processors.AutoResettingProcessor
 import net.anzop.repository.dynamodb.DynamoDb
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction
 import org.apache.flink.util.Collector
+import org.slf4j.Logger
 
 import scala.util.chaining._
 
-class DrawdownProcessor(config: DrawdownConfig) extends KeyedProcessFunction[String, MarketData, Drawdown] {
-  private val logger = org.slf4j.LoggerFactory.getLogger(getClass)
+class DrawdownProcessor(config: DrawdownConfig)
+    extends KeyedProcessFunction[String, MarketData, Drawdown]
+    with AutoResettingProcessor {
+
+  private val logger: Logger = org.slf4j.LoggerFactory.getLogger(getClass)
 
   private val initState: (Long, Double)                 = (0L, 0.0)
   private val saveDelay: Long                           = 15 * 1000L
   private var maxValueState: ValueState[(Long, Double)] = _
   private var timerState: ValueState[Long]              = _
 
-  private def getOrFetchState(): (Long, Double) =
+  private def resolveState(): (Long, Double) =
     Option(maxValueState.value()) match {
       case Some(state) => state
       case None =>
         DynamoDb.getSingle match {
           case Some(state) =>
-            logger.info(s"Restoring state from DynamoDB: $state")
+            logger.info(s"Drawdown - Restoring state from DynamoDB: $state")
             state
           case _ =>
-            logger.info("No state found, even in DynamoDB - initializing with starting state")
+            logger.info("Drawdown - No state found, even in DynamoDB")
             initState
         }
     }
 
-  private def resolveState(ts: Long): (Long, Double) =
-    if (ts <= config.earliestHistoricalDate.toEpochMilli) {
-      logger.info(s"Data elements indicates a redo from beginning - initializing with starting state")
-      initState
-    }
-    else {
-      getOrFetchState().tap(maxValueState.update)
-    }
+  override val earliestExpectedElemTimestamp: Long = config.earliestHistoricalDate.toEpochMilli
+
+  override def resetOp: () => Unit = () => {
+    maxValueState.clear()
+    timerState.clear()
+  }
 
   override def open(parameters: Configuration): Unit = {
     maxValueState = getRuntimeContext.getState(
@@ -56,10 +59,16 @@ class DrawdownProcessor(config: DrawdownConfig) extends KeyedProcessFunction[Str
       ctx: KeyedProcessFunction[String, MarketData, Drawdown]#Context,
       out: Collector[Drawdown]
     ): Unit = {
-    val (lastTs, lastMaxValue) = resolveState(elem.timestamp)
+    val (lastTs, lastMaxValue) = if (autoResetState(elem.timestamp)) {
+      logger.info(s"Drawdown - Data indicates reset; clearing state")
+      initState
+    }
+    else {
+      resolveState().tap(maxValueState.update)
+    }
 
     if (lastTs > initState._1 && elem.timestamp <= lastTs) {
-      logger.info(s"Skipping out-of-order event: $elem (latest timestamp: $lastTs)")
+      logger.info(s"Drawdown - Skipping out-of-order event: $elem (latest timestamp: $lastTs)")
       return
     }
 
@@ -75,7 +84,6 @@ class DrawdownProcessor(config: DrawdownConfig) extends KeyedProcessFunction[Str
       val newTimer = ctx.timerService().currentProcessingTime() + saveDelay
       ctx.timerService().registerProcessingTimeTimer(newTimer)
       timerState.update(newTimer)
-      logger.info(s"Scheduled new timer at $newTimer for state $state")
     }
 
     out.collect(
@@ -96,7 +104,7 @@ class DrawdownProcessor(config: DrawdownConfig) extends KeyedProcessFunction[Str
     maxValueState.value() match {
       case null =>
       case state =>
-        logger.info(s"Timer fired at $timestamp, saving state $state to DynamoDB")
+        logger.info(s"Drawdown - Timer to save state: $state to DynamoDB fired at $timestamp")
         DynamoDb.save(state)
         timerState.clear()
     }
