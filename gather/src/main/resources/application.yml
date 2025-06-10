@@ -11,7 +11,14 @@ alpaca:
 aws:
   region: ${AWS_REGION}
   dynamodb:
-    table-name: ${GATHER_DYNAMODB_TABLE_NAME}
+    table_name: ${GATHER_DYNAMODB_TABLE_NAME}
+
+datajockey:
+  authentication:
+    api_key: ${DATA_JOCKEY_API_KEY}
+  financials_url: "https://api.datajockey.io/v0/company/financials"
+  max_calls_per_minute: 9
+  company_count_per_run: 7
 
 influxdb:
   bucket: ${INFLUXDB_DAILY_BARS_BUCKET}

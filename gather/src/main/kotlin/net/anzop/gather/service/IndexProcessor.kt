@@ -70,18 +70,19 @@ class IndexProcessor(
     }
 
     // Calculating only stale and/or missing data leads to near 100% optimization on regular runs
-    fun resolveStartDate(measurement: Measurement): LocalDate =
-        indexStaleRepository
-            .getIndexStaleFrom()
-            ?.toInstant()
-            ?.let { indexStaleFrom ->
-                minOfOptWithFallback(
-                    instant1 = indexStaleFrom,
-                    instant2 = marketDataFacade.getLatestIndexEntry(measurement),
-                    fallbackAction = { indexStaleRepository.deleteIndexStaleFrom() }
-                )
-                    ?.toLocalDate()
-                    ?.getPreviousBankDay() }
+    fun resolveStartDate(measurement: Measurement) =
+        minOfOptWithFallback(
+            instant1 = indexStaleRepository
+                .getIndexStaleFrom()
+                .also { logger.info("Index stale from date for ${measurement.code} is $it") }
+                ?.toInstant(),
+            instant2 = marketDataFacade
+                .getLatestIndexEntry(measurement)
+                .also { logger.info("Latest stored market data for ${measurement.code} is $it") },
+            fallbackAction = { indexStaleRepository.deleteIndexStaleFrom() }
+        )
+            ?.toLocalDate()
+            ?.getPreviousBankDay()
             ?: alpacaProps.earliestHistoricalDate
 
     private fun processPeriod(
