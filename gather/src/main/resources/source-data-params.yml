@@ -140,6 +140,8 @@ source-data-params:
       ticker: BRK.B
       company-name: "Berkshire Hathaway, Inc."
       stock-series: B
+    fundamentals:
+      ticker: BRK-B
 
   - market-data:
       ticker: BSX
@@ -289,7 +291,6 @@ source-data-params:
       ticker: EQIX
       company-name: "Equinix, Inc."
 
-
   - market-data:
       ticker: ETN
       company-name: "Eaton Corporation Plc"
@@ -325,6 +326,8 @@ source-data-params:
   - market-data:
       ticker: GEV
       company-name: "GE Vernova Inc."
+    fundamentals:
+      skip: true
 
   - market-data:
       ticker: GILD
@@ -337,12 +340,14 @@ source-data-params:
   - market-data:
       ticker: GOOGL
       company-name: "Alphabet, Inc."
-      stock-series: A
+      stock-series : A
 
   - market-data:
       ticker: GOOG
       company-name: "Alphabet, Inc."
-      stock-series: C
+      stock-series : C
+    fundamentals:
+      skip: true
 
   - market-data:
       ticker: GS
@@ -375,6 +380,8 @@ source-data-params:
   - market-data:
       ticker: INTL
       company-name: "Intel Corporation"
+    fundamentals:
+      skip: true
 
   - market-data:
       ticker: INTU
@@ -451,7 +458,7 @@ source-data-params:
   - market-data:
       ticker: MAR
       company-name: "Marriott International, Inc."
-      stock-series: A
+      stock-series : A
 
   - market-data:
       ticker: MCD
@@ -468,7 +475,7 @@ source-data-params:
   - market-data:
       ticker: MDLZ
       company-name: "Mondelez International, Inc."
-      stock-series: A
+      stock-series : A
 
   - market-data:
       ticker: MDT
@@ -481,7 +488,7 @@ source-data-params:
   - market-data:
       ticker: META
       company-name: "Meta Platforms, Inc."
-      stock-series: A
+      stock-series : A
 
   - market-data:
       ticker: MMC

@@ -21,3 +21,12 @@ annotation class UniqueCompany(
     val groups: Array<KClass<*>> = [],
     val payload: Array<KClass<out Payload>> = []
 )
+
+@Constraint(validatedBy = [AtLeastOneNonNullValidator::class])
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class AtLeastOneNonNull(
+    val message: String = "At least one of annualData or quarterlyData must be non-null",
+    val groups: Array<KClass<*>> = [],
+    val payload: Array<KClass<out Payload>> = []
+)

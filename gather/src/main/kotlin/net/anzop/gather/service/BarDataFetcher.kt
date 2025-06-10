@@ -9,7 +9,7 @@ import net.anzop.gather.dto.bars.BarsResponse
 import net.anzop.gather.helpers.date.asAmericaNyToInstant
 import net.anzop.gather.helpers.date.toOffsetDateTime
 import net.anzop.gather.http.client.WebFluxExtensions.getRequest
-import net.anzop.gather.http.client.buildHistoricalBarsUri
+import net.anzop.gather.http.client.buildGetHistoricalBarsUri
 import net.anzop.gather.model.SourceDataParams
 import net.anzop.gather.model.marketData.Measurement
 import net.anzop.gather.repository.dynamodb.IndexStaleRepository
@@ -24,7 +24,7 @@ class BarDataFetcher(
     private val sourceDataConfig: SourceDataConfig,
     private val indexStaleRepository: IndexStaleRepository,
     private val marketDataFacade: MarketDataFacade,
-    private val webClient: WebClient
+    private val alpacaWebClient: WebClient
 ) : ThrottlingFetcher(alpacaProps.maxCallsPerMinute) {
 
     private val logger = LoggerFactory.getLogger(BarDataFetcher::class.java)
@@ -65,7 +65,7 @@ class BarDataFetcher(
         pageToken: String = "",
         accFirstEntry: OffsetDateTime? = null
     ): OffsetDateTime? {
-        val uri = buildHistoricalBarsUri(
+        val uri = buildGetHistoricalBarsUri(
             baseUrl = URI.create(alpacaProps.dailyBarsUrl),
             feed = alpacaProps.dataSource,
             symbols = listOf(params.marketData.ticker),
@@ -73,7 +73,7 @@ class BarDataFetcher(
             start = startDateTime,
             pageToken = pageToken
         )
-        val response = fetch { webClient.getRequest<BarsResponse>(uri) }
+        val response = fetch { alpacaWebClient.getRequest<BarsResponse>(uri) }
         val firstEntry = handleResponse(params, response)
 
         val newFirstEntry = if (accFirstEntry == null || (firstEntry != null && firstEntry < accFirstEntry)) {

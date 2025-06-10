@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withTimeoutOrNull
 import net.anzop.gather.service.BarDataFetcher
+import net.anzop.gather.service.FinancialsFetcher
 import net.anzop.gather.service.IndexProcessor
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -14,7 +15,8 @@ import kotlin.time.Duration.Companion.minutes
 @Component
 class AppRunner(
     private val barDataFetcher: BarDataFetcher,
-    private val indexProcessor: IndexProcessor
+    private val indexProcessor: IndexProcessor,
+    private val financialsFetcher: FinancialsFetcher,
 ) {
     private val logger = LoggerFactory.getLogger(AppRunner::class.java)
 
@@ -44,6 +46,7 @@ class AppRunner(
                         barDataFetcher.run()
                     }
                     indexProcessor.run()
+                    financialsFetcher.run()
                     logger.info("AppRunner.fetchAndProcess coroutine tasks completed.")
                 } catch (e: Exception) {
                     logger.error("AppRunner.fetchAndProcess coroutine failed.", e)
