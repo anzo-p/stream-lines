@@ -3,7 +3,7 @@ package net.anzop.gather.model
 import java.time.LocalDate
 import net.anzop.gather.model.marketData.Measurement
 
-typealias IndexMembers = MutableMap<String, IndexMember>
+typealias MutableIndexMembers = MutableMap<String, IndexMember>
 
 data class PrevDayData(
     val date: LocalDate,

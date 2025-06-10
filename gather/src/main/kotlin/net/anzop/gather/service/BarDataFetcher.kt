@@ -12,7 +12,7 @@ import net.anzop.gather.http.client.WebFluxExtensions.getRequest
 import net.anzop.gather.http.client.buildHistoricalBarsUri
 import net.anzop.gather.model.Ticker
 import net.anzop.gather.model.marketData.Measurement
-import net.anzop.gather.repository.dynamodb.CacheRepository
+import net.anzop.gather.repository.dynamodb.IndexStaleRepository
 import net.anzop.gather.repository.influxdb.MarketDataFacade
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -22,10 +22,11 @@ import org.springframework.web.reactive.function.client.WebClient
 class BarDataFetcher(
     private val alpacaProps: AlpacaProps,
     private val tickerConfig: TickerConfig,
-    private val cacheRepository: CacheRepository,
+    private val indexStaleRepository: IndexStaleRepository,
     private val marketDataFacade: MarketDataFacade,
     private val webClient: WebClient
-) {
+) : ThrottlingFetcher(alpacaProps.maxCallsPerMinute) {
+
     private val logger = LoggerFactory.getLogger(BarDataFetcher::class.java)
 
     fun run() {
@@ -39,7 +40,7 @@ class BarDataFetcher(
 
         logger.info("The earliest processed marketTimestamp was $earliestMarketTimestamp")
         earliestMarketTimestamp.let {
-            cacheRepository.suggestIndexStaleFrom(it.toLocalDate())
+            indexStaleRepository.suggestIndexStaleFrom(it.toLocalDate())
         }
     }
 
@@ -64,8 +65,6 @@ class BarDataFetcher(
         pageToken: String = "",
         accFirstEntry: OffsetDateTime? = null
     ): OffsetDateTime? {
-        throttle()
-
         val uri = buildHistoricalBarsUri(
             baseUrl = URI.create(alpacaProps.dailyBarsUrl),
             feed = alpacaProps.dataSource,
@@ -74,7 +73,7 @@ class BarDataFetcher(
             start = startDateTime,
             pageToken = pageToken
         )
-        val response = webClient.getRequest<BarsResponse>(uri)
+        val response = fetch { webClient.getRequest<BarsResponse>(uri) }
         val firstEntry = handleResponse(ticker, response)
 
         val newFirstEntry = if (accFirstEntry == null || (firstEntry != null && firstEntry < accFirstEntry)) {
@@ -97,11 +96,13 @@ class BarDataFetcher(
 
             when {
                 n == 0 -> {
-                    logger.warn("Response from Alpaca is empty. Perhaps ticker: ${ticker.symbol} is invalid or outdated.")
+                    logger.warn("Response from Alpaca is empty. Perhaps ticker: " +
+                            "${ticker.symbol} is invalid or outdated.")
                     null
                 }
                 else -> {
-                    logger.info("Fetched $n bars for ${ticker.symbol} up to ${bars.values.flatten().last().marketTimestamp}")
+                    logger.info("Fetched $n bars for ${ticker.symbol} " +
+                            "up to ${bars.values.flatten().last().marketTimestamp}")
                     processEntries(ticker, bars.values.flatten())
                 }
             }
@@ -122,9 +123,5 @@ class BarDataFetcher(
         return bars
             .minOf { it.marketTimestamp }
             .toOffsetDateTime()
-    }
-
-    private fun throttle() {
-        Thread.sleep((60 * 1000 / alpacaProps.maxCallsPerMinute).toLong())
     }
 }

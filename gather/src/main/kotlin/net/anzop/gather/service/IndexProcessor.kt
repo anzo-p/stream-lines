@@ -9,12 +9,13 @@ import net.anzop.gather.helpers.date.getPreviousBankDay
 import net.anzop.gather.helpers.date.minOfOptWithFallback
 import net.anzop.gather.helpers.date.toInstant
 import net.anzop.gather.helpers.date.toLocalDate
-import net.anzop.gather.model.IndexMembers
+import net.anzop.gather.model.MutableIndexMembers
 import net.anzop.gather.model.marketData.BarData
 import net.anzop.gather.model.marketData.Measurement
 import net.anzop.gather.model.marketData.PriceChange
 import net.anzop.gather.model.marketData.mean
-import net.anzop.gather.repository.dynamodb.CacheRepository
+import net.anzop.gather.repository.dynamodb.IndexMemberRepository
+import net.anzop.gather.repository.dynamodb.IndexStaleRepository
 import net.anzop.gather.repository.influxdb.MarketDataFacade
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -22,7 +23,8 @@ import org.springframework.stereotype.Service
 @Service
 class IndexProcessor(
     private val alpacaProps: AlpacaProps,
-    private val cacheRepository: CacheRepository,
+    private val indexMemberRepository: IndexMemberRepository,
+    private val indexStaleRepository: IndexStaleRepository,
     private val indexMemberCreator: IndexMemberCreator,
     private val marketDataFacade: MarketDataFacade,
 ) {
@@ -37,7 +39,7 @@ class IndexProcessor(
         } catch (e: Exception) {
             logger.error("IndexProcessor failed", e)
         } finally {
-            cacheRepository.deleteIndexStaleFrom()
+            indexStaleRepository.deleteIndexStaleFrom()
             asyncRecordsToInsert.clear()
         }
 
@@ -49,7 +51,7 @@ class IndexProcessor(
         )
         logger.info("Processing index for ${measurement.code} from $startDate for ${processingPeriod.size} days")
 
-        val securities = cacheRepository
+        val securities = indexMemberRepository
             .getMemberSecurities(measurement)
             .toMutableMap()
 
@@ -64,19 +66,19 @@ class IndexProcessor(
         )
         logger.info("Final Index Value is: $latestIndexValue")
 
-        cacheRepository.storeMemberSecurities(measurement, securities)
+        indexMemberRepository.storeMemberSecurities(measurement, securities)
     }
 
     // Calculating only stale and/or missing data leads to near 100% optimization on regular runs
     fun resolveStartDate(measurement: Measurement): LocalDate =
-        cacheRepository
+        indexStaleRepository
             .getIndexStaleFrom()
             ?.toInstant()
             ?.let { indexStaleFrom ->
                 minOfOptWithFallback(
                     instant1 = indexStaleFrom,
                     instant2 = marketDataFacade.getLatestIndexEntry(measurement),
-                    fallbackAction = { cacheRepository.deleteIndexStaleFrom() }
+                    fallbackAction = { indexStaleRepository.deleteIndexStaleFrom() }
                 )
                     ?.toLocalDate()
                     ?.getPreviousBankDay() }
@@ -85,7 +87,7 @@ class IndexProcessor(
     private fun processPeriod(
         measurement: Measurement,
         period: List<LocalDate>,
-        securities: IndexMembers,
+        securities: MutableIndexMembers,
         initIndexValue: Double
     ): Double {
         val initialDay = period
@@ -112,7 +114,7 @@ class IndexProcessor(
     private fun foldPeriod(
         measurement: Measurement,
         period: List<LocalDate>,
-        securities: IndexMembers,
+        securities: MutableIndexMembers,
         initDay: LocalDate,
         initPrices: Map<String, Double>,
         initIndexValue: Double
@@ -160,7 +162,7 @@ class IndexProcessor(
 
     private fun processBars(
         measurement: Measurement,
-        securities: IndexMembers,
+        securities: MutableIndexMembers,
         bars: List<BarData>,
         indexDate: LocalDate
     ): List<PriceChange> =
