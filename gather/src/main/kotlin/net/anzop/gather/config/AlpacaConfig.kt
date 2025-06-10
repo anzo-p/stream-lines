@@ -4,13 +4,11 @@ import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import java.time.LocalDate
-import kotlinx.serialization.json.Json
+import net.anzop.gather.http.client.WebClientFactory
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpHeaders
-import org.springframework.http.codec.json.KotlinSerializationJsonDecoder
-import org.springframework.http.codec.json.KotlinSerializationJsonEncoder
 import org.springframework.stereotype.Component
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.reactive.function.client.WebClient
@@ -46,21 +44,16 @@ class AlpacaProps {
 }
 
 @Configuration
-class AlpacaConfig(private val alpacaProperties: AlpacaProps) {
-
-    @Bean
-    fun webClient(): WebClient {
-        val json = Json { ignoreUnknownKeys = true }
-
-        return WebClient
+class AlpacaConfig(
+    private val alpacaProps: AlpacaProps,
+    private val factory: WebClientFactory,
+) {
+    @Bean(name = ["alpacaWebClient"])
+    fun alpacaWebClient(): WebClient =
+        factory
             .builder()
-            .defaultHeaders { it.authenticate(alpacaProperties.authentication) }
-            .codecs { config ->
-                config.defaultCodecs().kotlinSerializationJsonDecoder(KotlinSerializationJsonDecoder(json))
-                config.defaultCodecs().kotlinSerializationJsonEncoder(KotlinSerializationJsonEncoder(json))
-            }
+            .defaultHeaders { it.authenticate(alpacaProps.authentication) }
             .build()
-    }
 
     private fun HttpHeaders.authenticate(auth: AlpacaProps.Authentication) {
         set("Apca-Api-Key-Id", auth.apiKey)

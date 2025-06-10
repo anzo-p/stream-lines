@@ -16,7 +16,8 @@ fun buildHistoricalBarsUri(
     limit: Int? = null,
     pageToken: String? = null
 ): URI {
-    val builder = UriComponentsBuilder.fromHttpUrl(baseUrl.toString())
+    val builder = UriComponentsBuilder
+        .fromHttpUrl(baseUrl.toString())
         .queryParam("feed", feed)
         .queryParam("symbols", symbols.joinToString(","))
         .queryParam("timeframe", timeframe)

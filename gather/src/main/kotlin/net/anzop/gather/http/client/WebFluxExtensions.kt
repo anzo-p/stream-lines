@@ -19,7 +19,7 @@ object WebFluxExtensions {
             .block()
 
     fun ClientResponse.handleError(): Mono<Throwable> {
-        val logger = LoggerFactory.getLogger("net.anzop.gather.helpers.webclient.handleError")!!
+        val logger = LoggerFactory.getLogger(ClientResponse::class.java)
 
         return this.bodyToMono(String::class.java)
             .defaultIfEmpty("No response body")
