@@ -1,4 +1,4 @@
-package net.anzop.gather.dto
+package net.anzop.gather.helpers.jakarta
 
 import jakarta.validation.ConstraintViolation
 import jakarta.validation.Validation

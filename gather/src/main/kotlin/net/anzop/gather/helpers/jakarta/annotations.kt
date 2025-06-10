@@ -1,4 +1,4 @@
-package net.anzop.gather.config.tickerConfig
+package net.anzop.gather.helpers.jakarta
 
 import jakarta.validation.Constraint
 import jakarta.validation.Payload

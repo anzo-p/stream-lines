@@ -6,8 +6,8 @@ import java.time.OffsetDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.anzop.gather.dto.serdes.OffsetDateTimeSerializer
-import net.anzop.gather.dto.validate
 import net.anzop.gather.helpers.date.nyseTradingHours
+import net.anzop.gather.helpers.jakarta.validate
 import net.anzop.gather.model.Ticker
 import net.anzop.gather.model.marketData.BarData
 import net.anzop.gather.model.marketData.Measurement
