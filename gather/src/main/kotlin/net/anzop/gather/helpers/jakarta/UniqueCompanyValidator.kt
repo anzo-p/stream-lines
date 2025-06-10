@@ -5,11 +5,11 @@ import jakarta.validation.ConstraintValidatorContext
 import net.anzop.gather.config.SourceDataConfig
 
 class UniqueCompanyValidator : ConstraintValidator<UniqueCompany, SourceDataConfig> {
-    override fun isValid(value: SourceDataConfig, context: ConstraintValidatorContext): Boolean {
+    override fun isValid(config: SourceDataConfig, context: ConstraintValidatorContext): Boolean {
         val companySeries = mutableMapOf<String, MutableSet<String?>>()
         val duplicates = mutableSetOf<String>()
 
-        value.sourceDataSettings.forEach { settings ->
+        config.sourceDataParams.forEach { settings ->
             val (_, companyName, stockSeries) = settings.marketData
             val series = companySeries.getOrPut(companyName) { mutableSetOf() }
             if (series.isNotEmpty() && stockSeries == null) {

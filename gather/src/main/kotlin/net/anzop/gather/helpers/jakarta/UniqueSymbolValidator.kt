@@ -5,11 +5,11 @@ import jakarta.validation.ConstraintValidatorContext
 import net.anzop.gather.config.SourceDataConfig
 
 class UniqueSymbolValidator : ConstraintValidator<UniqueSymbols, SourceDataConfig> {
-    override fun isValid(value: SourceDataConfig, context: ConstraintValidatorContext): Boolean {
+    override fun isValid(config: SourceDataConfig, context: ConstraintValidatorContext): Boolean {
         val symbols = mutableSetOf<String>()
         val duplicates = mutableSetOf<String>()
 
-        value.sourceDataSettings.forEach {
+        config.sourceDataParams.forEach {
             if (!symbols.add(it.marketData.ticker)) {
                 duplicates.add(it.marketData.ticker)
             }

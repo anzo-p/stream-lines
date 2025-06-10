@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 import net.anzop.gather.dto.serdes.OffsetDateTimeSerializer
 import net.anzop.gather.helpers.date.nyseTradingHours
 import net.anzop.gather.helpers.jakarta.validate
-import net.anzop.gather.model.Ticker
+import net.anzop.gather.model.SourceDataParams
 import net.anzop.gather.model.marketData.BarData
 import net.anzop.gather.model.marketData.Measurement
 import org.springframework.validation.annotation.Validated
@@ -47,7 +47,7 @@ data class BarDataDto(
     val volumeWeightedAvgPrice: Double,
 
 ) {
-    fun toModel(measurement: Measurement, ticker: Ticker): BarData {
+    fun toModel(measurement: Measurement, params: SourceDataParams): BarData {
         validate(this)
             .takeIf { it.isNotEmpty() }
             ?.let { violations ->
@@ -62,8 +62,8 @@ data class BarDataDto(
 
         return BarData(
             measurement = measurement,
-            ticker = ticker.symbol,
-            company = ticker.company,
+            ticker = params.marketData.ticker,
+            company = params.marketData.companyName,
             marketTimestamp = utcTime,
             regularTradingHours = nyseTradingHours.isOpenAt(utcTime),
             openingPrice = openingPrice,

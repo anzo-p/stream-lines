@@ -1,18 +1,12 @@
-spring:
-  config:
-    import:
-      - "tickers.yml"
-      - "security.yml"
-
 alpaca:
   authentication:
     api_key: ${ALPACA_API_KEY}
     api_secret: ${ALPACA_API_SECRET}
   bar_data_time_frame: 30Min
-  daily_bars_url: https://data.alpaca.markets/v2/stocks/bars
+  daily_bars_url: "https://data.alpaca.markets/v2/stocks/bars"
   data_source: sip
   earliest_historical_date: 2016-01-02
-  max_calls_per_minute: 190 # Safe side from actual 200
+  max_calls_per_minute: 190
 
 aws:
   region: ${AWS_REGION}
@@ -24,3 +18,9 @@ influxdb:
   organization: ${INFLUXDB_ORG}
   token: ${INFLUXDB_DAILY_BARS_TOKEN}
   url: ${INFLUXDB_URL}
+
+spring:
+  config:
+    import:
+      - "security.yml"
+      - "source-data-params.yml"
