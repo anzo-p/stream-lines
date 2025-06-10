@@ -3,7 +3,7 @@ package net.anzop.gather.service
 import java.net.URI
 import java.time.OffsetDateTime
 import net.anzop.gather.config.AlpacaProps
-import net.anzop.gather.config.tickerConfig.TickerConfig
+import net.anzop.gather.config.TickerConfig
 import net.anzop.gather.dto.bars.BarDataDto
 import net.anzop.gather.dto.bars.BarsResponse
 import net.anzop.gather.helpers.date.asAmericaNyToInstant
