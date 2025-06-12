@@ -24,17 +24,21 @@ class FinancialsFetcher(
 
     private val logger = LoggerFactory.getLogger(FinancialsFetcher::class.java)
 
-    fun run() =
-        sourceDataConfig
-            .sourceDataParams
-            .filterNot { it.fundamentals?.skip == true }
-            .shuffled(Random(System.nanoTime()))
-            .take(dataJockeyProps.companyCountPerRun)
-            .forEach { params ->
-                ReportPeriodType.entries.forEach { periodType ->
-                    processTicker(params, periodType)
-                }
+    fun run(param: SourceDataParams? = null) {
+        val params = param
+            ?.let { listOf(it) }
+            ?: sourceDataConfig
+                .sourceDataParams
+                .filterNot { it.fundamentals?.skip == true }
+                .shuffled(Random(System.nanoTime()))
+                .take(dataJockeyProps.companyCountPerRun)
+
+        params.forEach { param ->
+            ReportPeriodType.entries.forEach { periodType ->
+                processTicker(param, periodType)
             }
+        }
+    }
 
     private fun processTicker(
         params: SourceDataParams,
@@ -42,10 +46,6 @@ class FinancialsFetcher(
     ) {
         val symbol = params.fundamentals?.ticker ?: params.marketData.ticker
         logger.info("Processing $periodType type financials for $symbol")
-
-        val foundReportPeriods = financialsRepository
-            .queryReportPeriods(symbol)
-            .toSet()
 
         val uri = buildGetFinancialsUri(
             baseUrl = URI.create(dataJockeyProps.financialsUrl),
@@ -58,7 +58,7 @@ class FinancialsFetcher(
             ?.let { response ->
                 response
                     .toModel(periodType)
-                    .filterNot { it.reportPeriod in foundReportPeriods }
+                    .filterNot { it.reportPeriod in financialsRepository.queryReportPeriods(symbol) }
                     .takeIf { it.isNotEmpty() }
                     ?.also { financials ->
                         val newReportPeriods = financials.map { it.reportPeriod.toString() }

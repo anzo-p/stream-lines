@@ -8,9 +8,10 @@ import org.springframework.security.web.SecurityFilterChain
 @Configuration
 class SecurityConfig {
     private val securedEndpoints = listOf(
-        "/api/admin/maintenance/fetch",
-        "/api/admin/maintenance/redo-index",
-        "/api/admin/maintenance/bar-data"
+        "/api/admin/maintenance/market-data/fetch",
+        "/api/admin/maintenance/market-data/redo-index",
+        "/api/admin/maintenance/market-data/",
+        "/api/admin/maintenance/financials/{ticker}/fetch",
     )
 
     @Bean

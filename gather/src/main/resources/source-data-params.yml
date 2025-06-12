@@ -306,6 +306,8 @@ source-data-params:
   - market-data:
       ticker: FI
       company-name: "Fiserv, Inc."
+    fundamentals:
+      skip: true
 
   - market-data:
       ticker: FIS
