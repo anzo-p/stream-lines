@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withTimeoutOrNull
+import net.anzop.gather.config.SourceDataConfig
 import net.anzop.gather.service.BarDataFetcher
 import net.anzop.gather.service.FinancialsFetcher
 import net.anzop.gather.service.IndexProcessor
@@ -14,6 +15,7 @@ import kotlin.time.Duration.Companion.minutes
 
 @Component
 class AppRunner(
+    private val sourceDataConfig: SourceDataConfig,
     private val barDataFetcher: BarDataFetcher,
     private val indexProcessor: IndexProcessor,
     private val financialsFetcher: FinancialsFetcher,
@@ -24,7 +26,7 @@ class AppRunner(
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     @Volatile private var isRunning = false
     
-    fun fetchAndProcess(redoIndex: Boolean = false): RunnerCallResult {
+    fun fetchAndProcess(command: RunCommand): RunnerCallResult {
         if (!mutex.tryLock()) {
             logger.info("${RunnerCallResult.LOCK_UNAVAILABLE.message} - Exiting...")
             return RunnerCallResult.LOCK_UNAVAILABLE
@@ -42,11 +44,21 @@ class AppRunner(
         coroutineScope.launch {
             withTimeoutOrNull(15.minutes) {
                 try {
-                    if (!redoIndex) {
-                        barDataFetcher.run()
+                    when (command) {
+                        is FetchAndProcessAll -> {
+                            barDataFetcher.run()
+                            indexProcessor.run()
+                            financialsFetcher.run()
+                        }
+
+                        is FetchFinancials ->
+                            sourceDataConfig
+                                .resolve(command.ticker)
+                                ?.let { financialsFetcher.run(it) }
+
+                        is RedoIndex ->
+                            indexProcessor.run()
                     }
-                    indexProcessor.run()
-                    financialsFetcher.run()
                     logger.info("AppRunner.fetchAndProcess coroutine tasks completed.")
                 } catch (e: Exception) {
                     logger.error("AppRunner.fetchAndProcess coroutine failed.", e)

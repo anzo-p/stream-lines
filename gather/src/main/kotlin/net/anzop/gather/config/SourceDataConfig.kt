@@ -14,4 +14,9 @@ import org.springframework.validation.annotation.Validated
 @UniqueCompany
 data class SourceDataConfig(
     val sourceDataParams: List<SourceDataParams>
-)
+) {
+    fun resolve(ticker: String): SourceDataParams? =
+        sourceDataParams
+            .filter { it.marketData.ticker == ticker }
+            .singleOrNull()
+}

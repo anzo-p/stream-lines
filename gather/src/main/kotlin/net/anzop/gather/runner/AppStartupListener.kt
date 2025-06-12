@@ -12,7 +12,7 @@ class AppStartupListener(private val appRunner: AppRunner) {
     @EventListener(ApplicationReadyEvent::class)
     fun onApplicationReady() {
         logger.info("Application started. Running initial task...")
-        appRunner.fetchAndProcess()
+        appRunner.fetchAndProcess(FetchAndProcessAll)
         logger.info("Done.")
     }
 }
