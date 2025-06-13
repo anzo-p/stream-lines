@@ -3,8 +3,8 @@ package net.anzop.gather.dto.financials
 import jakarta.validation.constraints.NotNull
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import net.anzop.gather.config.SourceDataConfig
 import net.anzop.gather.helpers.date.generateFinancialPeriodRange
-import net.anzop.gather.model.SourceDataParams
 import net.anzop.gather.model.financials.FinancialPeriod
 import net.anzop.gather.model.financials.Financials
 import net.anzop.gather.model.financials.ReportPeriod
@@ -36,12 +36,12 @@ data class FinancialResponseDto(
 
                 val key = toFinancialStatementMapKey(year, financialPeriod)
 
+                val params = SourceDataConfig
+                    .resolve(companyInfo.ticker)
+                    ?: error("Ticker ${companyInfo.ticker} not found in SourceDataConfig")
+
                 Financials(
-                    sourceDataSettings = SourceDataParams.create(
-                        alpacaTicker = companyInfo.ticker,
-                        dataJockeyTicker = companyInfo.ticker,
-                        companyName = companyInfo.companyName,
-                    ),
+                    params = params,
                     reportPeriod = ReportPeriod(
                         fiscalYear = year,
                         financialPeriod = financialPeriod,

@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/admin/maintenance")
 class TaskController(
-    private val sourceDataConfig: SourceDataConfig,
     private val appRunner: AppRunner,
     private val marketDataFacade: MarketDataFacade,
 ) {
@@ -56,7 +55,7 @@ class TaskController(
 
     @PostMapping("/financials/{ticker}/fetch")
     fun fetchFinancials(@PathVariable ticker: String): ResponseEntity<Map<String, String>> =
-        sourceDataConfig
+        SourceDataConfig
             .resolve(ticker)
             ?.let { createResponse(appRunner.fetchAndProcess(FetchFinancials(ticker))) }
             ?: createResponse(RunnerCallResult.TICKER_NOT_FOUND)

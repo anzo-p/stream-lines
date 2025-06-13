@@ -2,8 +2,6 @@ package net.anzop.gather.helpers
 
 object StringHelpers {
 
-    fun xorNotNull(a: String?, b: String?, msg: String): String =
-        with(require((a ?: b) != null) { msg }) {
-            (a ?: b)!!
-        }
+    fun coalesceOrThrow(vararg maybeValues: String?, msg: String): String =
+        maybeValues.firstOrNull { it != null } ?: throw IllegalArgumentException(msg)
 }

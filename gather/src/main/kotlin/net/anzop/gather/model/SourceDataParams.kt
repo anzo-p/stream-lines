@@ -1,7 +1,5 @@
 package net.anzop.gather.model
 
-import net.anzop.gather.helpers.StringHelpers
-
 data class FundamentalsParams(
     val ticker: String? = null,
     val skip: Boolean = false,
@@ -23,25 +21,5 @@ data class SourceDataParams(
         }
 
         require(marketData.companyName.isNotBlank()) { "Company name must not be blank." }
-    }
-
-    companion object {
-        fun create(
-            alpacaTicker: String? = null,
-            dataJockeyTicker: String? = null,
-            companyName: String,
-        ) = SourceDataParams(
-            fundamentals = FundamentalsParams(
-                ticker = dataJockeyTicker
-            ),
-            marketData = MarketDataParams(
-                ticker = StringHelpers.xorNotNull(
-                    alpacaTicker,
-                    dataJockeyTicker?.replace("-", ""),
-                    "Either Alpaca ticker or Data Jockey ticker must be provided."
-                ),
-                companyName = companyName
-            )
-        )
     }
 }

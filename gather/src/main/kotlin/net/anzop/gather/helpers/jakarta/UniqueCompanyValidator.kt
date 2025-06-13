@@ -9,7 +9,7 @@ class UniqueCompanyValidator : ConstraintValidator<UniqueCompany, SourceDataConf
         val companySeries = mutableMapOf<String, MutableSet<String?>>()
         val duplicates = mutableSetOf<String>()
 
-        config.sourceDataParams.forEach { settings ->
+        config.params.forEach { settings ->
             val (_, companyName, stockSeries) = settings.marketData
             val series = companySeries.getOrPut(companyName) { mutableSetOf() }
             if (series.isNotEmpty() && stockSeries == null) {
