@@ -31,7 +31,7 @@ class BarDataFetcher(
 
     fun run() {
         val earliestMarketTimestamp = sourceDataConfig
-            .sourceDataParams
+            .params
             .mapNotNull { params ->
                 val startDateTime = resolveStartDate(params.marketData.ticker)
                 processTicker(params, startDateTime)

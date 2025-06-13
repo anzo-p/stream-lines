@@ -1,7 +1,7 @@
 package net.anzop.gather.repository.dynamodb
 
 import net.anzop.gather.config.AwsConfig
-import net.anzop.gather.model.SourceDataParams
+import net.anzop.gather.config.SourceDataConfig
 import net.anzop.gather.model.financials.FinancialPeriod
 import net.anzop.gather.model.financials.Financials
 import net.anzop.gather.model.financials.ReportPeriod
@@ -56,8 +56,8 @@ class FinancialsRepository(
     private fun Financials.toAttrib(): AttributeValue =
         AttributeValue.builder().m(
             mapOf(
-                "ticker" to this.sourceDataSettings.marketData.ticker.toAttrib(),
-                "company" to this.sourceDataSettings.marketData.companyName.toAttrib(),
+                "ticker" to this.params.marketData.ticker.toAttrib(),
+                "company" to this.params.marketData.companyName.toAttrib(),
                 "fiscalYear" to this.reportPeriod.fiscalYear.toAttrib(),
                 "annualOrQuarter" to this.reportPeriod.financialPeriod.toString().toAttrib(),
                 "currency" to this.currency.toAttrib(),
@@ -113,59 +113,61 @@ class FinancialsRepository(
 
     private fun attribToFinancials(attribs: Map<String, AttributeValue>): Financials? =
         attribs.takeIf { it.isNotEmpty() }?.let {
-            Financials(
-                sourceDataSettings = SourceDataParams.create(
-                    alpacaTicker = attribs["ticker"]?.toStringOrError("Ticker not found"),
-                    dataJockeyTicker = attribs["ticker"]?.toStringOrError("Ticker not found"),
-                    companyName = attribs["company"].toStringOrError("Company name not found"),
-                ),
-                reportPeriod = ReportPeriod(
-                    fiscalYear = attribs["fiscalYear"].toIntOrError("Fiscal year not found"),
-                    financialPeriod = FinancialPeriod.fromCode(
-                        attribs["annualOrQuarter"].toStringOrError("Financial period not found")
-                    )
-                ),
-                currency = attribs["currency"].toStringOrDefault(),
-                revenue = attribs["revenue"].toLongOrNull(),
-                costOfRevenue = attribs["costOfRevenue"].toLongOrNull(),
-                grossProfit = attribs["grossProfit"].toLongOrNull(),
-                operatingIncome = attribs["operatingIncome"].toLongOrNull(),
-                totalAssets = attribs["totalAssets"].toLongOrNull(),
-                totalCurrentAssets = attribs["totalCurrentAssets"].toLongOrNull(),
-                prepaidExpenses = attribs["prepaidExpenses"].toLongOrNull(),
-                propertyPlantAndEquipmentNet = attribs["propertyPlantAndEquipmentNet"].toLongOrNull(),
-                retainedEarnings = attribs["retainedEarnings"].toLongOrNull(),
-                otherAssetsNonCurrent = attribs["otherAssetsNonCurrent"].toLongOrNull(),
-                totalNonCurrentAssets = attribs["totalNonCurrentAssets"].toLongOrNull(),
-                totalLiabilities = attribs["totalLiabilities"].toLongOrNull(),
-                shareholderEquity = attribs["shareholderEquity"].toLongOrNull(),
-                netIncome = attribs["netIncome"].toLongOrNull(),
-                sharesOutstandingDiluted = attribs["sharesOutstandingDiluted"].toLongOrNull(),
-                sharesOutstandingBasic = attribs["sharesOutstandingBasic"].toLongOrNull(),
-                epsDiluted = attribs["epsDiluted"].toDoubleOrNull(),
-                epsBasic = attribs["epsBasic"].toDoubleOrNull(),
-                operatingCashFlow = attribs["operatingCashFlow"].toLongOrNull(),
-                investingCashFlow = attribs["investingCashFlow"].toLongOrNull(),
-                financingCashFlow = attribs["financingCashFlow"].toLongOrNull(),
-                netCashFlow = attribs["netCashFlow"].toLongOrNull(),
-                researchDevelopmentExpense = attribs["researchDevelopmentExpense"].toLongOrNull(),
-                sellingGeneralAdministrativeExpense = attribs["sellingGeneralAdministrativeExpense"].toLongOrNull(),
-                operatingExpenses = attribs["operatingExpenses"].toLongOrNull(),
-                nonOperatingIncome = attribs["nonOperatingIncome"].toLongOrNull(),
-                preTaxIncome = attribs["preTaxIncome"].toLongOrNull(),
-                incomeTax = attribs["incomeTax"].toLongOrNull(),
-                depreciationAmortization = attribs["depreciationAmortization"].toLongOrNull(),
-                stockBasedCompensation = attribs["stockBasedCompensation"].toLongOrNull(),
-                dividendsPaid = attribs["dividendsPaid"].toLongOrNull(),
-                cashOnHand = attribs["cashOnHand"].toLongOrNull(),
-                currentNetReceivables = attribs["currentNetReceivables"].toLongOrNull(),
-                inventory = attribs["inventory"].toLongOrNull(),
-                totalCurrentLiabilities = attribs["totalCurrentLiabilities"].toLongOrNull(),
-                totalNonCurrentLiabilities = attribs["totalNonCurrentLiabilities"].toLongOrNull(),
-                longTermDebt = attribs["longTermDebt"].toLongOrNull(),
-                totalLongTermLiabilities = attribs["totalLongTermLiabilities"].toLongOrNull(),
-                goodwill = attribs["goodwill"].toLongOrNull(),
-                intangibleAssetsExcludingGoodwill = attribs["intangibleAssetsExcludingGoodwill"].toLongOrNull(),
-            )
+            attribs["ticker"]?.toStringOrError("Ticker not found")?.let { ticker ->
+                val params = SourceDataConfig
+                    .resolve(ticker)
+                    ?: error("Ticker $ticker not found in SourceDataConfig")
+
+                Financials(
+                    params = params,
+                    reportPeriod = ReportPeriod(
+                        fiscalYear = attribs["fiscalYear"].toIntOrError("Fiscal year not found"),
+                        financialPeriod = FinancialPeriod.fromCode(
+                            attribs["annualOrQuarter"].toStringOrError("Financial period not found")
+                        )
+                    ),
+                    currency = attribs["currency"].toStringOrDefault(),
+                    revenue = attribs["revenue"].toLongOrNull(),
+                    costOfRevenue = attribs["costOfRevenue"].toLongOrNull(),
+                    grossProfit = attribs["grossProfit"].toLongOrNull(),
+                    operatingIncome = attribs["operatingIncome"].toLongOrNull(),
+                    totalAssets = attribs["totalAssets"].toLongOrNull(),
+                    totalCurrentAssets = attribs["totalCurrentAssets"].toLongOrNull(),
+                    prepaidExpenses = attribs["prepaidExpenses"].toLongOrNull(),
+                    propertyPlantAndEquipmentNet = attribs["propertyPlantAndEquipmentNet"].toLongOrNull(),
+                    retainedEarnings = attribs["retainedEarnings"].toLongOrNull(),
+                    otherAssetsNonCurrent = attribs["otherAssetsNonCurrent"].toLongOrNull(),
+                    totalNonCurrentAssets = attribs["totalNonCurrentAssets"].toLongOrNull(),
+                    totalLiabilities = attribs["totalLiabilities"].toLongOrNull(),
+                    shareholderEquity = attribs["shareholderEquity"].toLongOrNull(),
+                    netIncome = attribs["netIncome"].toLongOrNull(),
+                    sharesOutstandingDiluted = attribs["sharesOutstandingDiluted"].toLongOrNull(),
+                    sharesOutstandingBasic = attribs["sharesOutstandingBasic"].toLongOrNull(),
+                    epsDiluted = attribs["epsDiluted"].toDoubleOrNull(),
+                    epsBasic = attribs["epsBasic"].toDoubleOrNull(),
+                    operatingCashFlow = attribs["operatingCashFlow"].toLongOrNull(),
+                    investingCashFlow = attribs["investingCashFlow"].toLongOrNull(),
+                    financingCashFlow = attribs["financingCashFlow"].toLongOrNull(),
+                    netCashFlow = attribs["netCashFlow"].toLongOrNull(),
+                    researchDevelopmentExpense = attribs["researchDevelopmentExpense"].toLongOrNull(),
+                    sellingGeneralAdministrativeExpense = attribs["sellingGeneralAdministrativeExpense"].toLongOrNull(),
+                    operatingExpenses = attribs["operatingExpenses"].toLongOrNull(),
+                    nonOperatingIncome = attribs["nonOperatingIncome"].toLongOrNull(),
+                    preTaxIncome = attribs["preTaxIncome"].toLongOrNull(),
+                    incomeTax = attribs["incomeTax"].toLongOrNull(),
+                    depreciationAmortization = attribs["depreciationAmortization"].toLongOrNull(),
+                    stockBasedCompensation = attribs["stockBasedCompensation"].toLongOrNull(),
+                    dividendsPaid = attribs["dividendsPaid"].toLongOrNull(),
+                    cashOnHand = attribs["cashOnHand"].toLongOrNull(),
+                    currentNetReceivables = attribs["currentNetReceivables"].toLongOrNull(),
+                    inventory = attribs["inventory"].toLongOrNull(),
+                    totalCurrentLiabilities = attribs["totalCurrentLiabilities"].toLongOrNull(),
+                    totalNonCurrentLiabilities = attribs["totalNonCurrentLiabilities"].toLongOrNull(),
+                    longTermDebt = attribs["longTermDebt"].toLongOrNull(),
+                    totalLongTermLiabilities = attribs["totalLongTermLiabilities"].toLongOrNull(),
+                    goodwill = attribs["goodwill"].toLongOrNull(),
+                    intangibleAssetsExcludingGoodwill = attribs["intangibleAssetsExcludingGoodwill"].toLongOrNull(),
+                )
+            }
         }
 }
