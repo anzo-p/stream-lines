@@ -1,821 +1,824 @@
-source-data-params:
-  - market-data:
-      ticker: AAPL
-      company-name: "Apple, Inc."
-
-  - market-data:
-      ticker: ABBV
-      company-name: "AbbVie, Inc."
-
-  - market-data:
-      ticker: ABNB
-      company-name: "Airbnb, Inc."
-
-  - market-data:
-      ticker: ABT
-      company-name: "Abbott Laboratories"
-
-  - market-data:
-      ticker: ACN
-      company-name: "Accenture Plc"
-
-  - market-data:
-      ticker: ADBE
-      company-name: "Adobe, Inc."
-
-  - market-data:
-      ticker: ADI
-      company-name: "Analog Devices, Inc."
-
-  - market-data:
-      ticker: ADP
-      company-name: "Automatic Data Processing, Inc."
-
-  - market-data:
-      ticker: ADSK
-      company-name: "Autodesk, Inc."
-
-  - market-data:
-      ticker: AEP
-      company-name: "American Electric Power Company, Inc."
-
-  - market-data:
-      ticker: AFL
-      company-name: "Aflac Incorporated"
-
-  - market-data:
-      ticker: AIG
-      company-name: "American International Group, Inc."
-
-  - market-data:
-      ticker: AJG
-      company-name: "Arthur J. Gallagher & Co."
-
-  - market-data:
-      ticker: ALL
-      company-name: "The Allstate Corporation"
-
-  - market-data:
-      ticker: AMAT
-      company-name: "Applied Materials, Inc."
-
-  - market-data:
-      ticker: AMD
-      company-name: "Advanced Micro Devices, Inc."
-
-  - market-data:
-      ticker: AMGM
-      company-name: "Amgen, Inc."
-
-  - market-data:
-      ticker: AMP
-      company-name: "Ameriprise Financial, Inc."
-
-  - market-data:
-      ticker: AMT
-      company-name: "American Tower Corporation"
-
-  - market-data:
-      ticker: AMZN
-      company-name: "Amazon.com, Inc."
-
-  - market-data:
-      ticker: ANET
-      company-name: "Arista Networks, Inc."
-
-  - market-data:
-      ticker: AON
-      company-name: "Aon Plc"
-      stockSeries: A
-
-  - market-data:
-      ticker: APH
-      company-name: "Amphenol Corporation"
-
-  - market-data:
-      ticker: APD
-      company-name: "Air Products and Chemicals, Inc."
-
-  - market-data:
-      ticker: AVGO
-      company-name: "Broadcom, Inc."
-
-  - market-data:
-      ticker: AXP
-      company-name: "American Express Company"
-
-  - market-data:
-      ticker: AZO
-      company-name: "AutoZone, Inc."
-
-  - market-data:
-      ticker: BA
-      company-name: "The Boeing Company"
-
-  - market-data:
-      ticker: BAC
-      company-name: "Bank of America Corporation"
-
-  - market-data:
-      ticker: BDX
-      company-name: "Becton, Dickinson and Company"
-
-  - market-data:
-      ticker: BK
-      company-name: "The Bank of New York Mellon Corporation"
-
-  - market-data:
-      ticker: BKNG
-      company-name: "Booking Holdings, Inc."
-
-  - market-data:
-      ticker: BLK
-      company-name: "BlackRock, Inc."
-
-  - market-data:
-      ticker: BMY
-      company-name: "Bristol-Myers Squibb Company"
-
-  - market-data:
-      ticker: BRK.B
-      company-name: "Berkshire Hathaway, Inc."
-      stock-series: B
-    fundamentals:
-      ticker: BRK-B
-
-  - market-data:
-      ticker: BSX
-      company-name: "Boston Scientific Corporation"
-
-  - market-data:
-      ticker: BX
-      company-name: "Blackstone, Inc."
-
-  - market-data:
-      ticker: C
-      company-name: "Citigroup, Inc."
-
-  - market-data:
-      ticker: CARR
-      company-name: "Carrier Global Corporation"
-
-  - market-data:
-      ticker: CAT
-      company-name: "Caterpillar, Inc."
-
-  - market-data:
-      ticker: CB
-      company-name: "Chubb Limited"
-
-  - market-data:
-      ticker: CCI
-      company-name: "Crown Castle Inc."
-
-  - market-data:
-      ticker: CDNS
-      company-name: "Cadence Design Systems, Inc."
-
-  - market-data:
-      ticker: CEG
-      company-name: "Constellation Energy Corporation"
-
-  - market-data:
-      ticker: CI
-      company-name: "The Cigna Group"
-
-  - market-data:
-      ticker: CMCSA
-      company-name: "Comcast Corporation"
-
-  - market-data:
-      ticker: CL
-      company-name: "Colgate-Palmolive Company"
-
-  - market-data:
-      ticker: CME
-      company-name: "CME Group, Inc."
-
-  - market-data:
-      ticker: CMG
-      company-name: "Chipotle Mexican Grill, Inc."
-
-  - market-data:
-      ticker: COF
-      company-name: "Capital One Financial Corporation"
-
-  - market-data:
-      ticker: COP
-      company-name: "ConocoPhillips"
-
-  - market-data:
-      ticker: COST
-      company-name: "Costco Wholesale Corporation"
-
-  - market-data:
-      ticker: CPRT
-      company-name: "Copart, Inc."
-
-  - market-data:
-      ticker: CRM
-      company-name: "Salesforce.com, Inc."
-
-  - market-data:
-      ticker: CRWD
-      company-name: "CrowdStrike Holdings, Inc."
-
-  - market-data:
-      ticker: CSCO
-      company-name: "Cisco Systems, Inc."
-
-  - market-data:
-      ticker: CSX
-      company-name: "CSX Corporation"
-
-  - market-data:
-      ticker: CTAS
-      company-name: "Cintas Corporation"
-
-  - market-data:
-      ticker: CVS
-      company-name: "CVS Health Corporation"
-
-  - market-data:
-      ticker: CVX
-      company-name: "Chevron Corporation"
-
-  - market-data:
-      ticker: D
-      company-name: "Dominion Energy, Inc."
-
-  - market-data:
-      ticker: DE
-      company-name: "Deere & Company"
-
-  - market-data:
-      ticker: DHI
-      company-name: "D.R. Horton, Inc."
-
-  - market-data:
-      ticker: DHR
-      company-name: "Danaher Corporation"
-
-  - market-data:
-      ticker: DIS
-      company-name: "The Walt Disney Company"
-
-  - market-data:
-      ticker: DLR
-      company-name: "Digital Realty Trust, Inc."
-
-  - market-data:
-      ticker: DUK
-      company-name: "Duke Energy Corporation"
-
-  - market-data:
-      ticker: ECL
-      company-name: "Ecolab, Inc."
-
-  - market-data:
-      ticker: ELV
-      company-name: "Elevance Health, Inc."
-
-  - market-data:
-      ticker: EMR
-      company-name: "Emerson Electric Co."
-
-  - market-data:
-      ticker: EOG
-      company-name: "EOG Resources, Inc."
-
-  - market-data:
-      ticker: EQIX
-      company-name: "Equinix, Inc."
-
-  - market-data:
-      ticker: ETN
-      company-name: "Eaton Corporation Plc"
-
-  - market-data:
-      ticker: FCX
-      company-name: "Freeport-McMoran, Inc."
-
-  - market-data:
-      ticker: FDX
-      company-name: "FedEx Corporation"
-
-  - market-data:
-      ticker: FI
-      company-name: "Fiserv, Inc."
-    fundamentals:
-      skip: true
-
-  - market-data:
-      ticker: FIS
-      company-name: "Fidelity National Information Services, Inc."
-
-  - market-data:
-      ticker: FTNT
-      company-name: "Fortinet, Inc."
-
-  - market-data:
-      ticker: GD
-      company-name: "General Dynamics Corporation"
-
-  - market-data:
-      ticker: GE
-      company-name: "GE Aerospace"
-
-  - market-data:
-      ticker: GEV
-      company-name: "GE Vernova Inc."
-    fundamentals:
-      skip: true
-
-  - market-data:
-      ticker: GILD
-      company-name: "Gilead Sciences, Inc."
-
-  - market-data:
-      ticker: GM
-      company-name: "General Motors Company"
-
-  - market-data:
-      ticker: GOOGL
-      company-name: "Alphabet, Inc."
-      stock-series : A
-
-  - market-data:
-      ticker: GOOG
-      company-name: "Alphabet, Inc."
-      stock-series : C
-    fundamentals:
-      skip: true
-
-  - market-data:
-      ticker: GS
-      company-name: "The Goldman Sachs Group, Inc."
-
-  - market-data:
-      ticker: HCA
-      company-name: "HCA Healthcare, Inc."
-
-  - market-data:
-      ticker: HD
-      company-name: "The Home Depot, Inc."
-
-  - market-data:
-      ticker: HLT
-      company-name: "Hilton Worldwide Holdings, Inc."
-
-  - market-data:
-      ticker: HON
-      company-name: "Honeywell International, Inc."
-
-  - market-data:
-      ticker: IBM
-      company-name: "International Business Machines Corporation"
-
-  - market-data:
-      ticker: ICE
-      company-name: "Intercontinental Exchange, Inc."
-
-  - market-data:
-      ticker: INTL
-      company-name: "Intel Corporation"
-    fundamentals:
-      skip: true
-
-  - market-data:
-      ticker: INTU
-      company-name: "Intuit, Inc."
-
-  - market-data:
-      ticker: IQV
-      company-name: "IQVIA Holdings, Inc."
-
-  - market-data:
-      ticker: ISRG
-      company-name: "Intuitive Surgical, Inc."
-
-  - market-data:
-      ticker: ITW
-      company-name: "Illinois Tool Works, Inc."
-
-  - market-data:
-      ticker: JCI
-      company-name: "Johnson Controls International Plc"
-
-  - market-data:
-      ticker: JNJ
-      company-name: "Johnson & Johnson"
-
-  - market-data:
-      ticker: JPM
-      company-name: "JPMorgan Chase & Co."
-
-  - market-data:
-      ticker: KLAC
-      company-name: "KLA Corporation"
-
-  - market-data:
-      ticker: KKR
-      company-name: "KKR & Co., Inc."
-
-  - market-data:
-      ticker: KMB
-      company-name: "Kimberly-Clark Corporation"
-
-  - market-data:
-      ticker: KO
-      company-name: "The Coca-Cola Company"
-
-  - market-data:
-      ticker: LEN
-      company-name: "Lennar Corporation"
-
-  - market-data:
-      ticker: LIN
-      company-name: "Linde Plc"
-
-  - market-data:
-      ticker: LLY
-      company-name: "Eli Lilly & Co"
-
-  - market-data:
-      ticker: LMT
-      company-name: "Lockheed Martin Corporation"
-
-  - market-data:
-      ticker: LOW
-      company-name: "Lowe's Companies, Inc."
-
-  - market-data:
-      ticker: LRCX
-      company-name: "Lam Research Corporation"
-
-  - market-data:
-      ticker: MA
-      company-name: "Mastercard, Inc."
-
-  - market-data:
-      ticker: MAR
-      company-name: "Marriott International, Inc."
-      stock-series : A
-
-  - market-data:
-      ticker: MCD
-      company-name: "McDonald's Corporation"
-
-  - market-data:
-      ticker: MCK
-      company-name: "McKesson Corporation"
-
-  - market-data:
-      ticker: MCO
-      company-name: "Moody's Corporation"
-
-  - market-data:
-      ticker: MDLZ
-      company-name: "Mondelez International, Inc."
-      stock-series : A
-
-  - market-data:
-      ticker: MDT
-      company-name: "Medtronic Plc"
-
-  - market-data:
-      ticker: MET
-      company-name: "MetLife, Inc."
-
-  - market-data:
-      ticker: META
-      company-name: "Meta Platforms, Inc."
-      stock-series : A
-
-  - market-data:
-      ticker: MMC
-      company-name: "Marsh & McLennan Companies, Inc."
-
-  - market-data:
-      ticker: MMM
-      company-name: "3M Company"
-
-  - market-data:
-      ticker: MO
-      company-name: "Altria Group, Inc."
-
-  - market-data:
-      ticker: MPC
-      company-name: "Marathon Petroleum Corporation"
-
-  - market-data:
-      ticker: MPWR
-      company-name: "Monolithic Power Systems, Inc."
-
-  - market-data:
-      ticker: MRK
-      company-name: "Merck & Co., Inc."
-
-  - market-data:
-      ticker: MS
-      company-name: "Morgan Stanley"
-
-  - market-data:
-      ticker: MSCI
-      company-name: "MSCI Inc."
-
-  - market-data:
-      ticker: MSI
-      company-name: "Motorola Solutions, Inc."
-
-  - market-data:
-      ticker: MSFT
-      company-name: "Microsoft Corporation"
-
-  - market-data:
-      ticker: MU
-      company-name: "Micron Technology, Inc."
-
-  - market-data:
-      ticker: NEE
-      company-name: "NextEra Energy, Inc."
-
-  - market-data:
-      ticker: NEM
-      company-name: "Newmont Corporation"
-
-  - market-data:
-      ticker: NFLX
-      company-name: "Netflix, Inc."
-
-  - market-data:
-      ticker: NKE
-      company-name: "NIKE, Inc."
-
-  - market-data:
-      ticker: NOC
-      company-name: "Northrop Grumman Corporation"
-
-  - market-data:
-      ticker: NOW
-      company-name: "ServiceNow, Inc."
-
-  - market-data:
-      ticker: NSC
-      company-name: "Norfolk Southern Corporation"
-
-  - market-data:
-      ticker: NVDA
-      company-name: "NVIDIA Corporation"
-
-  - market-data:
-      ticker: NXPI
-      company-name: "NXP Semiconductors N.V."
-
-  - market-data:
-      ticker: O
-      company-name: "Realty Income Corporation"
-
-  - market-data:
-      ticker: OKE
-      company-name: "ONEOK, Inc."
-
-  - market-data:
-      ticker: ORCL
-      company-name: "Oracle Corporation"
-
-  - market-data:
-      ticker: ORLY
-      company-name: "O'Reilly Automotive, Inc."
-
-  - market-data:
-      ticker: PANW
-      company-name: "Palo Alto Networks, Inc."
-
-  - market-data:
-      ticker: PCAR
-      company-name: "PACCAR, Inc."
-
-  - market-data:
-      ticker: PEP
-      company-name: "PepsiCo, Inc."
-
-  - market-data:
-      ticker: PFE
-      company-name: "Pfizer, Inc."
-
-  - market-data:
-      ticker: PLD
-      company-name: "Prologis, Inc."
-
-  - market-data:
-      ticker: PLTR
-      company-name: "Palantir Technologies, Inc."
-
-  - market-data:
-      ticker: PG
-      company-name: "The Procter & Gamble Company"
-
-  - market-data:
-      ticker: PGR
-      company-name: "Progressive Corporation"
-
-  - market-data:
-      ticker: PH
-      company-name: "Parker-Hannifin Corporation"
-
-  - market-data:
-      ticker: PM
-      company-name: "Philip Morris International, Inc."
-
-  - market-data:
-      ticker: PNC
-      company-name: "PNC Financial Services Group"
-
-  - market-data:
-      ticker: PSA
-      company-name: "Public Storage"
-
-  - market-data:
-      ticker: PSX
-      company-name: "Phillips 66"
-
-  - market-data:
-      ticker: PYPL
-      company-name: "PayPal Holdings, Inc."
-
-  - market-data:
-      ticker: QCOM
-      company-name: "QUALCOMM, Inc."
-
-  - market-data:
-      ticker: REGN
-      company-name: "Regeneron Pharmaceuticals, Inc."
-
-  - market-data:
-      ticker: ROP
-      company-name: "Roper Technologies, Inc."
-
-  - market-data:
-      ticker: ROST
-      company-name: "Ross Stores, Inc."
-
-  - market-data:
-      ticker: RTX
-      company-name: "RTX Corporation"
-
-  - market-data:
-      ticker: SBUX
-      company-name: "Starbucks Corporation"
-
-  - market-data:
-      ticker: SCHW
-      company-name: "The Charles Schwab Corporation"
-
-  - market-data:
-      ticker: SHW
-      company-name: "The Sherwin-Williams Company"
-
-  - market-data:
-      ticker: SLB
-      company-name: "Schlumberger Limited"
-
-  - market-data:
-      ticker: SNPS
-      company-name: "Synopsys, Inc."
-
-  - market-data:
-      ticker: SO
-      company-name: "The Southern Company"
-
-  - market-data:
-      ticker: SPG
-      company-name: "Simon Property Group, Inc."
-
-  - market-data:
-      ticker: SPGI
-      company-name: "S&P Global, Inc."
-
-  - market-data:
-      ticker: SRE
-      company-name: "Sempra"
-
-  - market-data:
-      ticker: SYK
-      company-name: "Stryker Corporation"
-
-  - market-data:
-      ticker: T
-      company-name: "AT&T, Inc."
-
-  - market-data:
-      ticker: TDG
-      company-name: "TransDigm Group, Inc."
-
-  - market-data:
-      ticker: TEL
-      company-name: "TE Connectivity Ltd."
-
-  - market-data:
-      ticker: TFC
-      company-name: "Truist Financial Corporation"
-
-  - market-data:
-      ticker: TGT
-      company-name: "Target Corporation"
-
-  - market-data:
-      ticker: TJX
-      company-name: "The TJX Companies, Inc."
-
-  - market-data:
-      ticker: TMO
-      company-name: "Thermo Fisher Scientific, Inc."
-
-  - market-data:
-      ticker: TMUS
-      company-name: "T-Mobile US, Inc."
-
-  - market-data:
-      ticker: TRV
-      company-name: "The Travelers Companies, Inc."
-
-  - market-data:
-      ticker: TSLA
-      company-name: "Tesla, Inc."
-
-  - market-data:
-      ticker: TT
-      company-name: "Trane Technologies Plc"
-
-  - market-data:
-      ticker: TXN
-      company-name: "Texas Instruments, Incorporated"
-
-  - market-data:
-      ticker: UBER
-      company-name: "Uber Technologies, Inc."
-
-  - market-data:
-      ticker: UNP
-      company-name: "Union Pacific Corporation"
-
-  - market-data:
-      ticker: UNH
-      company-name: "UnitedHealth Group, Inc."
-
-  - market-data:
-      ticker: UPS
-      company-name: "United Parcel Service, Inc."
-
-  - market-data:
-      ticker: URI
-      company-name: "United Rentals, Inc."
-
-  - market-data:
-      ticker: USB
-      company-name: "U.S. Bancorp"
-
-  - market-data:
-      ticker: V
-      company-name: "Visa, Inc."
-
-  - market-data:
-      ticker: VLO
-      company-name: "Valero Energy Corporation"
-
-  - market-data:
-      ticker: VRTX
-      company-name: "Vertex Pharmaceuticals, Inc."
-
-  - market-data:
-      ticker: VZ
-      company-name: "Verizon Communications, Inc."
-
-  - market-data:
-      ticker: WELL
-      company-name: "Welltower, Inc."
-
-  - market-data:
-      ticker: WFC
-      company-name: "Wells Fargo & Company"
-
-  - market-data:
-      ticker: WM
-      company-name: "Waste Management, Inc."
-
-  - market-data:
-      ticker: WMB
-      company-name: "Williams Companies, Inc."
-
-  - market-data:
-      ticker: WMT
-      company-name: "Walmart, Inc."
-
-  - market-data:
-      ticker: XOM
-      company-name: "Exxon Mobil Corporation"
-
-  - market-data:
-      ticker: ZTS
-      company-name: "Zoetis, Inc."
+source-data:
+  params:
+    - market-data:
+        ticker: AAPL
+        company-name: "Apple, Inc."
+
+    - market-data:
+        ticker: ABBV
+        company-name: "AbbVie, Inc."
+
+    - market-data:
+        ticker: ABNB
+        company-name: "Airbnb, Inc."
+
+    - market-data:
+        ticker: ABT
+        company-name: "Abbott Laboratories"
+
+    - market-data:
+        ticker: ACN
+        company-name: "Accenture Plc"
+
+    - market-data:
+        ticker: ADBE
+        company-name: "Adobe, Inc."
+
+    - market-data:
+        ticker: ADI
+        company-name: "Analog Devices, Inc."
+
+    - market-data:
+        ticker: ADP
+        company-name: "Automatic Data Processing, Inc."
+
+    - market-data:
+        ticker: ADSK
+        company-name: "Autodesk, Inc."
+
+    - market-data:
+        ticker: AEP
+        company-name: "American Electric Power Company, Inc."
+
+    - market-data:
+        ticker: AFL
+        company-name: "Aflac Incorporated"
+
+    - market-data:
+        ticker: AIG
+        company-name: "American International Group, Inc."
+
+    - market-data:
+        ticker: AJG
+        company-name: "Arthur J. Gallagher & Co."
+
+    - market-data:
+        ticker: ALL
+        company-name: "The Allstate Corporation"
+
+    - market-data:
+        ticker: AMAT
+        company-name: "Applied Materials, Inc."
+
+    - market-data:
+        ticker: AMD
+        company-name: "Advanced Micro Devices, Inc."
+
+    - market-data:
+        ticker: AMGM
+        company-name: "Amgen, Inc."
+      fundamentals:
+        skip: true
+
+    - market-data:
+        ticker: AMP
+        company-name: "Ameriprise Financial, Inc."
+
+    - market-data:
+        ticker: AMT
+        company-name: "American Tower Corporation"
+
+    - market-data:
+        ticker: AMZN
+        company-name: "Amazon.com, Inc."
+
+    - market-data:
+        ticker: ANET
+        company-name: "Arista Networks, Inc."
+
+    - market-data:
+        ticker: AON
+        company-name: "Aon Plc"
+        stockSeries: A
+
+    - market-data:
+        ticker: APH
+        company-name: "Amphenol Corporation"
+
+    - market-data:
+        ticker: APD
+        company-name: "Air Products and Chemicals, Inc."
+
+    - market-data:
+        ticker: AVGO
+        company-name: "Broadcom, Inc."
+
+    - market-data:
+        ticker: AXP
+        company-name: "American Express Company"
+
+    - market-data:
+        ticker: AZO
+        company-name: "AutoZone, Inc."
+
+    - market-data:
+        ticker: BA
+        company-name: "The Boeing Company"
+
+    - market-data:
+        ticker: BAC
+        company-name: "Bank of America Corporation"
+
+    - market-data:
+        ticker: BDX
+        company-name: "Becton, Dickinson and Company"
+
+    - market-data:
+        ticker: BK
+        company-name: "The Bank of New York Mellon Corporation"
+
+    - market-data:
+        ticker: BKNG
+        company-name: "Booking Holdings, Inc."
+
+    - market-data:
+        ticker: BLK
+        company-name: "BlackRock, Inc."
+
+    - market-data:
+        ticker: BMY
+        company-name: "Bristol-Myers Squibb Company"
+
+    - market-data:
+        ticker: BRK.B
+        company-name: "Berkshire Hathaway, Inc."
+        stock-series: B
+      fundamentals:
+        ticker: BRK-B
+
+    - market-data:
+        ticker: BSX
+        company-name: "Boston Scientific Corporation"
+
+    - market-data:
+        ticker: BX
+        company-name: "Blackstone, Inc."
+
+    - market-data:
+        ticker: C
+        company-name: "Citigroup, Inc."
+
+    - market-data:
+        ticker: CARR
+        company-name: "Carrier Global Corporation"
+
+    - market-data:
+        ticker: CAT
+        company-name: "Caterpillar, Inc."
+
+    - market-data:
+        ticker: CB
+        company-name: "Chubb Limited"
+
+    - market-data:
+        ticker: CCI
+        company-name: "Crown Castle Inc."
+
+    - market-data:
+        ticker: CDNS
+        company-name: "Cadence Design Systems, Inc."
+
+    - market-data:
+        ticker: CEG
+        company-name: "Constellation Energy Corporation"
+
+    - market-data:
+        ticker: CI
+        company-name: "The Cigna Group"
+
+    - market-data:
+        ticker: CMCSA
+        company-name: "Comcast Corporation"
+
+    - market-data:
+        ticker: CL
+        company-name: "Colgate-Palmolive Company"
+
+    - market-data:
+        ticker: CME
+        company-name: "CME Group, Inc."
+
+    - market-data:
+        ticker: CMG
+        company-name: "Chipotle Mexican Grill, Inc."
+
+    - market-data:
+        ticker: COF
+        company-name: "Capital One Financial Corporation"
+
+    - market-data:
+        ticker: COP
+        company-name: "ConocoPhillips"
+
+    - market-data:
+        ticker: COST
+        company-name: "Costco Wholesale Corporation"
+
+    - market-data:
+        ticker: CPRT
+        company-name: "Copart, Inc."
+
+    - market-data:
+        ticker: CRM
+        company-name: "Salesforce.com, Inc."
+
+    - market-data:
+        ticker: CRWD
+        company-name: "CrowdStrike Holdings, Inc."
+
+    - market-data:
+        ticker: CSCO
+        company-name: "Cisco Systems, Inc."
+
+    - market-data:
+        ticker: CSX
+        company-name: "CSX Corporation"
+
+    - market-data:
+        ticker: CTAS
+        company-name: "Cintas Corporation"
+
+    - market-data:
+        ticker: CVS
+        company-name: "CVS Health Corporation"
+
+    - market-data:
+        ticker: CVX
+        company-name: "Chevron Corporation"
+
+    - market-data:
+        ticker: D
+        company-name: "Dominion Energy, Inc."
+
+    - market-data:
+        ticker: DE
+        company-name: "Deere & Company"
+
+    - market-data:
+        ticker: DHI
+        company-name: "D.R. Horton, Inc."
+
+    - market-data:
+        ticker: DHR
+        company-name: "Danaher Corporation"
+
+    - market-data:
+        ticker: DIS
+        company-name: "The Walt Disney Company"
+
+    - market-data:
+        ticker: DLR
+        company-name: "Digital Realty Trust, Inc."
+
+    - market-data:
+        ticker: DUK
+        company-name: "Duke Energy Corporation"
+
+    - market-data:
+        ticker: ECL
+        company-name: "Ecolab, Inc."
+
+    - market-data:
+        ticker: ELV
+        company-name: "Elevance Health, Inc."
+
+    - market-data:
+        ticker: EMR
+        company-name: "Emerson Electric Co."
+
+    - market-data:
+        ticker: EOG
+        company-name: "EOG Resources, Inc."
+
+    - market-data:
+        ticker: EQIX
+        company-name: "Equinix, Inc."
+
+    - market-data:
+        ticker: ETN
+        company-name: "Eaton Corporation Plc"
+
+    - market-data:
+        ticker: FCX
+        company-name: "Freeport-McMoran, Inc."
+
+    - market-data:
+        ticker: FDX
+        company-name: "FedEx Corporation"
+
+    - market-data:
+        ticker: FI
+        company-name: "Fiserv, Inc."
+      fundamentals:
+        skip: true
+
+    - market-data:
+        ticker: FIS
+        company-name: "Fidelity National Information Services, Inc."
+
+    - market-data:
+        ticker: FTNT
+        company-name: "Fortinet, Inc."
+
+    - market-data:
+        ticker: GD
+        company-name: "General Dynamics Corporation"
+
+    - market-data:
+        ticker: GE
+        company-name: "GE Aerospace"
+
+    - market-data:
+        ticker: GEV
+        company-name: "GE Vernova Inc."
+      fundamentals:
+        skip: true
+
+    - market-data:
+        ticker: GILD
+        company-name: "Gilead Sciences, Inc."
+
+    - market-data:
+        ticker: GM
+        company-name: "General Motors Company"
+
+    - market-data:
+        ticker: GOOGL
+        company-name: "Alphabet, Inc."
+        stock-series : A
+
+    - market-data:
+        ticker: GOOG
+        company-name: "Alphabet, Inc."
+        stock-series : C
+      fundamentals:
+        skip: true
+
+    - market-data:
+        ticker: GS
+        company-name: "The Goldman Sachs Group, Inc."
+
+    - market-data:
+        ticker: HCA
+        company-name: "HCA Healthcare, Inc."
+
+    - market-data:
+        ticker: HD
+        company-name: "The Home Depot, Inc."
+
+    - market-data:
+        ticker: HLT
+        company-name: "Hilton Worldwide Holdings, Inc."
+
+    - market-data:
+        ticker: HON
+        company-name: "Honeywell International, Inc."
+
+    - market-data:
+        ticker: IBM
+        company-name: "International Business Machines Corporation"
+
+    - market-data:
+        ticker: ICE
+        company-name: "Intercontinental Exchange, Inc."
+
+    - market-data:
+        ticker: INTL
+        company-name: "Intel Corporation"
+      fundamentals:
+        skip: true
+
+    - market-data:
+        ticker: INTU
+        company-name: "Intuit, Inc."
+
+    - market-data:
+        ticker: IQV
+        company-name: "IQVIA Holdings, Inc."
+
+    - market-data:
+        ticker: ISRG
+        company-name: "Intuitive Surgical, Inc."
+
+    - market-data:
+        ticker: ITW
+        company-name: "Illinois Tool Works, Inc."
+
+    - market-data:
+        ticker: JCI
+        company-name: "Johnson Controls International Plc"
+
+    - market-data:
+        ticker: JNJ
+        company-name: "Johnson & Johnson"
+
+    - market-data:
+        ticker: JPM
+        company-name: "JPMorgan Chase & Co."
+
+    - market-data:
+        ticker: KLAC
+        company-name: "KLA Corporation"
+
+    - market-data:
+        ticker: KKR
+        company-name: "KKR & Co., Inc."
+
+    - market-data:
+        ticker: KMB
+        company-name: "Kimberly-Clark Corporation"
+
+    - market-data:
+        ticker: KO
+        company-name: "The Coca-Cola Company"
+
+    - market-data:
+        ticker: LEN
+        company-name: "Lennar Corporation"
+
+    - market-data:
+        ticker: LIN
+        company-name: "Linde Plc"
+
+    - market-data:
+        ticker: LLY
+        company-name: "Eli Lilly & Co"
+
+    - market-data:
+        ticker: LMT
+        company-name: "Lockheed Martin Corporation"
+
+    - market-data:
+        ticker: LOW
+        company-name: "Lowe's Companies, Inc."
+
+    - market-data:
+        ticker: LRCX
+        company-name: "Lam Research Corporation"
+
+    - market-data:
+        ticker: MA
+        company-name: "Mastercard, Inc."
+
+    - market-data:
+        ticker: MAR
+        company-name: "Marriott International, Inc."
+        stock-series : A
+
+    - market-data:
+        ticker: MCD
+        company-name: "McDonald's Corporation"
+
+    - market-data:
+        ticker: MCK
+        company-name: "McKesson Corporation"
+
+    - market-data:
+        ticker: MCO
+        company-name: "Moody's Corporation"
+
+    - market-data:
+        ticker: MDLZ
+        company-name: "Mondelez International, Inc."
+        stock-series : A
+
+    - market-data:
+        ticker: MDT
+        company-name: "Medtronic Plc"
+
+    - market-data:
+        ticker: MET
+        company-name: "MetLife, Inc."
+
+    - market-data:
+        ticker: META
+        company-name: "Meta Platforms, Inc."
+        stock-series : A
+
+    - market-data:
+        ticker: MMC
+        company-name: "Marsh & McLennan Companies, Inc."
+
+    - market-data:
+        ticker: MMM
+        company-name: "3M Company"
+
+    - market-data:
+        ticker: MO
+        company-name: "Altria Group, Inc."
+
+    - market-data:
+        ticker: MPC
+        company-name: "Marathon Petroleum Corporation"
+
+    - market-data:
+        ticker: MPWR
+        company-name: "Monolithic Power Systems, Inc."
+
+    - market-data:
+        ticker: MRK
+        company-name: "Merck & Co., Inc."
+
+    - market-data:
+        ticker: MS
+        company-name: "Morgan Stanley"
+
+    - market-data:
+        ticker: MSCI
+        company-name: "MSCI Inc."
+
+    - market-data:
+        ticker: MSI
+        company-name: "Motorola Solutions, Inc."
+
+    - market-data:
+        ticker: MSFT
+        company-name: "Microsoft Corporation"
+
+    - market-data:
+        ticker: MU
+        company-name: "Micron Technology, Inc."
+
+    - market-data:
+        ticker: NEE
+        company-name: "NextEra Energy, Inc."
+
+    - market-data:
+        ticker: NEM
+        company-name: "Newmont Corporation"
+
+    - market-data:
+        ticker: NFLX
+        company-name: "Netflix, Inc."
+
+    - market-data:
+        ticker: NKE
+        company-name: "NIKE, Inc."
+
+    - market-data:
+        ticker: NOC
+        company-name: "Northrop Grumman Corporation"
+
+    - market-data:
+        ticker: NOW
+        company-name: "ServiceNow, Inc."
+
+    - market-data:
+        ticker: NSC
+        company-name: "Norfolk Southern Corporation"
+
+    - market-data:
+        ticker: NVDA
+        company-name: "NVIDIA Corporation"
+
+    - market-data:
+        ticker: NXPI
+        company-name: "NXP Semiconductors N.V."
+
+    - market-data:
+        ticker: O
+        company-name: "Realty Income Corporation"
+
+    - market-data:
+        ticker: OKE
+        company-name: "ONEOK, Inc."
+
+    - market-data:
+        ticker: ORCL
+        company-name: "Oracle Corporation"
+
+    - market-data:
+        ticker: ORLY
+        company-name: "O'Reilly Automotive, Inc."
+
+    - market-data:
+        ticker: PANW
+        company-name: "Palo Alto Networks, Inc."
+
+    - market-data:
+        ticker: PCAR
+        company-name: "PACCAR, Inc."
+
+    - market-data:
+        ticker: PEP
+        company-name: "PepsiCo, Inc."
+
+    - market-data:
+        ticker: PFE
+        company-name: "Pfizer, Inc."
+
+    - market-data:
+        ticker: PLD
+        company-name: "Prologis, Inc."
+
+    - market-data:
+        ticker: PLTR
+        company-name: "Palantir Technologies, Inc."
+
+    - market-data:
+        ticker: PG
+        company-name: "The Procter & Gamble Company"
+
+    - market-data:
+        ticker: PGR
+        company-name: "Progressive Corporation"
+
+    - market-data:
+        ticker: PH
+        company-name: "Parker-Hannifin Corporation"
+
+    - market-data:
+        ticker: PM
+        company-name: "Philip Morris International, Inc."
+
+    - market-data:
+        ticker: PNC
+        company-name: "PNC Financial Services Group"
+
+    - market-data:
+        ticker: PSA
+        company-name: "Public Storage"
+
+    - market-data:
+        ticker: PSX
+        company-name: "Phillips 66"
+
+    - market-data:
+        ticker: PYPL
+        company-name: "PayPal Holdings, Inc."
+
+    - market-data:
+        ticker: QCOM
+        company-name: "QUALCOMM, Inc."
+
+    - market-data:
+        ticker: REGN
+        company-name: "Regeneron Pharmaceuticals, Inc."
+
+    - market-data:
+        ticker: ROP
+        company-name: "Roper Technologies, Inc."
+
+    - market-data:
+        ticker: ROST
+        company-name: "Ross Stores, Inc."
+
+    - market-data:
+        ticker: RTX
+        company-name: "RTX Corporation"
+
+    - market-data:
+        ticker: SBUX
+        company-name: "Starbucks Corporation"
+
+    - market-data:
+        ticker: SCHW
+        company-name: "The Charles Schwab Corporation"
+
+    - market-data:
+        ticker: SHW
+        company-name: "The Sherwin-Williams Company"
+
+    - market-data:
+        ticker: SLB
+        company-name: "Schlumberger Limited"
+
+    - market-data:
+        ticker: SNPS
+        company-name: "Synopsys, Inc."
+
+    - market-data:
+        ticker: SO
+        company-name: "The Southern Company"
+
+    - market-data:
+        ticker: SPG
+        company-name: "Simon Property Group, Inc."
+
+    - market-data:
+        ticker: SPGI
+        company-name: "S&P Global, Inc."
+
+    - market-data:
+        ticker: SRE
+        company-name: "Sempra"
+
+    - market-data:
+        ticker: SYK
+        company-name: "Stryker Corporation"
+
+    - market-data:
+        ticker: T
+        company-name: "AT&T, Inc."
+
+    - market-data:
+        ticker: TDG
+        company-name: "TransDigm Group, Inc."
+
+    - market-data:
+        ticker: TEL
+        company-name: "TE Connectivity Ltd."
+
+    - market-data:
+        ticker: TFC
+        company-name: "Truist Financial Corporation"
+
+    - market-data:
+        ticker: TGT
+        company-name: "Target Corporation"
+
+    - market-data:
+        ticker: TJX
+        company-name: "The TJX Companies, Inc."
+
+    - market-data:
+        ticker: TMO
+        company-name: "Thermo Fisher Scientific, Inc."
+
+    - market-data:
+        ticker: TMUS
+        company-name: "T-Mobile US, Inc."
+
+    - market-data:
+        ticker: TRV
+        company-name: "The Travelers Companies, Inc."
+
+    - market-data:
+        ticker: TSLA
+        company-name: "Tesla, Inc."
+
+    - market-data:
+        ticker: TT
+        company-name: "Trane Technologies Plc"
+
+    - market-data:
+        ticker: TXN
+        company-name: "Texas Instruments, Incorporated"
+
+    - market-data:
+        ticker: UBER
+        company-name: "Uber Technologies, Inc."
+
+    - market-data:
+        ticker: UNP
+        company-name: "Union Pacific Corporation"
+
+    - market-data:
+        ticker: UNH
+        company-name: "UnitedHealth Group, Inc."
+
+    - market-data:
+        ticker: UPS
+        company-name: "United Parcel Service, Inc."
+
+    - market-data:
+        ticker: URI
+        company-name: "United Rentals, Inc."
+
+    - market-data:
+        ticker: USB
+        company-name: "U.S. Bancorp"
+
+    - market-data:
+        ticker: V
+        company-name: "Visa, Inc."
+
+    - market-data:
+        ticker: VLO
+        company-name: "Valero Energy Corporation"
+
+    - market-data:
+        ticker: VRTX
+        company-name: "Vertex Pharmaceuticals, Inc."
+
+    - market-data:
+        ticker: VZ
+        company-name: "Verizon Communications, Inc."
+
+    - market-data:
+        ticker: WELL
+        company-name: "Welltower, Inc."
+
+    - market-data:
+        ticker: WFC
+        company-name: "Wells Fargo & Company"
+
+    - market-data:
+        ticker: WM
+        company-name: "Waste Management, Inc."
+
+    - market-data:
+        ticker: WMB
+        company-name: "Williams Companies, Inc."
+
+    - market-data:
+        ticker: WMT
+        company-name: "Walmart, Inc."
+
+    - market-data:
+        ticker: XOM
+        company-name: "Exxon Mobil Corporation"
+
+    - market-data:
+        ticker: ZTS
+        company-name: "Zoetis, Inc."

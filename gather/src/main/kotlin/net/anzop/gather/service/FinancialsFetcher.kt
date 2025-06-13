@@ -28,7 +28,7 @@ class FinancialsFetcher(
         val params = param
             ?.let { listOf(it) }
             ?: sourceDataConfig
-                .sourceDataParams
+                .params
                 .filterNot { it.fundamentals?.skip == true }
                 .shuffled(Random(System.nanoTime()))
                 .take(dataJockeyProps.companyCountPerRun)

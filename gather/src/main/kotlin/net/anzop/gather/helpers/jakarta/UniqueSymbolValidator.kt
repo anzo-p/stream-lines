@@ -9,7 +9,7 @@ class UniqueSymbolValidator : ConstraintValidator<UniqueSymbols, SourceDataConfi
         val symbols = mutableSetOf<String>()
         val duplicates = mutableSetOf<String>()
 
-        config.sourceDataParams.forEach {
+        config.params.forEach {
             if (!symbols.add(it.marketData.ticker)) {
                 duplicates.add(it.marketData.ticker)
             }

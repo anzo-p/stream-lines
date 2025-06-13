@@ -15,7 +15,6 @@ import kotlin.time.Duration.Companion.minutes
 
 @Component
 class AppRunner(
-    private val sourceDataConfig: SourceDataConfig,
     private val barDataFetcher: BarDataFetcher,
     private val indexProcessor: IndexProcessor,
     private val financialsFetcher: FinancialsFetcher,
@@ -25,7 +24,7 @@ class AppRunner(
     private val mutex = Mutex()
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     @Volatile private var isRunning = false
-    
+
     fun fetchAndProcess(command: RunCommand): RunnerCallResult {
         if (!mutex.tryLock()) {
             logger.info("${RunnerCallResult.LOCK_UNAVAILABLE.message} - Exiting...")
@@ -52,7 +51,7 @@ class AppRunner(
                         }
 
                         is FetchFinancials ->
-                            sourceDataConfig
+                            SourceDataConfig
                                 .resolve(command.ticker)
                                 ?.let { financialsFetcher.run(it) }
 

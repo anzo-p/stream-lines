@@ -3,7 +3,7 @@ package net.anzop.gather.model.financials
 import net.anzop.gather.model.SourceDataParams
 
 data class Financials(
-    val sourceDataSettings: SourceDataParams,
+    val params: SourceDataParams,
     val reportPeriod: ReportPeriod,
     val currency: String,
     val revenue: Long?,
