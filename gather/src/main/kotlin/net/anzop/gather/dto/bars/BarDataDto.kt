@@ -49,14 +49,6 @@ data class BarDataDto(
 ) {
     fun toModel(measurement: Measurement, params: SourceDataParams): BarData {
         validate(this)
-            .takeIf { it.isNotEmpty() }
-            ?.let { violations ->
-                val errorMessages = violations.joinToString("; ") { violation ->
-                    val propertyName = violation.propertyPath.iterator().asSequence().last().name
-                    "'$propertyName' ${violation.message}"
-                }
-                throw IllegalArgumentException("Validation failed for ${this::class.simpleName}: $errorMessages")
-            }
 
         val utcTime = marketTimestamp.toInstant()
 
