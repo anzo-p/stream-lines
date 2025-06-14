@@ -181,6 +181,8 @@ source-data:
     - market-data:
         ticker: CEG
         company-name: "Constellation Energy Corporation"
+      fundamentals:
+        skip: true
 
     - market-data:
         ticker: CI
