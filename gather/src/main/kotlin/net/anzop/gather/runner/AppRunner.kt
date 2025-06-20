@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withTimeoutOrNull
 import net.anzop.gather.config.SourceDataConfig
+import net.anzop.gather.repository.influxdb.MarketDataFacade
 import net.anzop.gather.service.BarDataFetcher
 import net.anzop.gather.service.FinancialsFetcher
 import net.anzop.gather.service.IndexProcessor
@@ -18,42 +19,45 @@ class AppRunner(
     private val barDataFetcher: BarDataFetcher,
     private val indexProcessor: IndexProcessor,
     private val financialsFetcher: FinancialsFetcher,
+    private val marketDataFacade: MarketDataFacade,
 ) {
     private val logger = LoggerFactory.getLogger(AppRunner::class.java)
 
     private val mutex = Mutex()
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     @Volatile private var isRunning = false
-
-    fun fetchAndProcess(command: RunCommand): RunnerCallResult {
+    
+    fun processRunCommand(command: RunCommand): RunCommandResult {
         if (!mutex.tryLock()) {
-            logger.info("${RunnerCallResult.LOCK_UNAVAILABLE.message} - Exiting...")
-            return RunnerCallResult.LOCK_UNAVAILABLE
+            logger.info("${RunCommandResult.LOCK_UNAVAILABLE.message} - Exiting...")
+            return RunCommandResult.LOCK_UNAVAILABLE
         }
 
         if (isRunning) {
-            logger.info("${RunnerCallResult.ALREADY_RUNNING.message} - Exiting...")
+            logger.info("${RunCommandResult.ALREADY_RUNNING.message} - Exiting...")
             mutex.unlock()
-            return RunnerCallResult.ALREADY_RUNNING
+            return RunCommandResult.ALREADY_RUNNING
         }
 
         isRunning = true
-        logger.info("Launching tasks...")
 
         coroutineScope.launch {
             withTimeoutOrNull(15.minutes) {
                 try {
                     when (command) {
-                        is FetchAndProcessAll -> {
-                            barDataFetcher.run()
-                            indexProcessor.run()
-                            financialsFetcher.run()
-                        }
+                        is DeleteMarketData ->
+                            marketDataFacade.deleteBarData(command.ticker, command.since)
 
                         is FetchFinancials ->
                             SourceDataConfig
                                 .resolve(command.ticker)
                                 ?.let { financialsFetcher.run(it) }
+
+                        is FetchMarketDataAndProcessIndex -> {
+                            barDataFetcher.run()
+                            indexProcessor.run()
+                            financialsFetcher.run()
+                        }
 
                         is RedoIndex ->
                             indexProcessor.run()
@@ -68,6 +72,6 @@ class AppRunner(
             }
         }
 
-        return RunnerCallResult.SUCCESS
+        return RunCommandResult.SUCCESS
     }
 }

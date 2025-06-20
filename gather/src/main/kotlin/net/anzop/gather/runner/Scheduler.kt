@@ -12,7 +12,7 @@ class Scheduler(private val appRunner: AppRunner) {
     @Scheduled(cron = "0 5 0 * * TUE-SAT")
     fun scheduledJob() {
         logger.info("Scheduled task running...")
-        appRunner.fetchAndProcess(FetchAndProcessAll)
+        appRunner.processRunCommand(FetchMarketDataAndProcessIndex)
         logger.info("Scheduled task done.")
     }
 }
