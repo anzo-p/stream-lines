@@ -5,55 +5,95 @@ The App literally draws an SVG Polyline onto a dashboard out of a stream of data
 ```mermaid
 %%{init: {"flowchart": {"htmlLabels": false}} }%%
 flowchart LR
-  alpacaWs[/"WebSocket feed"/]
-  alpacaRest[/"Rest API"/]
+  %% data sources
+  alpacaWebSocket[/"Alpaca WebSocket"/]
+  alpacaRestApi[/"Alpaca Rest API"/]
+  datajockeyRestApi[/"DataJockey Rest API"/]
+
+  %% persistence
+  influxdbUpstream[(InfluxDB)]
+  influxdbDownstream[(InfluxDB)]
+  dynamodb[(DynamoDB)]
+
+  %% streams
+  kinesisUpstream["AWS Kinesis"]
+  kinesisDownstream["AWS Kinesis"]
+
+  %% services
   ingest("`**Ingest**
   Rust`")
+
   gather("`**Gather**
   Kotlin
   Spring Boot`")
-  influxdb[(InfluxDB)]
-  kinesisUpstream["AWS Kinesis"]
-  kinesisDownstream["AWS Kinesis"]
+
   ripples("`**Ripples**
   Scala
   Apache Flink`")
+
   currents("`**Currents**
   Scala
   Apache Flink`")
+
+  beacons("`**Beacons**
+  *Planned..*
+  `")
+  classDef dashedBox stroke-dasharray: 5 5;
+  class beacons dashedBox;
+
   backend("`**Backend**
   Rust
   GraphQL`")
+
+  %% frontend
   apigateway["AWS API Gateway
   WebSocket
   AWS Lambda
   TypeScript"]
-  dashboard["`**Dashboard**
-  TypeScript
-  Svelte`"]
 
-  subgraph "Data Sources"
-    alpacaWs
-    alpacaRest  
+  dashboard("`**Dashboard**
+  TypeScript
+  Svelte`")
+
+  subgraph "data sources"
+    alpacaWebSocket
+    alpacaRestApi
+    datajockeyRestApi
   end
-  alpacaWs --> ingest
+
+  alpacaWebSocket --> ingest
   ingest --> kinesisUpstream
   kinesisUpstream --> ripples
-  ripples --> influxdb
-  subgraph "query path"
-    influxdb --> backend
+  ripples --> kinesisDownstream
+  ripples --> influxdbDownstream
+
+  alpacaRestApi --> gather
+  datajockeyRestApi --> gather
+  gather --> influxdbUpstream
+  influxdbUpstream --> currents
+  currents --> influxdbDownstream
+
+  gather --> dynamodb
+  dynamodb --> beacons
+  influxdbUpstream --> beacons
+  beacons --> influxdbDownstream
+
+  subgraph "analytics"
+    ripples
+    currents
+    beacons
   end
+
   subgraph "real-time path"
     kinesisDownstream --> apigateway
   end  
-  backend --> dashboard
-  ripples --> kinesisDownstream
+
+  subgraph "query path"
+    influxdbDownstream --> backend
+  end
+
   apigateway --> dashboard
-
-  alpacaRest --> gather
-  gather --> currents
-  currents --> influxdb
-
+  backend --> dashboard
 ```
 
 ### Ingest
@@ -62,7 +102,7 @@ Consumes a websocket from an external provider. In this case market data feed fr
 
 ### Gather
 
-Consumes rest api from an external provider. Currently bar data for historical transactions from the same provider, Alpaca.
+Consumes rest api from an external provider. Currently bar data for historical transactions from Alpaca and company financials from [DataJockey](https://datajockey.io).
 
 ### Ripples
 
@@ -77,6 +117,10 @@ Importantly Ripples ouputs into two paths:
 
 Compute analytical results out of data provided by Gather.
 
+### Beacons (planned service)
+
+Becons would compute analytical results from company financials themselves and also from interesting relationships between fundamentals and stock price development.
+
 ### Backend
 
 A GraphQL server to provide data from InfluxDB.
@@ -84,14 +128,3 @@ A GraphQL server to provide data from InfluxDB.
 ### Dashboard
 
 Draw SVG Polylines form the data as well as ruler guides to that data. Some amount of data normalising required.
-
-## Todo
-
-- serve svelte app from aws
-- instead of tooltip write the info on top of graph or somewhere
-- input filtering all systems that receive requests or consume external data
-- tests
-- metrics
-- health server for ingest? but first make it work locally
-- health server for flink
-- logging
