@@ -34,7 +34,7 @@ pub struct WindowedQuotationQueryInputLastHour {
 
 pub struct WindowedQuotationRoot {
     influx_client: influxdb2::Client,
-    inxlux_bucket: String,
+    influx_bucket: String,
 }
 
 impl WindowedQuotationRoot {
@@ -44,7 +44,7 @@ impl WindowedQuotationRoot {
 
         WindowedQuotationRoot {
             influx_client: client.clone(),
-            inxlux_bucket: influx_bucket.unwrap(),
+            influx_bucket: influx_bucket.unwrap(),
         }
     }
 }
@@ -57,7 +57,7 @@ impl WindowedQuotationRoot {
         ctx: &Context<'_>,
         input: WindowedQuotationQueryInput,
     ) -> Result<Vec<WindowedQuotationData>, Error> {
-        let query = query_influx(&self.inxlux_bucket, &input.symbol, input.start_time, input.end_time);
+        let query = query_influx(&self.influx_bucket, &input.symbol, input.start_time, input.end_time);
 
         match self.influx_client.query(Some(query)).await {
             Ok(fetch) if !fetch.is_empty() => Ok(fetch),
@@ -71,7 +71,7 @@ impl WindowedQuotationRoot {
         input: WindowedQuotationQueryInputLastHour,
     ) -> Result<Vec<WindowedQuotationData>, Error> {
         let query = query_influx(
-            &self.inxlux_bucket,
+            &self.influx_bucket,
             &input.symbol,
             chrono::Utc::now().timestamp() - (60 * 60),
             chrono::Utc::now().timestamp(),
