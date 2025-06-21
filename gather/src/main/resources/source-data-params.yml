@@ -65,7 +65,7 @@ source-data:
         company-name: "Advanced Micro Devices, Inc."
 
     - market-data:
-        ticker: AMGM
+        ticker: AMGN
         company-name: "Amgen, Inc."
       fundamentals:
         skip: true

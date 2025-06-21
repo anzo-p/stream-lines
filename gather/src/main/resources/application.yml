@@ -7,6 +7,7 @@ alpaca:
   data_source: sip
   earliest_historical_date: 2016-01-02
   max_calls_per_minute: 190
+  max_exec_duration_minutes: 30
 
 aws:
   region: ${AWS_REGION}

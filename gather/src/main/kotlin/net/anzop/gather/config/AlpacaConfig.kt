@@ -41,6 +41,9 @@ class AlpacaProps {
 
     @Min(1)
     var maxCallsPerMinute: Int = 1
+
+    @Min(1)
+    var maxExecDurationMinutes: Long = 1
 }
 
 @Configuration

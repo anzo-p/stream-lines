@@ -23,9 +23,9 @@ import org.springframework.stereotype.Service
 @Service
 class IndexProcessor(
     private val alpacaProps: AlpacaProps,
+    private val indexMemberCreator: IndexMemberCreator,
     private val indexMemberRepository: IndexMemberRepository,
     private val indexStaleRepository: IndexStaleRepository,
-    private val indexMemberCreator: IndexMemberCreator,
     private val marketDataFacade: MarketDataFacade,
 ) {
     private val logger = LoggerFactory.getLogger(IndexProcessor::class.java)

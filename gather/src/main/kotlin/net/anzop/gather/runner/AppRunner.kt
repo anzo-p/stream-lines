@@ -26,8 +26,10 @@ class AppRunner(
     private val mutex = Mutex()
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     @Volatile private var isRunning = false
-    
+
     fun processRunCommand(command: RunCommand): RunCommandResult {
+        logger.info("AppRunner.processRunCommand: $command")
+
         if (!mutex.tryLock()) {
             logger.info("${RunCommandResult.LOCK_UNAVAILABLE.message} - Exiting...")
             return RunCommandResult.LOCK_UNAVAILABLE
@@ -54,9 +56,12 @@ class AppRunner(
                                 ?.let { financialsFetcher.run(it) }
 
                         is FetchMarketDataAndProcessIndex -> {
-                            barDataFetcher.run()
-                            indexProcessor.run()
-                            financialsFetcher.run()
+                            if (barDataFetcher.run()) {
+                                indexProcessor.run()
+                                financialsFetcher.run()
+                            } else {
+                                logger.warn("Skipping index processing and fetch for financials.")
+                            }
                         }
 
                         is RedoIndex ->

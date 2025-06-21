@@ -1,6 +1,8 @@
 package net.anzop.gather.service
 
 import java.net.URI
+import java.time.Duration
+import java.time.Instant
 import java.time.OffsetDateTime
 import net.anzop.gather.config.AlpacaProps
 import net.anzop.gather.config.SourceDataConfig
@@ -29,12 +31,25 @@ class BarDataFetcher(
 
     private val logger = LoggerFactory.getLogger(BarDataFetcher::class.java)
 
-    fun run() {
-        val earliestMarketTimestamp = sourceDataConfig
+    fun run(): Boolean {
+        val start = Instant.now()
+        val maxDuration = Duration.ofMinutes(alpacaProps.maxExecDurationMinutes)
+
+        val earliestMarketTimestamp: OffsetDateTime = sourceDataConfig
             .params
             .mapNotNull { params ->
                 val startDateTime = resolveStartDate(params.marketData.ticker)
-                processTicker(params, startDateTime)
+                val earliestTsForTicker = processTicker(params, startDateTime)
+
+                if (Duration.between(start, Instant.now()) > maxDuration) {
+                    logger.warn(
+                        "Controlled exit after ${maxDuration.toMinutes()} minutes. " +
+                                "Post a request to fetch more or wait for scheduled runs to work though the load."
+                    )
+                    return false
+                } else {
+                    earliestTsForTicker
+                }
             }
             .min()
 
@@ -42,6 +57,8 @@ class BarDataFetcher(
         earliestMarketTimestamp.let {
             indexStaleRepository.suggestIndexStaleFrom(it.toLocalDate())
         }
+
+        return true
     }
 
     private fun resolveStartDate(ticker: String): OffsetDateTime {
