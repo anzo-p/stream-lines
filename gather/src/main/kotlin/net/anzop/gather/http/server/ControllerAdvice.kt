@@ -7,6 +7,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
+import org.springframework.web.servlet.NoHandlerFoundException
 
 @ControllerAdvice
 class ApiExceptionHandler {
@@ -24,6 +25,12 @@ class ApiExceptionHandler {
         badRequest(
             "Missing required parameter '${ex.parameterName}' of type ${ex.parameterType}."
         )
+
+    @ExceptionHandler(NoHandlerFoundException::class)
+    fun handleNotFound(): HttpResponse =
+        ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(mapOf("error" to "Requested route not found"))
 
     @ExceptionHandler(Exception::class)
     fun handleGeneric(ex: Exception): HttpResponse =

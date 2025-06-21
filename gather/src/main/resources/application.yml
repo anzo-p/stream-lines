@@ -31,3 +31,6 @@ spring:
     import:
       - "security.yml"
       - "source-data-params.yml"
+  web:
+    resources:
+      add-mappings: false
