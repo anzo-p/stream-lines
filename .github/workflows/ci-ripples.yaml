@@ -28,6 +28,9 @@ jobs:
           java-version: "11"
           architecture: "x64"
 
+      - name: Setup sbt launcher
+        uses: sbt/setup-sbt@v1
+        
       - name: Setup AWS and ECR
         id: aws-ecr
         uses: ./.github/actions/aws-ecr
