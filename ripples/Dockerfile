@@ -6,7 +6,7 @@ RUN yum -y install unzip
 
 COPY target/universal/ripples-0.1.zip .
 
-RUN UNZIP_DISABLE_ZIPBOMB_DETECTION=true unzip -o -q ripples-0.1.zip
+RUN UNZIP_DISABLE_ZIPBOMB_DETECTION=true unzip -o ripples-0.1.zip
 
 FROM amazoncorretto:17-alpine
 

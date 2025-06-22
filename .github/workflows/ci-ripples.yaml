@@ -47,5 +47,5 @@ jobs:
           docker buildx build --platform linux/arm64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG . --push
         env:
           ECR_REGISTRY: ${{ steps.aws-ecr.outputs.registry }}
-          ECR_REPOSITORY: stream-lines-compute
+          ECR_REPOSITORY: stream-lines-ripples
           IMAGE_TAG: latest
