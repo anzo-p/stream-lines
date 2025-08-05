@@ -67,21 +67,6 @@ class MarketDataRepository (
                 return cast(result, clazz)
             }
 
-    fun <T : MarketData> getLastMeasurement(
-        measurement: Measurement,
-        ticker: String,
-        earlierThan: Instant? = null,
-        clazz: Class<T>
-    ): T? =
-        getLatestMeasurementTime(measurement, ticker, earlierThan)
-            ?.let { ts ->
-                val q = baseFlux(measurement, ticker)
-                    .filter(Restrictions.time().equal(ts))
-
-                val result = runAndParse(q.toString(), clazz).first()
-                return cast(result, clazz)
-            }
-
     fun getFirstMeasurementTime(
         measurement: Measurement,
         ticker: String,

@@ -9,8 +9,11 @@ fun <T : MarketData> parseTable(tables: List<FluxTable>, factory: MarketDataFact
     toRecords(tables).mapNotNull { (ticker, records) ->
         val values = mutableMapOf<String, MutableList<Any?>>()
 
-        fun addOnce(key: String, value: Any) =
-            (key !in values).let { values[key] = mutableListOf(value) }
+        fun addOnce(key: String, value: Any) {
+            if (key !in values) {
+                values[key] = mutableListOf(value)
+            }
+        }
 
         fun add(key: String, value: Any) =
             values.getOrPut(key) { mutableListOf() }.add(value)
@@ -18,14 +21,14 @@ fun <T : MarketData> parseTable(tables: List<FluxTable>, factory: MarketDataFact
         records
             .sortedBy { record -> record.getValueByKey("_time") as? Instant }
             .forEach { record ->
-                val recordField = record.field ?: return@forEach
+                val field = record.field ?: return@forEach
                 record.values.forEach { (key, value) ->
                     when (key) {
                         "_time" -> addOnce("time", value)
                         "_measurement" -> addOnce("measurement", value)
                         "company" -> addOnce(key, value)
                         "regularTradingHours" -> add(key, value)
-                        "_value" -> add(recordField, value)
+                        "_value" -> add(field, value)
                     }
                 }
             }
