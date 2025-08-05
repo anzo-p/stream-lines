@@ -1,826 +1,1025 @@
+# see fja05680/sp500 for updates
+# https://github.com/fja05680/sp500/tree/master
+
 source-data:
   params:
     - market-data:
         ticker: AAPL
         company-name: "Apple, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: ABBV
         company-name: "AbbVie, Inc."
+        start-date: 2013-01-02
 
     - market-data:
         ticker: ABNB
         company-name: "Airbnb, Inc."
+        start-date: 2023-09-18
 
     - market-data:
         ticker: ABT
         company-name: "Abbott Laboratories"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: ACN
         company-name: "Accenture Plc"
+        start-date: 2011-07-06
 
     - market-data:
         ticker: ADBE
         company-name: "Adobe, Inc."
+        start-date: 1997-05-06
 
     - market-data:
         ticker: ADI
         company-name: "Analog Devices, Inc."
+        start-date: 1999-10-12
 
     - market-data:
         ticker: ADP
         company-name: "Automatic Data Processing, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: ADSK
         company-name: "Autodesk, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: AEP
         company-name: "American Electric Power Company, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: AFL
         company-name: "Aflac Incorporated"
+        start-date: 1999-05-28
 
     - market-data:
         ticker: AIG
         company-name: "American International Group, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: AJG
         company-name: "Arthur J. Gallagher & Co."
+        start-date: 2016-05-31
 
     - market-data:
         ticker: ALL
         company-name: "The Allstate Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: AMAT
         company-name: "Applied Materials, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: AMD
         company-name: "Advanced Micro Devices, Inc."
+        start-date: 2017-03-20
 
     - market-data:
         ticker: AMGN
         company-name: "Amgen, Inc."
-      fundamentals:
-        skip: true
+        start-date: 1996-01-02
 
     - market-data:
         ticker: AMP
         company-name: "Ameriprise Financial, Inc."
+        start-date: 2005-10-03
 
     - market-data:
         ticker: AMT
         company-name: "American Tower Corporation"
+        start-date: 2007-11-19
 
     - market-data:
         ticker: AMZN
         company-name: "Amazon.com, Inc."
+        start-date: 2005-11-21
 
     - market-data:
         ticker: ANET
         company-name: "Arista Networks, Inc."
+        start-date: 2018-08-28
 
     - market-data:
         ticker: AON
         company-name: "Aon Plc"
-        stockSeries: A
+        start-date: 1996-04-23
 
     - market-data:
         ticker: APH
         company-name: "Amphenol Corporation"
+        start-date: 2008-09-30
 
     - market-data:
         ticker: APD
         company-name: "Air Products and Chemicals, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: AVGO
         company-name: "Broadcom, Inc."
+        start-date: 2014-05-08
 
     - market-data:
         ticker: AXP
         company-name: "American Express Company"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: AZO
         company-name: "AutoZone, Inc."
+        start-date: 1997-01-02
 
     - market-data:
         ticker: BA
         company-name: "The Boeing Company"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: BAC
         company-name: "Bank of America Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: BDX
         company-name: "Becton, Dickinson and Company"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: BK
         company-name: "The Bank of New York Mellon Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: BKNG
         company-name: "Booking Holdings, Inc."
+        start-date: 2009-11-06
 
     - market-data:
         ticker: BLK
         company-name: "BlackRock, Inc."
+        start-date: 2011-04-04
 
     - market-data:
         ticker: BMY
         company-name: "Bristol-Myers Squibb Company"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: BRK.B
         company-name: "Berkshire Hathaway, Inc."
         stock-series: B
+        start-date: 2010-02-16
       fundamentals:
         ticker: BRK-B
 
     - market-data:
         ticker: BSX
         company-name: "Boston Scientific Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: BX
         company-name: "Blackstone, Inc."
+        start-date: 2023-09-18
 
     - market-data:
         ticker: C
         company-name: "Citigroup, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: CARR
         company-name: "Carrier Global Corporation"
+        start-date: 2020-04-03
 
     - market-data:
         ticker: CAT
         company-name: "Caterpillar, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: CB
         company-name: "Chubb Limited"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: CCI
         company-name: "Crown Castle Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: CDNS
         company-name: "Cadence Design Systems, Inc."
+        start-date: 2017-09-18
 
     - market-data:
         ticker: CEG
         company-name: "Constellation Energy Corporation"
+        start-date: 2022-02-02
       fundamentals:
         skip: true
 
     - market-data:
         ticker: CI
         company-name: "The Cigna Group"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: CMCSA
         company-name: "Comcast Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: CL
         company-name: "Colgate-Palmolive Company"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: CME
         company-name: "CME Group, Inc."
+        start-date: 2006-08-11
 
     - market-data:
         ticker: CMG
         company-name: "Chipotle Mexican Grill, Inc."
+        start-date: 2011-04-28
 
     - market-data:
         ticker: COF
         company-name: "Capital One Financial Corporation"
+        start-date: 1998-07-01
 
     - market-data:
         ticker: COP
         company-name: "ConocoPhillips"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: COST
         company-name: "Costco Wholesale Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: CPRT
         company-name: "Copart, Inc."
+        start-date: 2018-07-02
 
     - market-data:
         ticker: CRM
         company-name: "Salesforce.com, Inc."
+        start-date: 2008-09-15
 
     - market-data:
         ticker: CRWD
         company-name: "CrowdStrike Holdings, Inc."
+        start-date: 2024-06-24
 
     - market-data:
         ticker: CSCO
         company-name: "Cisco Systems, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: CSX
         company-name: "CSX Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: CTAS
         company-name: "Cintas Corporation"
+        start-date: 2001-03-01
 
     - market-data:
         ticker: CVS
         company-name: "CVS Health Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: CVX
         company-name: "Chevron Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: D
         company-name: "Dominion Energy, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: DE
         company-name: "Deere & Company"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: DHI
         company-name: "D.R. Horton, Inc."
+        start-date: 2005-07-05
 
     - market-data:
         ticker: DHR
         company-name: "Danaher Corporation"
+        start-date: 1998-11-18
 
     - market-data:
         ticker: DIS
         company-name: "The Walt Disney Company"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: DLR
         company-name: "Digital Realty Trust, Inc."
+        start-date: 2016-05-18
 
     - market-data:
         ticker: DUK
         company-name: "Duke Energy Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: ECL
         company-name: "Ecolab, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: ELV
         company-name: "Elevance Health, Inc."
+        start-date: 2022-06-28
 
     - market-data:
         ticker: EMR
         company-name: "Emerson Electric Co."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: EOG
         company-name: "EOG Resources, Inc."
+        start-date: 2000-11-02
 
     - market-data:
         ticker: EQIX
         company-name: "Equinix, Inc."
+        start-date: 2015-03-23
 
     - market-data:
         ticker: ETN
         company-name: "Eaton Corporation Plc"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: FCX
         company-name: "Freeport-McMoran, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: FDX
         company-name: "FedEx Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: FI
         company-name: "Fiserv, Inc."
+        start-date: 2023-06-07
       fundamentals:
         skip: true
 
     - market-data:
         ticker: FIS
         company-name: "Fidelity National Information Services, Inc."
+        start-date: 2006-11-10
 
     - market-data:
         ticker: FTNT
         company-name: "Fortinet, Inc."
+        start-date: 2018-10-11
 
     - market-data:
         ticker: GD
         company-name: "General Dynamics Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: GE
         company-name: "GE Aerospace"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: GEV
         company-name: "GE Vernova Inc."
+        start-date: 2024-04-03
       fundamentals:
         skip: true
 
     - market-data:
         ticker: GILD
         company-name: "Gilead Sciences, Inc."
+        start-date: 2004-07-01
 
     - market-data:
         ticker: GM
         company-name: "General Motors Company"
-
-    - market-data:
-        ticker: GOOGL
-        company-name: "Alphabet, Inc."
-        stock-series : A
+        start-date: 2013-06-07
 
     - market-data:
         ticker: GOOG
         company-name: "Alphabet, Inc."
         stock-series : C
+        start-date: 2014-04-03
       fundamentals:
         skip: true
+
+    - market-data:
+        ticker: GOOGL
+        company-name: "Alphabet, Inc."
+        stock-series : A
+        start-date: 2006-04-03
 
     - market-data:
         ticker: GS
         company-name: "The Goldman Sachs Group, Inc."
+        start-date: 2002-07-22
 
     - market-data:
         ticker: HCA
         company-name: "HCA Healthcare, Inc."
+        start-date: 2015-01-27
 
     - market-data:
         ticker: HD
         company-name: "The Home Depot, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: HLT
         company-name: "Hilton Worldwide Holdings, Inc."
+        start-date: 2017-06-19
 
     - market-data:
         ticker: HON
         company-name: "Honeywell International, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: IBM
         company-name: "International Business Machines Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: ICE
         company-name: "Intercontinental Exchange, Inc."
+        start-date: 2007-09-26
 
     - market-data:
-        ticker: INTL
+        ticker: INTC
         company-name: "Intel Corporation"
-      fundamentals:
-        skip: true
+        start-date: 1996-01-02
 
     - market-data:
         ticker: INTU
         company-name: "Intuit, Inc."
+        start-date: 2000-12-11
 
     - market-data:
         ticker: IQV
         company-name: "IQVIA Holdings, Inc."
+        start-date: 2017-08-29
 
     - market-data:
         ticker: ISRG
         company-name: "Intuitive Surgical, Inc."
+        start-date: 2008-06-02
 
     - market-data:
         ticker: ITW
         company-name: "Illinois Tool Works, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: JCI
         company-name: "Johnson Controls International Plc"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: JNJ
         company-name: "Johnson & Johnson"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: JPM
         company-name: "JPMorgan Chase & Co."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: KLAC
         company-name: "KLA Corporation"
+        start-date: 1997-09-15
 
     - market-data:
         ticker: KKR
         company-name: "KKR & Co., Inc."
+        start-date: 2024-06-24
 
     - market-data:
         ticker: KMB
         company-name: "Kimberly-Clark Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: KO
         company-name: "The Coca-Cola Company"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: LEN
         company-name: "Lennar Corporation"
+        start-date: 2005-10-04
 
     - market-data:
         ticker: LIN
         company-name: "Linde Plc"
+        start-date: 2018-11-06
 
     - market-data:
         ticker: LLY
         company-name: "Eli Lilly & Co"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: LMT
         company-name: "Lockheed Martin Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: LOW
         company-name: "Lowe's Companies, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: LRCX
         company-name: "Lam Research Corporation"
+        start-date: 2012-06-05
 
     - market-data:
         ticker: MA
         company-name: "Mastercard, Inc."
+        start-date: 2008-07-18
 
     - market-data:
         ticker: MAR
         company-name: "Marriott International, Inc."
         stock-series : A
+        start-date: 1998-05-21
 
     - market-data:
         ticker: MCD
         company-name: "McDonald's Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: MCK
         company-name: "McKesson Corporation"
+        start-date: 1999-01-13
 
     - market-data:
         ticker: MCO
         company-name: "Moody's Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: MDLZ
         company-name: "Mondelez International, Inc."
         stock-series : A
+        start-date: 2007-04-02
 
     - market-data:
         ticker: MDT
         company-name: "Medtronic Plc"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: MET
         company-name: "MetLife, Inc."
+        start-date: 2000-12-11
 
     - market-data:
         ticker: META
         company-name: "Meta Platforms, Inc."
         stock-series : A
+        start-date: 2022-06-09
 
     - market-data:
         ticker: MMC
         company-name: "Marsh & McLennan Companies, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: MMM
         company-name: "3M Company"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: MO
         company-name: "Altria Group, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: MPC
         company-name: "Marathon Petroleum Corporation"
+        start-date: 2011-07-01
 
     - market-data:
         ticker: MPWR
         company-name: "Monolithic Power Systems, Inc."
+        start-date: 2021-02-12
 
     - market-data:
         ticker: MRK
         company-name: "Merck & Co., Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: MS
         company-name: "Morgan Stanley"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: MSCI
         company-name: "MSCI Inc."
+        start-date: 2018-04-04
 
     - market-data:
         ticker: MSI
         company-name: "Motorola Solutions, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: MSFT
         company-name: "Microsoft Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: MU
         company-name: "Micron Technology, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: NEE
         company-name: "NextEra Energy, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: NEM
         company-name: "Newmont Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: NFLX
         company-name: "Netflix, Inc."
+        start-date: 2010-12-20
 
     - market-data:
         ticker: NKE
         company-name: "NIKE, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: NOC
         company-name: "Northrop Grumman Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: NOW
         company-name: "ServiceNow, Inc."
+        start-date: 2019-11-21
 
     - market-data:
         ticker: NSC
         company-name: "Norfolk Southern Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: NVDA
         company-name: "NVIDIA Corporation"
+        start-date: 2001-11-30
 
     - market-data:
         ticker: NXPI
         company-name: "NXP Semiconductors N.V."
+        start-date: 2021-03-22
 
     - market-data:
         ticker: O
         company-name: "Realty Income Corporation"
+        start-date: 2015-04-07
 
     - market-data:
         ticker: OKE
         company-name: "ONEOK, Inc."
+        start-date: 2010-03-15
 
     - market-data:
         ticker: ORCL
         company-name: "Oracle Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: ORLY
         company-name: "O'Reilly Automotive, Inc."
+        start-date: 2009-03-27
 
     - market-data:
         ticker: PANW
         company-name: "Palo Alto Networks, Inc."
+        start-date: 2023-06-20
 
     - market-data:
         ticker: PCAR
         company-name: "PACCAR, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: PEP
         company-name: "PepsiCo, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: PFE
         company-name: "Pfizer, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: PLD
         company-name: "Prologis, Inc."
+        start-date: 2003-07-17
 
     - market-data:
         ticker: PLTR
         company-name: "Palantir Technologies, Inc."
+        start-date: 2024-09-23
 
     - market-data:
         ticker: PG
         company-name: "The Procter & Gamble Company"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: PGR
         company-name: "Progressive Corporation"
+        start-date: 1997-08-04
 
     - market-data:
         ticker: PH
         company-name: "Parker-Hannifin Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: PM
         company-name: "Philip Morris International, Inc."
+        start-date: 2008-03-31
 
     - market-data:
         ticker: PNC
         company-name: "PNC Financial Services Group"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: PSA
         company-name: "Public Storage"
+        start-date: 2005-08-19
 
     - market-data:
         ticker: PSX
         company-name: "Phillips 66"
+        start-date: 2012-05-01
 
     - market-data:
         ticker: PYPL
         company-name: "PayPal Holdings, Inc."
+        start-date: 2015-07-20
 
     - market-data:
         ticker: QCOM
         company-name: "QUALCOMM, Inc."
+        start-date: 1999-07-22
 
     - market-data:
         ticker: REGN
         company-name: "Regeneron Pharmaceuticals, Inc."
+        start-date: 2013-05-01
 
     - market-data:
         ticker: ROP
         company-name: "Roper Technologies, Inc."
+        start-date: 2009-12-23
 
     - market-data:
         ticker: ROST
         company-name: "Ross Stores, Inc."
+        start-date: 2009-12-21
 
     - market-data:
         ticker: RTX
         company-name: "RTX Corporation"
+        start-date: 2020-04-03
 
     - market-data:
         ticker: SBUX
         company-name: "Starbucks Corporation"
+        start-date: 2000-06-08
 
     - market-data:
         ticker: SCHW
         company-name: "The Charles Schwab Corporation"
+        start-date: 1997-06-02
 
     - market-data:
         ticker: SHW
         company-name: "The Sherwin-Williams Company"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: SLB
         company-name: "Schlumberger Limited"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: SNPS
         company-name: "Synopsys, Inc."
+        start-date: 2017-03-16
 
     - market-data:
         ticker: SO
         company-name: "The Southern Company"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: SPG
         company-name: "Simon Property Group, Inc."
+        start-date: 2002-06-26
 
     - market-data:
         ticker: SPGI
         company-name: "S&P Global, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: SRE
         company-name: "Sempra"
+        start-date: 1998-06-29
 
     - market-data:
         ticker: SYK
         company-name: "Stryker Corporation"
+        start-date: 2000-12-12
 
     - market-data:
         ticker: T
         company-name: "AT&T, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: TDG
         company-name: "TransDigm Group, Inc."
+        start-date: 2016-06-03
 
     - market-data:
         ticker: TEL
         company-name: "TE Connectivity Ltd."
+        start-date: 2011-10-17
 
     - market-data:
         ticker: TFC
         company-name: "Truist Financial Corporation"
+        start-date: 2019-12-09
 
     - market-data:
         ticker: TGT
         company-name: "Target Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: TJX
         company-name: "The TJX Companies, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: TMO
         company-name: "Thermo Fisher Scientific, Inc."
+        start-date: 1997-01-02
 
     - market-data:
         ticker: TMUS
         company-name: "T-Mobile US, Inc."
+        start-date: 2019-07-15
 
     - market-data:
         ticker: TRV
         company-name: "The Travelers Companies, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: TSLA
         company-name: "Tesla, Inc."
+        start-date: 2020-12-21
 
     - market-data:
         ticker: TT
         company-name: "Trane Technologies Plc"
+        start-date: 2020-03-03
 
     - market-data:
         ticker: TXN
         company-name: "Texas Instruments, Incorporated"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: UBER
         company-name: "Uber Technologies, Inc."
+        start-date: 2023-10-18
 
     - market-data:
         ticker: UNP
         company-name: "Union Pacific Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: UNH
         company-name: "UnitedHealth Group, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: UPS
         company-name: "United Parcel Service, Inc."
+        start-date: 2002-07-22
 
     - market-data:
         ticker: URI
         company-name: "United Rentals, Inc."
+        start-date: 2014-09-22
 
     - market-data:
         ticker: USB
         company-name: "U.S. Bancorp"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: V
         company-name: "Visa, Inc."
+        start-date: 2009-12-21
 
     - market-data:
         ticker: VLO
         company-name: "Valero Energy Corporation"
+        start-date: 2004-04-29
 
     - market-data:
         ticker: VRTX
         company-name: "Vertex Pharmaceuticals, Inc."
+        start-date: 2013-09-23
 
     - market-data:
         ticker: VZ
         company-name: "Verizon Communications, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: WELL
         company-name: "Welltower, Inc."
+        start-date: 2009-01-30
 
     - market-data:
         ticker: WFC
         company-name: "Wells Fargo & Company"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: WM
         company-name: "Waste Management, Inc."
+        start-date: 1998-07-17
 
     - market-data:
         ticker: WMB
         company-name: "Williams Companies, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: WMT
         company-name: "Walmart, Inc."
+        start-date: 1996-01-02
 
     - market-data:
         ticker: XOM
         company-name: "Exxon Mobil Corporation"
+        start-date: 1996-01-02
 
     - market-data:
         ticker: ZTS
         company-name: "Zoetis, Inc."
+        start-date: 2013-06-24

@@ -23,7 +23,12 @@ internal class BarDataDtoTest {
     private val measurement = Measurement.SECURITY_REGULAR_PRICE_CHANGE_ARITHMETIC_DAILY
 
     private val params = SourceDataParams(
-        marketData = MarketDataParams(getRandomCaps(5), getRandomString())
+        marketData = MarketDataParams(
+            ticker = getRandomCaps(5),
+            companyName = getRandomString(),
+            stockSeries = getRandomString(3),
+            startDate = LocalDate.of(2020, 1, 2),
+        )
     )
 
     private val barDataInput = BarDataDto(
