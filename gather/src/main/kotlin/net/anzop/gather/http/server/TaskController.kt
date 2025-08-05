@@ -66,7 +66,7 @@ class TaskController(
 
     private inline fun handleAndRespond(task: () -> RunCommandResult): HttpResponse =
         when (val result = task()) {
-            RunCommandResult.SUCCESS ->
+            RunCommandResult.DISPATCHED ->
                 ResponseEntity.noContent().build()
 
             RunCommandResult.ALREADY_RUNNING, RunCommandResult.LOCK_UNAVAILABLE ->

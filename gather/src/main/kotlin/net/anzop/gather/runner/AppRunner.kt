@@ -80,6 +80,6 @@ class AppRunner(
             }
         }
 
-        return RunCommandResult.SUCCESS
+        return RunCommandResult.DISPATCHED
     }
 }
