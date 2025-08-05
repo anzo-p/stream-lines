@@ -55,7 +55,9 @@ class IndexProcessor(
             .getMemberSecurities(measurement)
             .toMutableMap()
 
-        val initialIndexValue = marketDataFacade.getIndexValueAt(measurement, startDate) ?: 1.0
+        val initialIndexValue = marketDataFacade
+            .getIndexValueAt(measurement, startDate)
+            ?: 1.0
         logger.info("Starting Index Value is: $initialIndexValue")
 
         val latestIndexValue = processPeriod(
@@ -98,7 +100,7 @@ class IndexProcessor(
         val initialPrices = marketDataFacade
             .getSourceBarData(
                 date = initialDay,
-                onlyRegularTradingHours = Measurement.regularHours(measurement)
+                onlyRegularTradingHours = measurement.regularHours()
             )
             .associate { it.ticker to it.volumeWeightedAvgPrice }
 
@@ -127,7 +129,7 @@ class IndexProcessor(
 
             val bars = marketDataFacade.getSourceBarData(
                 date = date,
-                onlyRegularTradingHours = Measurement.regularHours(measurement)
+                onlyRegularTradingHours = measurement.regularHours()
             )
 
             bars.forEach { bar ->
@@ -168,7 +170,7 @@ class IndexProcessor(
         indexDate: LocalDate
     ): List<PriceChange> =
         bars.mapNotNull { bar ->
-            check(bar.regularTradingHours || !Measurement.regularHours(measurement)) {
+            check(bar.regularTradingHours || !measurement.regularHours()) {
                 "bar data for ticker: ${bar.ticker} on day: $indexDate contains extended hours trades\n" +
                     bar.toString()
             }
@@ -184,10 +186,10 @@ class IndexProcessor(
                 )
 
                 PriceChange(
-                    measurement = Measurement.securitiesForIndex(measurement),
+                    measurement = measurement.securitiesForIndex(),
                     company = bar.company,
                     ticker = bar.ticker,
-                    regularTradingHours = Measurement.regularHours(measurement),
+                    regularTradingHours = measurement.regularHours(),
                     marketTimestamp = indexDate.toInstant(),
                     priceChangeOpen = normalize(bar.openingPrice),
                     priceChangeClose = normalize(bar.closingPrice),
@@ -213,13 +215,13 @@ class IndexProcessor(
     private fun createIndex(measurement: Measurement, priceChanges: List<PriceChange>): PriceChange {
         val indexBar = calculateIndex(measurement, priceChanges)
             .copy(
-                regularTradingHours = Measurement.regularHours(measurement),
+                regularTradingHours = measurement.regularHours(),
                 measurement = measurement,
                 company = "INDEX",
                 ticker = "INDEX"
             )
 
-        marketDataFacade.save(indexBar)
+        asyncRecordsToInsert.add(indexBar)
 
         return indexBar
     }

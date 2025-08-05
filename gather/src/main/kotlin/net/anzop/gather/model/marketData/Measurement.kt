@@ -24,6 +24,20 @@ enum class Measurement(val code: String, val description: String) {
         "Index using arithmetic mean from daily data including extended hours"
     );
 
+    fun regularHours() =
+        when (this) {
+            INDEX_REGULAR_EQUAL_ARITHMETIC_DAILY -> true
+            INDEX_EXTENDED_EQUAL_ARITHMETIC_DAILY -> false
+            else -> throw IllegalArgumentException("Measurement: ${this.code} does not have assigned securities measurement")
+        }
+
+    fun securitiesForIndex() =
+        when (this) {
+            INDEX_REGULAR_EQUAL_ARITHMETIC_DAILY -> SECURITY_REGULAR_PRICE_CHANGE_ARITHMETIC_DAILY
+            INDEX_EXTENDED_EQUAL_ARITHMETIC_DAILY -> SECURITY_EXTENDED_PRICE_CHANGE_ARITHMETIC_DAILY
+            else -> throw IllegalArgumentException("Measurement: ${this.code} does not have assigned securities measurement")
+        }
+
     companion object {
         private val map = entries.associateBy(Measurement::code)
 
@@ -31,19 +45,5 @@ enum class Measurement(val code: String, val description: String) {
             map[code] ?: throw IllegalArgumentException("Invalid code: $code for enum Measurement")
 
         val indexMeasurements = entries.filter { it.code.startsWith("ix_") }
-
-        fun securitiesForIndex(index: Measurement) =
-            when (index) {
-                INDEX_REGULAR_EQUAL_ARITHMETIC_DAILY -> SECURITY_REGULAR_PRICE_CHANGE_ARITHMETIC_DAILY
-                INDEX_EXTENDED_EQUAL_ARITHMETIC_DAILY -> SECURITY_EXTENDED_PRICE_CHANGE_ARITHMETIC_DAILY
-                else -> throw IllegalArgumentException("Measurement: $index does not have assigned securities measurement")
-            }
-
-        fun regularHours(index: Measurement) =
-            when (index) {
-                INDEX_REGULAR_EQUAL_ARITHMETIC_DAILY -> true
-                INDEX_EXTENDED_EQUAL_ARITHMETIC_DAILY -> false
-                else -> throw IllegalArgumentException("Measurement: $index does not have assigned securities measurement")
-            }
     }
 }
