@@ -37,6 +37,9 @@ object WebFluxExtensions {
                     HttpStatus.NOT_FOUND.value() -> {
                         logger.error("Not found: $body")
                     }
+                    HttpStatus.TOO_MANY_REQUESTS.value() -> {
+                        logger.error("Too many requests: $body")
+                    }
                     HttpStatus.INTERNAL_SERVER_ERROR.value() -> {
                         logger.error("Internal server error: $body")
                     }
