@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withTimeoutOrNull
+import net.anzop.gather.config.AlpacaProps
 import net.anzop.gather.config.SourceDataConfig
 import net.anzop.gather.repository.influxdb.MarketDataFacade
 import net.anzop.gather.service.BarDataFetcher
@@ -16,6 +17,7 @@ import kotlin.time.Duration.Companion.minutes
 
 @Component
 class AppRunner(
+    private val alpacaProps: AlpacaProps,
     private val barDataFetcher: BarDataFetcher,
     private val indexProcessor: IndexProcessor,
     private val financialsFetcher: FinancialsFetcher,
@@ -44,8 +46,9 @@ class AppRunner(
         isRunning = true
 
         coroutineScope.launch {
-            withTimeoutOrNull(15.minutes) {
-                try {
+            try {
+                val timeoutMinutes = alpacaProps.maxExecDurationMinutes.minutes.plus(1.minutes)
+                withTimeoutOrNull(timeoutMinutes) {
                     when (command) {
                         is DeleteMarketData ->
                             marketDataFacade.deleteBarData(command.ticker, command.since)
@@ -68,12 +71,12 @@ class AppRunner(
                             indexProcessor.run()
                     }
                     logger.info("AppRunner.fetchAndProcess coroutine tasks completed.")
-                } catch (e: Exception) {
-                    logger.error("AppRunner.fetchAndProcess coroutine failed.", e)
-                } finally {
-                    isRunning = false
-                    mutex.unlock()
-                }
+                } ?: logger.warn("AppRunner.fetchAndProcess timed out after $timeoutMinutes minutes.")
+            } catch (e: Exception) {
+                logger.error("AppRunner.fetchAndProcess coroutine failed.", e)
+            } finally {
+                isRunning = false
+                mutex.unlock()
             }
         }
 
