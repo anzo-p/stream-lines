@@ -19,24 +19,25 @@ object Currents {
     val trendConfig   = TrendConfig.values
     val env           = StreamConfig.createExecutionEnvironment()
 
-    val dataStream: DataStream[MarketData] =
+    val indexDataStream: DataStream[MarketData] =
       env.addSource(new MarketDataSource(influxDetails, SourceRunnerConfig.values))
 
     val batchedStream: DataStream[List[MarketData]] =
-      dataStream
+      indexDataStream
         .windowAll(GlobalWindows.create())
         .trigger(CountOrTimerTrigger.of(trendConfig.flinkWindowCount, trendConfig.flinkWindowInterval))
-        .apply((_: GlobalWindow, elements: Iterable[MarketData], out: Collector[List[MarketData]]) => {
-          val batch = elements.toList
-          if (batch.nonEmpty) {
-            out.collect(batch)
-          }
-        })
+        .apply[List[MarketData]](
+          (_: GlobalWindow, elements: Iterable[MarketData], out: Collector[List[MarketData]]) => {
+            val batch = elements.toList
+            if (batch.nonEmpty) {
+              out.collect(batch)
+            }
+          })
 
     val trendStream: DataStream[List[TrendSegment]] =
       batchedStream
-        .keyBy(_.head.field)
-        .flatMap(new TrendProcessor(new TrendDiscoverer(trendConfig)))
+        .keyBy[String]((_: List[MarketData]) => "singleton")
+        .flatMap(new TrendProcessor(trendConfig, new TrendDiscoverer(trendConfig)))
 
     val flattenedTrendStream: DataStream[TrendSegment] =
       trendStream.flatMap(_.iterator)
@@ -44,8 +45,8 @@ object Currents {
     flattenedTrendStream.addSink(new InfluxHttpSink[TrendSegment](influxDetails))
 
     val drawDownStream: DataStream[Drawdown] =
-      dataStream
-        .keyBy(_.field)
+      indexDataStream
+        .keyBy[String]((_: MarketData) => "singleton")
         .process(new DrawdownProcessor(DrawdownConfig.values))
 
     drawDownStream.addSink(new InfluxHttpSink[Drawdown](influxDetails))
