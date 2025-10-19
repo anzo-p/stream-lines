@@ -9,7 +9,6 @@ fun generateFinancialPeriodRange(periodType: ReportPeriodType): List<Pair<Int, F
     when (periodType) {
         ReportPeriodType.ANNUAL -> generateFiscalYearsRange()
         ReportPeriodType.QUARTER -> generateQuartersRange()
-        else ->emptyList()
     }
 
 fun generateFiscalYearsRange(
@@ -25,34 +24,35 @@ fun generateQuartersRange(
     startYear: Int = 2016,
 ): List<Pair<Int, FinancialPeriod>> {
     val now = LocalDate.now()
-    val lastQuarter = (now.monthValue - 1) / 3
-    val stopYear = if (lastQuarter == 0) now.year - 1 else now.year
-    val stopQuarter = if (lastQuarter == 0) 4 else lastQuarter
+    val currentQuarter = ((now.monthValue - 1) / 3) + 1
+    val (endYear, endQuarter) =
+        if (currentQuarter == 1) (now.year - 1) to 4
+        else now.year to (currentQuarter - 1)
 
-    return generateSequence(startYear) { it + 1 }
-        .takeWhile { it < stopYear || (it == stopYear && lastQuarter <= stopQuarter - 1) }
-        .flatMap {
-            FinancialPeriod.entries
-                .filterNot { it == FinancialPeriod.ANNUAL }
-                .map { period -> it to period }
+    val quarters = FinancialPeriod
+        .entries
+        .filterNot { it == FinancialPeriod.ANNUAL }
+
+    return (startYear..endYear)
+        .flatMap { year ->
+            val maxQ = if (year == endYear) endQuarter else quarters.size
+            quarters
+                .take(maxQ)
+                .map { quarter -> year to quarter }
         }
-        .toList()
 }
 
-fun generateWeekdayRange(startDate: LocalDate, endDate: LocalDate): List<LocalDate> {
-    val sequence = generateSequence(startDate) { date ->
+fun generateWeekdayRange(startDate: LocalDate, endDate: LocalDate): List<LocalDate> =
+    generateSequence(startDate) { date ->
         if (date.isBefore(endDate)) {
             date.plusDays(1)
         } else {
             null
         }
     }
-
-    return sequence
         .toList()
         .filterNot { it.isWeekend() }
         .filterNot { it.isHoliday() }
-}
 
 fun minOfOpt(instant1: Instant?, instant2: Instant?): Instant? =
     when {
