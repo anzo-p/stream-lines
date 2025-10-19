@@ -5,24 +5,37 @@ import net.anzop.sinks.influxdb.InfluxSerializable
 
 case class Drawdown(
     timestamp: Long,
-    field: String,
-    value: Double,
-    drawdown: Double
+    priceChangeLow: Double,
+    priceChangeAvg: Double,
+    priceChangeHigh: Double,
+    drawdownLow: Double,
+    drawdownAvg: Double,
+    drawdownHigh: Double
   ) extends InfluxSerializable {
 
   override val measurement: String = "drawdown"
 
   override def fields: Map[String, Any] =
-    Map("value" -> value, "drawdown" -> drawdown)
+    Map(
+      "priceChangeLow"  -> priceChangeLow,
+      "priceChangeAvg"  -> priceChangeAvg,
+      "priceChangeHigh" -> priceChangeHigh,
+      "drawdownLow"     -> drawdownLow,
+      "drawdownAvg"     -> drawdownAvg,
+      "drawdownHigh"    -> drawdownHigh
+    )
 
   override def tags: Map[String, String] =
-    Map("type" -> "drawdown", "field" -> field)
+    Map("type" -> "drawdown")
 
   override def toString: String =
     s"""DrawdownData(
        |timestamp: ${epochToStringDate(timestamp)},
-       |field: $field,
-       |value: $value,
-       |drawdown: $drawdown)
+       |priceChangeLow: $priceChangeLow,
+       |priceChangeAvg: $priceChangeAvg,
+       |priceChangeHigh: $priceChangeHigh,
+       |drawdownLow: $drawdownLow,
+       |drawdownAvg: $drawdownAvg
+       |drawdownHigh: $drawdownHigh),
        |""".stripMargin
 }

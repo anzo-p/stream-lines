@@ -1,7 +1,6 @@
 package net.anzop.processors.Trend
 
 import breeze.linalg.DenseVector
-import net.anzop.config.TrendConfig
 import net.anzop.helpers.ArrayHelpers.appendFromHead
 import net.anzop.helpers.LinearRegression
 import net.anzop.helpers.StatisticsHelpers.{linearRegression, tippingPoint}
@@ -26,7 +25,7 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
       deviatingTrend = tailSegment,
       tolerance      = trendConfig.tippingPointThreshold,
       getMetadata    = _.timestamp,
-      getValue       = _.value
+      getValue       = _.priceChangeAvg
     ).map { case (_, time, index) => (time, index) }
       .getOrElse((window(window.length - tailSegment.length).timestamp, 0))
 
@@ -52,8 +51,8 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
       tailSegment: DV[MarketData],
       remainingData: DV[MarketData]
     ): (Option[TrendSegment], DV[MarketData], DV[MarketData]) = {
-    val overallTrend = linearRegression(window.map(_.value))
-    val tailTrend    = linearRegression(tailSegment.map(_.value))
+    val overallTrend = linearRegression(window.map(_.priceChangeAvg))
+    val tailTrend    = linearRegression(tailSegment.map(_.priceChangeAvg))
     val slopeDiff    = Math.abs(overallTrend.slope - tailTrend.slope)
     val varianceDiff = Math.abs(overallTrend.variance - tailTrend.variance)
 

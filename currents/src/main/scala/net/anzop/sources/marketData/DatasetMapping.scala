@@ -17,8 +17,8 @@ sealed trait DatasetMapping[T] {
        #from(bucket: "${params.bucket}")
        # |> range(start: $start, stop: $stop)
        # |> filter(fn: (r) => r["_measurement"] == "${params.measurement}")
-       # $conditions
        # |> sort(columns: ["_time"], desc: false)
+       # $conditions
        #""".stripMargin('#')
   }
 
@@ -30,7 +30,7 @@ sealed trait DatasetMapping[T] {
       .toList
 }
 
-case object LatestTrendEnding extends DatasetMapping[Long] {
+case object GetLatestTrendEntry extends DatasetMapping[Long] {
   override def conditions: String =
     s"""
        # |> filter(fn: (r) => r["_field"] == "regression_slope")
@@ -42,18 +42,20 @@ case object LatestTrendEnding extends DatasetMapping[Long] {
     _.getTime.getEpochSecond
 }
 
-case object IndexData extends DatasetMapping[MarketData] {
+case object GetIndexData extends DatasetMapping[MarketData] {
   override def conditions: String =
     s"""
-       # |> filter(fn: (r) => contains(value: r._field, set: ["priceChangeAvg"]))
-       # |> keep(columns: ["_time", "_value", "_field"])
+       # |> filter(fn: (r) => contains(value: r._field, set: ["priceChangeLow", "priceChangeAvg", "priceChangeHigh"]))
+       # |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+       # |> keep(columns: ["_time","priceChangeLow","priceChangeAvg","priceChangeHigh"])
        #""".stripMargin('#')
 
   override def recordMapper: FluxRecord => MarketData =
     record =>
       MarketData(
-        timestamp = Instant.ofEpochMilli(record.getTime.toEpochMilli).toEpochMilli,
-        field     = record.getValueByKey("_field").toString,
-        value     = record.getValueByKey("_value").asInstanceOf[Double]
+        timestamp       = Instant.ofEpochMilli(record.getTime.toEpochMilli).toEpochMilli,
+        priceChangeLow  = record.getValueByKey("priceChangeLow").asInstanceOf[Double],
+        priceChangeAvg  = record.getValueByKey("priceChangeAvg").asInstanceOf[Double],
+        priceChangeHigh = record.getValueByKey("priceChangeHigh").asInstanceOf[Double]
       )
 }

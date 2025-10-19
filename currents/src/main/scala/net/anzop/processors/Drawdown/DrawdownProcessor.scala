@@ -19,13 +19,13 @@ class DrawdownProcessor(config: DrawdownConfig)
 
   private val logger: Logger = org.slf4j.LoggerFactory.getLogger(getClass)
 
-  private val initState: (Long, Double)                 = (0L, 0.0)
-  private val saveDelay: Long                           = 15 * 1000L
-  private var maxValueState: ValueState[(Long, Double)] = _
-  private var timerState: ValueState[Long]              = _
+  private var maxValuesState: ValueState[(Long, (Double, Double, Double))] = _
+  private var timerState: ValueState[Long]                                 = _
+  private val initState: (Long, (Double, Double, Double))                  = (0L, (0.0, 0.0, 0.0))
+  private val saveDelay: Long                                              = 15 * 1000L
 
-  private def resolveState(): (Long, Double) =
-    Option(maxValueState.value()) match {
+  private def resolveState(): (Long, (Double, Double, Double)) =
+    Option(maxValuesState.value()) match {
       case Some(state) => state
       case None =>
         DynamoDb.getSingle match {
@@ -41,13 +41,15 @@ class DrawdownProcessor(config: DrawdownConfig)
   override val earliestExpectedElemTimestamp: Long = config.earliestHistoricalDate.toEpochMilli
 
   override def resetOp: () => Unit = () => {
-    maxValueState.clear()
+    maxValuesState.clear()
     timerState.clear()
   }
 
   override def open(parameters: Configuration): Unit = {
-    maxValueState = getRuntimeContext.getState(
-      new ValueStateDescriptor[(Long, Double)]("maxValueState", classOf[(Long, Double)])
+    maxValuesState = getRuntimeContext.getState(
+      new ValueStateDescriptor[(Long, (Double, Double, Double))](
+        "maxValueState",
+        classOf[(Long, (Double, Double, Double))])
     )
     timerState = getRuntimeContext.getState(
       new ValueStateDescriptor[Long]("timerState", classOf[Long])
@@ -59,25 +61,27 @@ class DrawdownProcessor(config: DrawdownConfig)
       ctx: KeyedProcessFunction[String, MarketData, Drawdown]#Context,
       out: Collector[Drawdown]
     ): Unit = {
-    val (lastTs, lastMaxValue) = if (autoResetState(elem.timestamp)) {
-      logger.info(s"Drawdown - Data indicates reset; clearing state")
-      initState
-    }
-    else {
-      resolveState().tap(maxValueState.update)
-    }
+    val (lastTs, (highestLow, highestAvg, highestHigh)) =
+      if (autoResetState(elem.timestamp)) {
+        logger.info(s"Drawdown - Data indicates reset; clearing state")
+        initState
+      }
+      else {
+        resolveState().tap(maxValuesState.update)
+      }
 
     if (lastTs > initState._1 && elem.timestamp <= lastTs) {
       logger.info(s"Drawdown - Skipping out-of-order event: $elem (latest timestamp: $lastTs)")
       return
     }
 
-    val updatedMaxValue = Math.max(lastMaxValue, elem.value)
-    val drawdown        = (elem.value / updatedMaxValue) * 100
+    val highestLowUpdate  = Math.max(highestLow, elem.priceChangeLow)
+    val highestAvgUpdate  = Math.max(highestAvg, elem.priceChangeAvg)
+    val highestHighUpdate = Math.max(highestHigh, elem.priceChangeHigh)
 
     if (isBeforeToday(elem.timestamp)) {
-      val state = elem.timestamp -> updatedMaxValue
-      maxValueState.update(state)
+      val state = elem.timestamp -> (highestLowUpdate, highestAvgUpdate, highestHighUpdate)
+      maxValuesState.update(state)
 
       Option(timerState.value()).foreach(ctx.timerService().deleteProcessingTimeTimer)
 
@@ -88,10 +92,13 @@ class DrawdownProcessor(config: DrawdownConfig)
 
     out.collect(
       Drawdown(
-        elem.timestamp,
-        elem.field,
-        elem.value,
-        drawdown
+        timestamp       = elem.timestamp,
+        priceChangeLow  = elem.priceChangeLow,
+        priceChangeAvg  = elem.priceChangeAvg,
+        priceChangeHigh = elem.priceChangeHigh,
+        drawdownLow     = (elem.priceChangeLow / highestLowUpdate) * 100,
+        drawdownAvg     = (elem.priceChangeAvg / highestAvgUpdate) * 100,
+        drawdownHigh    = (elem.priceChangeHigh / highestHighUpdate) * 100
       )
     )
   }
@@ -101,7 +108,7 @@ class DrawdownProcessor(config: DrawdownConfig)
       ctx: KeyedProcessFunction[String, MarketData, Drawdown]#OnTimerContext,
       out: Collector[Drawdown]
     ): Unit =
-    maxValueState.value() match {
+    maxValuesState.value() match {
       case null =>
       case state =>
         logger.info(s"Drawdown - Timer to save state: $state to DynamoDB fired at $timestamp")

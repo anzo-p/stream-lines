@@ -33,10 +33,10 @@ class MarketDataSource(influxConfig: InfluxConfig, config: SourceRunnerConfig) e
 
   private def fetchCollect(ctx: SourceFunction.SourceContext[MarketData]): Unit = {
     // delete trend measurement for a full redo; processors will know to recalculate everything
-    val lastTrendEnding: Option[Long] =
+    val lastestTrendEntry: Option[Long] =
       dbConn
         .requestData[Long](
-          mapping = LatestTrendEnding,
+          mapping = GetLatestTrendEntry,
           params = QueryParams(
             bucket      = influxConfig.bucket,
             measurement = "trend"
@@ -44,15 +44,15 @@ class MarketDataSource(influxConfig: InfluxConfig, config: SourceRunnerConfig) e
         )
         .headOption
 
-    logger.info(s"Last trend ending: $lastTrendEnding")
+    logger.info(s"Latest trend entry: $lastestTrendEntry")
 
     dbConn
       .requestData[MarketData](
-        mapping = IndexData,
+        mapping = GetIndexData,
         params = QueryParams(
           bucket      = influxConfig.bucket,
           measurement = influxConfig.consumedMeasure,
-          start       = lastTrendEnding
+          start       = lastestTrendEntry
         )
       )
       .foreach(ctx.collect)
