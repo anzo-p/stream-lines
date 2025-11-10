@@ -68,7 +68,9 @@ async fn main() -> Result<(), ProcessError> {
 
     //tokio::spawn(launch_health_server());
 
-    let app_config = load_app_config()?;
+    let app_config = config::ticker_hydrator::hydrate_symbols(load_app_config()?).await?;
+    info!("Configuration loaded: {:?}", app_config);
+
     while running.load(Ordering::SeqCst) {
         run_app(&app_config, running.clone()).await;
     }
