@@ -12,10 +12,10 @@ lazy val root = (project in file("."))
 //.enablePlugins(DockerPlugin)
 
 val awsSdkVersion      = "1.12.429"
-val apacheFlinkVersion = "1.17.2"
+val apacheFlinkVersion = "1.19.3"
 val apacheHttpVersion  = "4.5.14"
 val awsKinesisVersion  = "4.0.0-1.16"
-val jacksonVersion     = "2.13.4"
+val jacksonVersion     = "2.19.4"
 val logbackVersion     = "1.4.12"
 val slf4jVersion       = "2.0.5"
 val typesafeVersion    = "1.4.2"
