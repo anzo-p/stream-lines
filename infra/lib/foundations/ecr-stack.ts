@@ -6,7 +6,7 @@ export class EcrStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    ['backend', 'compute', 'dashboard', 'influxdb', 'ingest'].forEach(
+    ['backend', 'dashboard', 'influxdb', 'ingest', 'ripples'].forEach(
       (repo) => {
         const repositoryName = `stream-lines-${repo}`;
 

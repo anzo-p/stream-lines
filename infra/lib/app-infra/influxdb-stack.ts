@@ -120,7 +120,7 @@ export class InfluxDbStack extends cdk.NestedStack {
       'stream-lines-influxdb'
     );
 
-    const containerPort = parseInt(process.env.INFLUX_SERVER_PORT!);
+    const containerPort = parseInt(process.env.INFLUXDB_SERVER_PORT!);
 
     const influxDbContainer = taskDefinition.addContainer('InfluxDbContainer', {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),

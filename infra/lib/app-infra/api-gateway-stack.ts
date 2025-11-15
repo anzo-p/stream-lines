@@ -141,7 +141,7 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
       certificate: acm.Certificate.fromCertificateArn(
         this,
         'Certificate',
-        `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_BACKEND_CERT}`
+        `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_APIGW_CERT}`
       )
     });
 

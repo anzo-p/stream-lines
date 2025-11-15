@@ -68,7 +68,7 @@ export class RipplesStack extends cdk.NestedStack {
     const ecrRepository = ecr.Repository.fromRepositoryName(
       this,
       'EcrRepository',
-      'stream-lines-compute'
+      'stream-lines-ripples'
     );
 
     taskDefinition.addContainer('RipplesContainer', {
@@ -76,14 +76,20 @@ export class RipplesStack extends cdk.NestedStack {
       memoryLimitMiB: 1024,
       cpu: 512,
       environment: {
-        CHECKPOINT_PATH: `${process.env.FLINK_CHECKPOINTS_PATH},`,
-        INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
+        CHECKPOINT_PATH: `${process.env.FLINK_CHECKPOINTS_RIPPLES},`,
         INFLUXDB_BUCKET: `${process.env.INFLUXDB_INIT_BUCKET}`,
+        INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
         INFLUXDB_WRITE_TOKEN: `${process.env.INFLUXDB_WRITE_TOKEN}`,
         INFLUXDB_URL: `${process.env.INFLUXDB_URL}`,
         KINESIS_DOWNSTREAM_NAME: `${process.env.KINESIS_RESULTS_DOWNSTREAM}`,
-        KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`
-      },
+        KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`,
+          JAVA_TOOL_OPTIONS: [
+            '--add-opens=java.base/java.lang=ALL-UNNAMED',
+            '--add-opens=java.base/java.math=ALL-UNNAMED',
+            '--add-opens=java.base/java.time=ALL-UNNAMED',
+            '--add-opens=java.base/java.util=ALL-UNNAMED',
+          ].join(' ')
+        },
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'ripples' })
     });
 
@@ -93,7 +99,7 @@ export class RipplesStack extends cdk.NestedStack {
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       securityGroups: [securityGroup],
       desiredCount: 1,
-      assignPublicIp: true
+      assignPublicIp: true,
     });
   }
 }

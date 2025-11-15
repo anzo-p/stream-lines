@@ -23,6 +23,12 @@ export class AlbStack extends cdk.NestedStack {
       domainName: 'anzop.net'
     });
 
+    const influxAlbCertificate = acm.Certificate.fromCertificateArn(
+      this,
+      'InfluxCertificate',
+      `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_INFLUX_ALB_CERT}`
+    );
+
     const backendAlbCertificate = acm.Certificate.fromCertificateArn(
       this,
       'BackendCertificate',
@@ -51,7 +57,7 @@ export class AlbStack extends cdk.NestedStack {
     this.influxDbAlbListener = influxDbAlb.addListener('InfluxDbAlbListener', {
       port: 443,
       protocol: elbv2.ApplicationProtocol.HTTPS,
-      certificates: [backendAlbCertificate]
+      certificates: [influxAlbCertificate]
     });
 
     const backendAlb = new elbv2.ApplicationLoadBalancer(this, 'BackendAlb', {
@@ -63,7 +69,7 @@ export class AlbStack extends cdk.NestedStack {
       zone,
       recordName: `${process.env.BACKEND_SUBDOMAIN}`,
       target: route53.RecordTarget.fromAlias(
-        new targets.LoadBalancerTarget(backendAlb)
+        new targets.LoadBalancerTarget(backendAlb) 
       )
     });
 

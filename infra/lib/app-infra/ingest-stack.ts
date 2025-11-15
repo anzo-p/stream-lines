@@ -57,7 +57,10 @@ export class IngestStack extends cdk.NestedStack {
         ALPACA_API_KEY: `${process.env.INGEST_ALPACA_API_KEY}`,
         ALPACA_API_SECRET: `${process.env.INGEST_ALPACA_API_SECRET}`,
         KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`,
-        MAX_WS_READS_PER_SEC: `${process.env.INGEST_MAX_WS_READS_PER_SEC}`
+        MAX_WS_READS_PER_SEC: `${process.env.INGEST_MAX_WS_READS_PER_SEC}`,
+        MAX_TICKER_COUNT: `${process.env.INGEST_MAX_TICKER_COUNT}`,
+        TOP_TICKERS_API: `${process.env.INGEST_TOP_TICKERS_API}`,
+        TOP_TICKERS_TOKEN: `${process.env.INGEST_TOP_TICKERS_TOKEN}`,
       },
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'ingest' })
     });
