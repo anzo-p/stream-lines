@@ -2,9 +2,9 @@
   import ModelDiagram from '../../lib/components/ModelDiagram.svelte';
 </script>
 
-<body class="top-html">
+<div class="top-html">
   <ModelDiagram />
-</body>
+</div>
 
 <style>
   .top-html {
