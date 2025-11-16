@@ -10,7 +10,7 @@ import net.anzop.sinks.{KinesisSink, ResultSink}
 import net.anzop.types.{CryptoQuotation, MarketDataMessage, StockQuotation}
 import org.apache.flink.connector.kinesis.sink.KinesisStreamsSink
 import org.apache.flink.streaming.api.scala.{DataStream, _}
-import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows
+import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows
 import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer
 
 import java.util.Properties
@@ -50,13 +50,13 @@ object MarketData {
     logger.info("Flink stream watermarking applied")
 
     val windowedStockQuotationVolumes: DataStream[WindowedQuotationVolumes] = watermarkedStockQuotationStream
-      .keyBy[String]((x: StockQuotation) => x.symbol)
-      .window(SlidingProcessingTimeWindows.of(windowConfig.windowPeriodLength, windowConfig.windowInterval))
+      .keyBy[String]((_: StockQuotation) => "singleton")
+      .window(SlidingEventTimeWindows.of(windowConfig.windowPeriodLength, windowConfig.windowInterval))
       .apply(QuotationWindow.forStockQuotation())
 
     val windowedCryptoQuotationVolumes: DataStream[WindowedQuotationVolumes] = watermarkedCryptoQuotationStream
-      .keyBy[String]((x: CryptoQuotation) => x.symbol)
-      .window(SlidingProcessingTimeWindows.of(windowConfig.windowPeriodLength, windowConfig.windowInterval))
+      .keyBy[String]((x: CryptoQuotation) => "singleton")
+      .window(SlidingEventTimeWindows.of(windowConfig.windowPeriodLength, windowConfig.windowInterval))
       .apply(QuotationWindow.forCryptoQuotation())
 
     logger.info("Flink stream windowing applied")
