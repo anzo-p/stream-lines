@@ -5,5 +5,5 @@ import { writable } from 'svelte/store';
 export const graphqlServiceProvider = writable(graphQLClient);
 
 export const websocketServiceProvider = import.meta.env.SSR
-    ? writable(null)
-    : writable(initializeWebSocket('wss://sl-gav.anzop.net/', () => {}));
+  ? writable(null)
+  : writable(initializeWebSocket('wss://sl-gav.anzop.net/', () => {}));

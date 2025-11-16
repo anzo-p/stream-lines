@@ -1,13 +1,13 @@
 <script lang="ts">
-    import ModelDiagram from '../../lib/components/ModelDiagram.svelte';
+  import ModelDiagram from '../../lib/components/ModelDiagram.svelte';
 </script>
 
 <body class="top-html">
-    <ModelDiagram />
+  <ModelDiagram />
 </body>
 
 <style>
-    .top-html {
-        background-color: black;
-    }
+  .top-html {
+    background-color: black;
+  }
 </style>
