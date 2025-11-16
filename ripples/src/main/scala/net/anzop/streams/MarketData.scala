@@ -50,12 +50,12 @@ object MarketData {
     logger.info("Flink stream watermarking applied")
 
     val windowedStockQuotationVolumes: DataStream[WindowedQuotationVolumes] = watermarkedStockQuotationStream
-      .keyBy[String]((_: StockQuotation) => "singleton")
+      .keyBy[String]((x: StockQuotation) => x.symbol)
       .window(SlidingEventTimeWindows.of(windowConfig.windowPeriodLength, windowConfig.windowInterval))
       .apply(QuotationWindow.forStockQuotation())
 
     val windowedCryptoQuotationVolumes: DataStream[WindowedQuotationVolumes] = watermarkedCryptoQuotationStream
-      .keyBy[String]((x: CryptoQuotation) => "singleton")
+      .keyBy[String]((x: CryptoQuotation) => x.symbol)
       .window(SlidingEventTimeWindows.of(windowConfig.windowPeriodLength, windowConfig.windowInterval))
       .apply(QuotationWindow.forCryptoQuotation())
 

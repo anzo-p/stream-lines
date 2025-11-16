@@ -11,11 +11,11 @@ lazy val root = (project in file("."))
   .enablePlugins(JavaAppPackaging)
 //.enablePlugins(DockerPlugin)
 
-val awsSdkVersion      = "1.12.429"
-val apacheFlinkVersion = "1.19.3"
+val awsSdkVersion      = "1.12.793"
+val apacheFlinkVersion = "1.20.3"
 val apacheHttpVersion  = "4.5.14"
 val awsKinesisVersion  = "4.0.0-1.16"
-val jacksonVersion     = "2.19.4"
+val jacksonVersion     = "2.15.3" // explicit peg, as something in here brings in this exact version transitively
 val logbackVersion     = "1.4.12"
 val slf4jVersion       = "2.0.5"
 val typesafeVersion    = "1.4.2"
@@ -38,6 +38,9 @@ libraryDependencies ++= Seq(
   "ch.qos.logback"                 % "logback-classic"                     % logbackVersion,
   "com.thesamet.scalapb"           %% "scalapb-runtime"                    % scalapb.compiler.Version.scalapbVersion % "protobuf"
 )
+
+// https://mvnrepository.com/artifact/tools.jackson.core/jackson-core
+libraryDependencies += "tools.jackson.core" % "jackson-core" % "3.0.1"
 
 libraryDependencies ++= Seq(
   "org.apache.flink" % "flink-test-utils" % apacheFlinkVersion % Test,
