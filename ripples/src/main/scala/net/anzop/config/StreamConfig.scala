@@ -17,7 +17,7 @@ object StreamConfig {
     env.setStateBackend(rocksDbBackend)
     env.getCheckpointConfig.setCheckpointStorage(new FileSystemCheckpointStorage(checkpointPath))
     env.enableCheckpointing(60 * 1000L)
-    env.setParallelism(2)
+    env.setParallelism(1)
   }
 
   def createExecutionEnvironment(): StreamExecutionEnvironment = {
