@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
 import { Construct } from 'constructs';
 
 export class EcsClusterStack extends cdk.NestedStack {
@@ -17,7 +18,11 @@ export class EcsClusterStack extends cdk.NestedStack {
     super(scope, id, props);
 
     this.ecsCluster = new ecs.Cluster(this, 'StreamLinesEcsCluster', {
-      vpc
+      vpc,
+      defaultCloudMapNamespace: {
+        name: 'stream-lines.local',
+        type: servicediscovery.NamespaceType.DNS_PRIVATE,
+      },
     });
   }
 }

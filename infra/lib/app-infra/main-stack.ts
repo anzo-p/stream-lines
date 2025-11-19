@@ -1,4 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { Construct } from 'constructs';
 import { AlbStack } from './alb-stack';
 import { BackendStack } from './backend-stack';
@@ -43,13 +44,32 @@ export class AppInfraStack extends cdk.Stack {
       'StreamLinesEcsTaskExecRole'
     );
 
+    const ripplesServiceSecurityGroup = new ec2.SecurityGroup(
+      this,
+      'RipplesSecurityGroup',
+      {
+        vpc: vpcStack.vpc,
+        allowAllOutbound: true
+      });
+
+    const backendSecurityGroup = new ec2.SecurityGroup(
+      this,
+      'BackendSecurityGroup',
+      {
+        vpc: vpcStack.vpc,
+        allowAllOutbound: true,
+      });
+
     const influxStack = new InfluxDbStack(
       this,
       'InfluxDbStack',
       vpcStack.vpc,
       ecsCluster.ecsCluster,
       taskExecRoleStack.role,
-      albStack.influxDbAlbListener
+      [
+        { key: 'ripples', sg: ripplesServiceSecurityGroup },
+        { key: 'backend', sg: backendSecurityGroup },
+      ]
     );
 
     const ingestStack = new IngestStack(
@@ -64,6 +84,7 @@ export class AppInfraStack extends cdk.Stack {
     const ripplesStack = new RipplesStack(
       this,
       'ripplesStack',
+      ripplesServiceSecurityGroup,
       ecsCluster.ecsCluster,
       taskExecRoleStack.role,
       kinesisStack.readUpstreamPerms,
@@ -75,6 +96,7 @@ export class AppInfraStack extends cdk.Stack {
     const backendStack = new BackendStack(
       this,
       'BackendStack',
+      backendSecurityGroup,
       ecsCluster.ecsCluster,
       taskExecRoleStack.role,
       albStack.backendAlbListener

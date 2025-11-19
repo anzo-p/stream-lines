@@ -10,17 +10,13 @@ export class BackendStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,
+    securityGroup: ec2.SecurityGroup,
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
     backendAlbListener: elbv2.ApplicationListener,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
-
-    const securityGroup = new ec2.SecurityGroup(this, 'BackendSecurityGroup', {
-      vpc: ecsCluster.vpc,
-      allowAllOutbound: true
-    });
 
     const taskDefinition = new ecs.FargateTaskDefinition(
       this,
@@ -66,10 +62,10 @@ export class BackendStack extends cdk.NestedStack {
     const backendService = new ecs.FargateService(this, 'BackendEcsService', {
       cluster: ecsCluster,
       taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       securityGroups: [securityGroup],
       desiredCount: 1,
-      assignPublicIp: true
+      assignPublicIp: false
     });
 
     backendService.registerLoadBalancerTargets({

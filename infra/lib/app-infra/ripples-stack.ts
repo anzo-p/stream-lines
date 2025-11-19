@@ -9,6 +9,7 @@ export class RipplesStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,
+    securityGroup: ec2.SecurityGroup,
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
     readKinesisUpstreamPerms: iam.PolicyStatement,
@@ -16,15 +17,6 @@ export class RipplesStack extends cdk.NestedStack {
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
-
-    const securityGroup = new ec2.SecurityGroup(
-      this,
-      'RipplesSecurityGroup',
-      {
-        vpc: ecsCluster.vpc,
-        allowAllOutbound: true
-      }
-    );
 
     const taskRole = new iam.Role(this, 'TaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
@@ -83,23 +75,23 @@ export class RipplesStack extends cdk.NestedStack {
         INFLUXDB_URL: `${process.env.INFLUXDB_URL}`,
         KINESIS_DOWNSTREAM_NAME: `${process.env.KINESIS_RESULTS_DOWNSTREAM}`,
         KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`,
-          JAVA_TOOL_OPTIONS: [
-            '--add-opens=java.base/java.lang=ALL-UNNAMED',
-            '--add-opens=java.base/java.math=ALL-UNNAMED',
-            '--add-opens=java.base/java.time=ALL-UNNAMED',
-            '--add-opens=java.base/java.util=ALL-UNNAMED',
-          ].join(' ')
-        },
+        JAVA_TOOL_OPTIONS: [
+          '--add-opens=java.base/java.lang=ALL-UNNAMED',
+          '--add-opens=java.base/java.math=ALL-UNNAMED',
+          '--add-opens=java.base/java.time=ALL-UNNAMED',
+          '--add-opens=java.base/java.util=ALL-UNNAMED',
+        ].join(' ')
+      },
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'ripples' })
     });
 
     new ecs.FargateService(this, 'RipplesEcsService', {
       cluster: ecsCluster,
       taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       securityGroups: [securityGroup],
       desiredCount: 1,
-      assignPublicIp: true,
+      assignPublicIp: false,
     });
   }
 }

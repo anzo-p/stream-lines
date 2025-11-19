@@ -3,7 +3,6 @@ import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as efs from 'aws-cdk-lib/aws-efs';
-import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 
@@ -14,39 +13,29 @@ export class InfluxDbStack extends cdk.NestedStack {
     vpc: ec2.Vpc,
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
-    influxDbAlbListener: elbv2.ApplicationListener,
+    connectingServiceSGs: { key: string; sg: ec2.SecurityGroup }[],
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
 
-    /*
-    // this would be the way to create and grant access to an efs if you create it now
-    // for databases not advisable though, as data must retain, ie. we expect much data to exists already
-    const influxDbFileSystem = new efs.FileSystem(
+    const influxDbServiceSecurityGroup = new ec2.SecurityGroup(
       this,
-      'StreamLinesInfluxDbFileSystem',
+      'InfluxDbServiceSecurityGroup',
       {
         vpc,
-        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }
-      }
-    );
+        allowAllOutbound: true,
+      });
 
-    new efs.AccessPoint(this, 'InfluxDbAccessPoint', {
-      fileSystem: influxDbFileSystem,
-      path: '/var/lib/influxdb2',
-      posixUser: {
-        uid: '1000',
-        gid: '1000'
-      }
+    const influxDbPort = Number(process.env.INFLUXDB_SERVER_PORT);
+    if (!influxDbPort) throw new Error('Invalid INFLUXDB_SERVER_PORT');
+
+    connectingServiceSGs.forEach(({ key, sg }) => {
+      influxDbServiceSecurityGroup.connections.allowFrom(
+        sg,
+        ec2.Port.tcp(influxDbPort),
+        `${key}-to-Influx`
+      );
     });
-
-    // connections.allowFrom when creating an EFS now
-    influxDbFileSystem.connections.allowFrom(
-      influxdbService,
-      ec2.Port.tcp(2049),
-      'Allow access to EFS on port 2049'
-    );
-    */
 
     const influxDbFileSystemSecurityGroup = new ec2.SecurityGroup(
       this,
@@ -148,26 +137,13 @@ export class InfluxDbStack extends cdk.NestedStack {
     const influxdbService = new ecs.FargateService(this, 'InfluxDbEcsService', {
       cluster: ecsCluster,
       taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       desiredCount: 1,
-      assignPublicIp: true
-    });
-
-    influxdbService.registerLoadBalancerTargets({
-      containerName: 'InfluxDbContainer',
-      containerPort,
-      newTargetGroupId: 'InfluxDbTargetGroup',
-      listener: ecs.ListenerConfig.applicationListener(influxDbAlbListener, {
-        protocol: elbv2.ApplicationProtocol.HTTP,
-        healthCheck: {
-          path: '/health',
-          interval: cdk.Duration.seconds(30),
-          timeout: cdk.Duration.seconds(15),
-          healthyThresholdCount: 3,
-          unhealthyThresholdCount: 3,
-          healthyHttpCodes: '200'
-        }
-      })
+      assignPublicIp: false,
+      securityGroups: [influxDbServiceSecurityGroup],
+      cloudMapOptions: {
+        name: 'influxdb', // ie. influxdb.stream-lines.local
+      },
     });
 
     influxDbFileSystemSecurityGroup.connections.allowFrom(
