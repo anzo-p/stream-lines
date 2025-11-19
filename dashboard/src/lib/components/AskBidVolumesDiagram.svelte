@@ -9,8 +9,6 @@
   import { fetchWindowedQuotations } from '$lib/services/graphql/windowedQuotation';
   import type { WindowedQuotation } from '$lib/types/WindowedQuotation';
   import HorizontalRuler from './HorizontalRuler.svelte';
-  import MeasurementChart from './MeasurementChart.svelte';
-  import QuotationChart from './QuotationChart.svelte';
   import AskBidVolumesChart from '$lib/components/AskBidVolumesChart.svelte';
 
   const graphqlService = $graphqlServiceProvider;

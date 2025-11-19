@@ -68,6 +68,7 @@
     class="ruler"
     width={svgGeometry.width}
     height={svgGeometry.height}
+    role="img"
     xmlns="http://www.w3.org/2000/svg"
     on:mousemove={describeDataOnX}
   >

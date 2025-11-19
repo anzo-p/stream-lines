@@ -1,9 +1,9 @@
 <script lang="ts">
-  import AskBidDiagram from '$lib/components/AskBidVolumesDiagram.svelte';
+  import AskBidVolumesDiagram from '$lib/components/AskBidVolumesDiagram.svelte';
 </script>
 
 <div class="top-html">
-  <AskBidDiagram />
+  <AskBidVolumesDiagram />
 </div>
 
 <style>

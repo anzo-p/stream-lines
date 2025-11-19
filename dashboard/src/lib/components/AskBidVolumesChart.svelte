@@ -17,14 +17,14 @@
   let verticalTicks: VerticalTick[];
   let askPolylinePointString: string;
   let bidPolylinePointString: string;
-
-  let hoveredX: number | null = null;
+  let hoveredAsk: number | null = null;
+  let hoveredBid: number | null = null;
 
   $: {
     askScaledPoints = makeScaledPoints({
       data,
       getMeasurement: (item) => item.sumAskVolume,
-      getPrice: (item) => item.askPriceAtWindowEnd,
+      getPrice: (item) => item.sumAskVolume,
       getTime: (item) => item.windowEndTime,
       geometry: svgGeometry
     });
@@ -36,7 +36,7 @@
     bidScaledPoints = makeScaledPoints({
       data,
       getMeasurement: (item) => item.sumBidVolume,
-      getPrice: (item) => item.askPriceAtWindowEnd,
+      getPrice: (item) => item.sumBidVolume,
       getTime: (item) => item.windowEndTime,
       geometry: svgGeometry
     });
@@ -53,12 +53,12 @@
 
   $: visibleBidScaledPoints = bidScaledPoints.map((point: ScaledPoint) => ({
     ...point,
-    visible: hoveredX !== null && Math.abs(point.x - hoveredX) < 1
+    visible: hoveredAsk !== null && Math.abs(point.x - hoveredAsk) < 1
   }));
 
   $: visibleAskScaledPoints = askScaledPoints.map((point: ScaledPoint) => ({
     ...point,
-    visible: hoveredX !== null && Math.abs(point.x - hoveredX) < 1
+    visible: hoveredBid !== null && Math.abs(point.x - hoveredBid) < 1
   }));
 </script>
 
@@ -102,7 +102,10 @@
             x2={svgGeometry.width - svgGeometry.offsets.left + 5}
             y2={y}
           />
-          <text x={svgGeometry.width - svgGeometry.offsets.left + 40} y={y + 3}>{label}</text>
+          <text
+              x={svgGeometry.width - svgGeometry.offsets.left + 40}
+              y={y + 3}>{label}
+          </text>
         {/if}
       {/each}
     </g>
