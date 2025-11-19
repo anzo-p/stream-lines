@@ -16,7 +16,7 @@ object StreamConfig {
     val rocksDbBackend = new EmbeddedRocksDBStateBackend()
     env.setStateBackend(rocksDbBackend)
     env.getCheckpointConfig.setCheckpointStorage(new FileSystemCheckpointStorage(checkpointPath))
-    env.enableCheckpointing(60 * 1000L)
+    env.enableCheckpointing(5 * 60 * 1000L)
     env.setParallelism(1)
   }
 

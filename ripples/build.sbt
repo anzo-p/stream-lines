@@ -1,6 +1,6 @@
 import sbt._
 
-ThisBuild / scalaVersion := "2.12.15"
+ThisBuild / scalaVersion := "2.12.17"
 
 lazy val root = (project in file("."))
   .settings(
@@ -30,17 +30,12 @@ libraryDependencies ++= Seq(
   "org.apache.flink"               % "flink-s3-fs-hadoop"                  % apacheFlinkVersion,
   "org.apache.flink"               %% "flink-streaming-scala"              % apacheFlinkVersion,
   "org.apache.httpcomponents"      % "httpclient"                          % apacheHttpVersion,
-  "com.fasterxml.jackson.core"     % "jackson-core"                        % jacksonVersion,
-  "com.fasterxml.jackson.core"     % "jackson-databind"                    % jacksonVersion,
   "com.fasterxml.jackson.module"   %% "jackson-module-scala"               % jacksonVersion,
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310"             % jacksonVersion,
   "org.slf4j"                      % "slf4j-api"                           % slf4jVersion,
   "ch.qos.logback"                 % "logback-classic"                     % logbackVersion,
   "com.thesamet.scalapb"           %% "scalapb-runtime"                    % scalapb.compiler.Version.scalapbVersion % "protobuf"
 )
-
-// https://mvnrepository.com/artifact/tools.jackson.core/jackson-core
-libraryDependencies += "tools.jackson.core" % "jackson-core" % "3.0.1"
 
 libraryDependencies ++= Seq(
   "org.apache.flink" % "flink-test-utils" % apacheFlinkVersion % Test,
