@@ -2,9 +2,7 @@ package net.anzop.config
 
 import net.anzop.helpers.Extensions.EnvOps
 import net.anzop.types.{MarketDataDeserializer, MarketDataMessage}
-import org.apache.flink.configuration.{Configuration, MemorySize, TaskManagerOptions}
-import org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackend
-import org.apache.flink.runtime.state.storage.FileSystemCheckpointStorage
+import org.apache.flink.configuration._
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer
 
@@ -13,10 +11,13 @@ import java.util.Properties
 object StreamConfig {
   private def configureExecutionEnvironment(env: StreamExecutionEnvironment): Unit = {
     val checkpointPath = sys.env.getOrThrow("CHECKPOINT_PATH", "CHECKPOINT_PATH is not set")
-    val rocksDbBackend = new EmbeddedRocksDBStateBackend()
-    env.setStateBackend(rocksDbBackend)
-    env.getCheckpointConfig.setCheckpointStorage(new FileSystemCheckpointStorage(checkpointPath))
-    env.enableCheckpointing(5 * 60 * 1000L)
+    val cfg            = new Configuration()
+
+    cfg.set(StateBackendOptions.STATE_BACKEND, "rocksdb")
+    cfg.set(CheckpointingOptions.CHECKPOINT_STORAGE, "filesystem")
+    cfg.set(CheckpointingOptions.CHECKPOINTS_DIRECTORY, checkpointPath)
+    env.configure(cfg)
+    env.getCheckpointConfig.setCheckpointInterval(5 * 60 * 1000L)
     env.setParallelism(1)
   }
 

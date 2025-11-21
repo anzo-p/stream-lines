@@ -14,15 +14,15 @@ object WindowConfig {
   val logger: Logger = LoggerFactory.getLogger(getClass)
 
   private val config: Config     = ConfigFactory.load()
-  private val periodLength: Long = config.getDuration("sliding_window_5min.window_period_length").toMinutes
+  private val periodLength: Long = config.getDuration("sliding_window.window_period_length").toMinutes
 
   val slidingWindows5m = SlidingWindowConfig(
     WatermarkConfig(
-      dueTime      = config.getDuration("sliding_window_5min.watermark.due_time"),
-      idlePatience = config.getDuration("sliding_window_5min.watermark.idle_patience")
+      dueTime      = config.getDuration("sliding_window.watermark.due_time"),
+      idlePatience = config.getDuration("sliding_window.watermark.idle_patience")
     ),
     windowPeriodLength = Time.minutes(periodLength),
-    windowInterval     = Time.minutes(config.getDuration("sliding_window_5min.window_interval").toMinutes)
+    windowInterval     = Time.minutes(config.getDuration("sliding_window.window_interval").toMinutes)
   )
   logger.info(s"$periodLength minute sliding window configuration loaded")
 }

@@ -1,6 +1,6 @@
 import sbt._
 
-ThisBuild / scalaVersion := "2.12.17"
+ThisBuild / scalaVersion := "2.12.15"
 
 lazy val root = (project in file("."))
   .settings(
@@ -11,30 +11,29 @@ lazy val root = (project in file("."))
   .enablePlugins(JavaAppPackaging)
 //.enablePlugins(DockerPlugin)
 
-val awsSdkVersion      = "1.12.793"
-val apacheFlinkVersion = "1.20.3"
-val apacheHttpVersion  = "4.5.14"
+val apacheFlinkVersion = "1.17.2"
+val awsSdkVersion      = "1.12.429"
 val awsKinesisVersion  = "4.0.0-1.16"
-val jacksonVersion     = "2.15.3" // explicit peg, as something in here brings in this exact version transitively
+val jacksonVersion     = "2.15.3"
 val logbackVersion     = "1.4.12"
 val slf4jVersion       = "2.0.5"
 val typesafeVersion    = "1.4.2"
 
 libraryDependencies ++= Seq(
-  "com.typesafe"                   % "config"                              % typesafeVersion,
-  "com.amazonaws"                  % "aws-java-sdk-kinesis"                % awsSdkVersion,
-  "org.apache.flink"               % "flink-clients"                       % apacheFlinkVersion,
-  "org.apache.flink"               % "flink-connector-kinesis"             % awsKinesisVersion,
-  "org.apache.flink"               % "flink-connector-aws-kinesis-streams" % awsKinesisVersion,
-  "org.apache.flink"               % "flink-statebackend-rocksdb"          % apacheFlinkVersion,
-  "org.apache.flink"               % "flink-s3-fs-hadoop"                  % apacheFlinkVersion,
-  "org.apache.flink"               %% "flink-streaming-scala"              % apacheFlinkVersion,
-  "org.apache.httpcomponents"      % "httpclient"                          % apacheHttpVersion,
-  "com.fasterxml.jackson.module"   %% "jackson-module-scala"               % jacksonVersion,
-  "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310"             % jacksonVersion,
-  "org.slf4j"                      % "slf4j-api"                           % slf4jVersion,
-  "ch.qos.logback"                 % "logback-classic"                     % logbackVersion,
-  "com.thesamet.scalapb"           %% "scalapb-runtime"                    % scalapb.compiler.Version.scalapbVersion % "protobuf"
+  "com.amazonaws"        % "aws-java-sdk-kinesis"                % awsSdkVersion,
+  "org.apache.flink"     % "flink-clients"                       % apacheFlinkVersion,
+  "org.apache.flink"     % "flink-connector-base"                % apacheFlinkVersion,
+  "org.apache.flink"     % "flink-connector-kinesis"             % awsKinesisVersion,
+  "org.apache.flink"     % "flink-connector-aws-kinesis-streams" % awsKinesisVersion,
+  "org.apache.flink"     % "flink-statebackend-rocksdb"          % apacheFlinkVersion,
+  "org.apache.flink"     % "flink-s3-fs-hadoop"                  % apacheFlinkVersion,
+  "org.apache.flink"     %% "flink-streaming-scala"              % apacheFlinkVersion,
+  "org.apache.flink"     %% "flink-scala"                        % apacheFlinkVersion % Provided,
+  "org.apache.flink"     % "flink-streaming-java"                % apacheFlinkVersion % Provided,
+  "org.slf4j"            % "slf4j-api"                           % slf4jVersion,
+  "ch.qos.logback"       % "logback-classic"                     % logbackVersion,
+  "com.typesafe"         % "config"                              % typesafeVersion,
+  "com.thesamet.scalapb" %% "scalapb-runtime"                    % scalapb.compiler.Version.scalapbVersion % "protobuf"
 )
 
 libraryDependencies ++= Seq(
