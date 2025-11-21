@@ -66,8 +66,7 @@ object MarketData {
     windowedCryptoQuotationVolumes.addSink(new ResultSink(influxDetails, influxDBSerializer))
     logger.info("Flink stream results InfluxDB sink created")
 
-    val kinesisSink: KinesisStreamsSink[WindowedQuotationVolumes] =
-      KinesisSink.make(kinesisProps, new WindowedQuotationVolumes.JsonSerializerSchema())
+    val kinesisSink: KinesisStreamsSink[WindowedQuotationVolumes] = KinesisSink.make(kinesisProps)
     logger.info("Flink stream results Kinesis sink created")
 
     windowedStockQuotationVolumes.addSink(loggingKinesisSink[WindowedQuotationVolumes])

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import net.anzop.processors.WindowedVolumesMeasurement
 import net.anzop.serdes.DataSerializer
 import org.apache.flink.api.common.serialization.SerializationSchema
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper
 
 import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
@@ -54,13 +55,7 @@ object WindowedQuotationVolumes {
 
   class JsonSerializerSchema extends SerializationSchema[WindowedQuotationVolumes] with Serializable {
     private class JsonSerializer extends DataSerializer[WindowedQuotationVolumes] with Serializable {
-      import com.fasterxml.jackson.databind.ObjectMapper
-      import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-      import com.fasterxml.jackson.module.scala.DefaultScalaModule
-
-      @transient private lazy val objectMapper = new ObjectMapper()
-        .registerModule(DefaultScalaModule)
-        .registerModule(new JavaTimeModule())
+      private val objectMapper = new ObjectMapper()
 
       override def serialize(data: WindowedQuotationVolumes): String =
         objectMapper.writeValueAsString(data)
