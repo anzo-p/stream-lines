@@ -35,19 +35,20 @@ object WindowedQuotationVolumes {
       val tags      = data.tags.map { case (k, v) => s"$k=$v" }.mkString(",")
       val timestamp = data.windowEndTime.toInstant.getEpochSecond * 1000000000L
       val fields =
-        s"""{
-           |"measure_id": ${data.measureId.toString}",
-           |"symbol": ${data.symbol}",
-           |"window_start_time": ${data.windowStartTime.toInstant.getEpochSecond * 1000000000L},
-           |"window_end_time": $timestamp,
-           |"sum_bid_volume": ${setScale(data.sumBidVolume)},
-           |"sum_ask_volume": ${setScale(data.sumAskVolume)},
-           |"record_count": ${data.recordCount},
-           |"average_bid"_price": ${setScale(data.averageBidPrice)},
-           |"average_ask_price": ${setScale(data.averageAskPrice)},
-           |"bid_price_at_window_end": ${setScale(data.bidPriceAtWindowEnd)},
-           |"ask_price_at_window_end": ${setScale(data.askPriceAtWindowEnd)}
-           |}""".stripMargin.replaceAll("\n", "")
+        s"""
+           |measure_id="${data.measureId.toString}",
+           |symbol="${data.symbol}",
+           |window_start_time=${data.windowStartTime.toInstant.getEpochSecond * 1000000000L}i,
+           |window_end_time=${timestamp}i,
+           |sum_bid_volume=${setScale(data.sumBidVolume)},
+           |sum_ask_volume=${setScale(data.sumAskVolume)},
+           |record_count=${data.recordCount}i,
+           |average_bid_price=${setScale(data.averageBidPrice)},
+           |average_ask_price=${setScale(data.averageAskPrice)},
+           |bid_price_at_window_end=${setScale(data.bidPriceAtWindowEnd)},
+           |ask_price_at_window_end=${setScale(data.askPriceAtWindowEnd)}
+           |""".stripMargin.replaceAll("\n", "")
+
       s"${data.measurementType.value},$tags $fields $timestamp"
     }
   }

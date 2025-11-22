@@ -42,6 +42,9 @@ class ResultSink[T](val influxDetails: InfluxDetails, val serializer: DataSerial
         case 204 =>
           logger.info(s"Successfully storing ${value.getClass.getSimpleName} results to influxDB")
 
+        case 400 =>
+          logger.error(s"Bad request sent to influxDB: $serializedData. ${response.getStatusLine.getReasonPhrase}")
+
         case _ =>
           logger.warn(
             s"Unexpected response from influx - code: ${response.getStatusLine.getStatusCode}, message: ${response.getStatusLine.getReasonPhrase}")
