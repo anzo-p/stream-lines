@@ -139,6 +139,7 @@ export class InfluxDbStack extends cdk.NestedStack {
       taskDefinition,
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       desiredCount: 1,
+      enableExecuteCommand: true,
       assignPublicIp: false,
       securityGroups: [influxDbServiceSecurityGroup],
       cloudMapOptions: {

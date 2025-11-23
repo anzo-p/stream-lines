@@ -20,7 +20,7 @@ export class EcsClusterStack extends cdk.NestedStack {
     this.ecsCluster = new ecs.Cluster(this, 'StreamLinesEcsCluster', {
       vpc,
       defaultCloudMapNamespace: {
-        name: 'stream-lines.local',
+        name: `${process.env.PRIVATE_NAMESPACE}`,
         type: servicediscovery.NamespaceType.DNS_PRIVATE,
       },
     });

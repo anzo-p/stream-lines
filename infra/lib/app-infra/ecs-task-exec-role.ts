@@ -24,7 +24,11 @@ export class EcsTaskExecutionRole extends cdk.NestedStack {
         actions: [
           'logs:CreateLogGroup',
           'logs:CreateLogStream',
-          'logs:PutLogEvents'
+          'logs:PutLogEvents',
+          "ssmmessages:CreateControlChannel",
+          "ssmmessages:CreateDataChannel",
+          "ssmmessages:OpenControlChannel",
+          "ssmmessages:OpenDataChannel"
         ],
         resources: ['arn:aws:logs:*:*:*']
       })

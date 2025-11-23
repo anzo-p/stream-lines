@@ -45,6 +45,9 @@ export class VpcStack extends cdk.NestedStack {
       { id: 'EcrDockerEndpoint', service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER },
       { id: 'ElasticFilesystemEndpoint', service: ec2.InterfaceVpcEndpointAwsService.ELASTIC_FILESYSTEM },
       { id: 'KinesisStreamsEndpoint', service: ec2.InterfaceVpcEndpointAwsService.KINESIS_STREAMS },
+      { id: 'SsmEndpoint', service: ec2.InterfaceVpcEndpointAwsService.SSM },
+      { id: 'SsmMessagesEndpoint', service: ec2.InterfaceVpcEndpointAwsService.SSM_MESSAGES },
+      { id: 'Ec2MessagesEndpoint', service: ec2.InterfaceVpcEndpointAwsService.EC2_MESSAGES },
     ].forEach(({ id, service }) => {
       new ec2.InterfaceVpcEndpoint(this, id, {
         vpc: this.vpc,
