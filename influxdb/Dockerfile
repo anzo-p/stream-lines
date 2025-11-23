@@ -1,6 +1,5 @@
-FROM influxdb:2.0
+FROM influxdb:2.7
 
 RUN apt-get update && \
-    apt-get install -y python3-pip && \
-    pip3 install botocore && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends python3-botocore && \
+    rm -rf /var/lib/apt/lists/*
