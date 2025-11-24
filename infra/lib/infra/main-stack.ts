@@ -20,19 +20,21 @@ export class AppInfraStack extends cdk.Stack {
 
     const vpcStack = new VpcStack(this, 'VpcStack');
 
+    /*
     const wsApigatewayStack = new WebSocketApiGatewayStack(
       this,
       'ApiGatewayStack'
     );
+    */
 
     const kinesisStack = new KinesisStreamsStack(
       this,
       'KinesisStack',
-      wsApigatewayStack.wsApiGatewayStageProdArn,
-      wsApigatewayStack.wsApiGatewayConnectionsUrl
+      //wsApigatewayStack.wsApiGatewayStageProdArn,
+      //wsApigatewayStack.wsApiGatewayConnectionsUrl
     );
 
-    const albStack = new AlbStack(this, 'AlbStack', vpcStack.vpc);
+    // const albStack = new AlbStack(this, 'AlbStack', vpcStack.vpc);
 
     const taskExecRoleStack = new EcsTaskExecutionRole(
       this,
@@ -67,6 +69,7 @@ export class AppInfraStack extends cdk.Stack {
       }
     );
 
+    /*
     const backendSecurityGroup = new ec2.SecurityGroup(
       this,
       'BackendSecurityGroup',
@@ -74,6 +77,7 @@ export class AppInfraStack extends cdk.Stack {
         vpc: vpcStack.vpc,
         allowAllOutbound: true,
       });
+    */
 
     const influxDbStack = new InfluxDbStack(
       this,
@@ -84,7 +88,7 @@ export class AppInfraStack extends cdk.Stack {
       bastionSecurityGroup,
       [
         { key: 'ripples', sg: ripplesServiceSecurityGroup },
-        { key: 'backend', sg: backendSecurityGroup },
+        //{ key: 'backend', sg: backendSecurityGroup },
       ]
     );
 
@@ -116,6 +120,7 @@ export class AppInfraStack extends cdk.Stack {
     ripplesStack.addDependency(kinesisStack);
     ripplesStack.addDependency(influxDbStack);
 
+    /*
     const backendStack = new BackendStack(
       this,
       'BackendStack',
@@ -136,5 +141,6 @@ export class AppInfraStack extends cdk.Stack {
     );
     dashboardStack.addDependency(wsApigatewayStack);
     dashboardStack.addDependency(backendStack);
+    */
   }
 }

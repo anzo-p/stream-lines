@@ -5,10 +5,8 @@ import net.anzop.config.{InfluxDetails, StreamConfig, WindowConfig}
 import net.anzop.helpers.StreamHelpers
 import net.anzop.processors.QuotationWindow
 import net.anzop.results.WindowedQuotationVolumes
-import net.anzop.sinks.KinesisSink.loggingKinesisSink
-import net.anzop.sinks.{KinesisSink, ResultSink}
+import net.anzop.sinks.ResultSink
 import net.anzop.types.{CryptoQuotation, MarketDataMessage, StockQuotation}
-import org.apache.flink.connector.kinesis.sink.KinesisStreamsSink
 import org.apache.flink.streaming.api.scala.{DataStream, _}
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows
 import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer
@@ -66,6 +64,7 @@ object MarketData {
     windowedCryptoQuotationVolumes.addSink(new ResultSink(influxDetails, influxDBSerializer))
     logger.info("Flink stream results InfluxDB sink created")
 
+    /*
     val kinesisSink: KinesisStreamsSink[WindowedQuotationVolumes] = KinesisSink.make(kinesisProps)
     logger.info("Flink stream results Kinesis sink created")
 
@@ -75,6 +74,7 @@ object MarketData {
     windowedStockQuotationVolumes.sinkTo(kinesisSink)
     windowedCryptoQuotationVolumes.sinkTo(kinesisSink)
     logger.info("Flink stream results sinks connected")
+     */
 
     env.execute("Flink Kinesis Example")
   }

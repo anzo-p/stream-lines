@@ -45,8 +45,8 @@ export class KinesisStreamsStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,
-    wsApiGatewayStageProdArn: string,
-    wsApiGatewayConnectionsUrl: string,
+    //wsApiGatewayStageProdArn: string,
+    //wsApiGatewayConnectionsUrl: string,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
@@ -57,6 +57,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
       retentionPeriod: cdk.Duration.hours(24)
     });
 
+    /*
     const resultsStream = new kinesis.Stream(this, 'ResultsDownStream', {
       streamName: 'stream-lines-results-downstream',
       shardCount: 1,
@@ -75,6 +76,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
         ]
       }
     );
+
 
     roleResultsStreamPusherLambda.addToPolicy(
       new iam.PolicyStatement({
@@ -144,6 +146,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
         retryAttempts: 3
       })
     );
+      */
 
     this.writeUpstreamPerms = this.makeWriteAccessPolicy(
       'stream-lines-market-data-upstream'
