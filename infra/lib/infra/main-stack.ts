@@ -6,12 +6,13 @@ import { BackendStack } from './backend-stack';
 import { DashboardStack } from './dashboard-stack';
 import { EcsClusterStack } from './ecs-cluster-stack';
 import { EcsTaskExecutionRole } from './ecs-task-exec-role';
-import { InfluxDbStack } from './influxdb-stack';
+import { InfluxDbHostStack as InfluxDbStack } from './influxdb-stack';
 import { IngestStack } from './ingest-stack';
 import { KinesisStreamsStack } from './kinesis-stack';
 import { RipplesStack } from './ripples-stack';
 import { VpcStack } from './vpc-stack';
 import { WebSocketApiGatewayStack } from './api-gateway-stack';
+import { JumpBastionStack } from './jump-bastion-stack';
 
 export class AppInfraStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -31,12 +32,6 @@ export class AppInfraStack extends cdk.Stack {
       wsApigatewayStack.wsApiGatewayConnectionsUrl
     );
 
-    const ecsCluster = new EcsClusterStack(
-      this,
-      'EcsClusterStack',
-      vpcStack.vpc
-    );
-
     const albStack = new AlbStack(this, 'AlbStack', vpcStack.vpc);
 
     const taskExecRoleStack = new EcsTaskExecutionRole(
@@ -44,13 +39,33 @@ export class AppInfraStack extends cdk.Stack {
       'StreamLinesEcsTaskExecRole'
     );
 
+    const ecsCluster = new EcsClusterStack(
+      this,
+      'EcsClusterStack',
+      vpcStack.vpc,
+    );
+
+    const bastionSecurityGroup = new ec2.SecurityGroup(this, 'BastionSecurityGroup', {
+      vpc: vpcStack.vpc,
+      allowAllOutbound: true,
+    });
+
+    const influxDbSecurityGroup = new ec2.SecurityGroup(
+      this,
+      'InfluxDbServiceSecurityGroup',
+      {
+        vpc: vpcStack.vpc,
+        allowAllOutbound: true,
+      });
+
     const ripplesServiceSecurityGroup = new ec2.SecurityGroup(
       this,
       'RipplesSecurityGroup',
       {
         vpc: vpcStack.vpc,
         allowAllOutbound: true
-      });
+      }
+    );
 
     const backendSecurityGroup = new ec2.SecurityGroup(
       this,
@@ -60,16 +75,24 @@ export class AppInfraStack extends cdk.Stack {
         allowAllOutbound: true,
       });
 
-    const influxStack = new InfluxDbStack(
+    const influxDbStack = new InfluxDbStack(
       this,
-      'InfluxDbStack',
+      'InfluxDbHostStack',
       vpcStack.vpc,
       ecsCluster.ecsCluster,
-      taskExecRoleStack.role,
+      influxDbSecurityGroup,
+      bastionSecurityGroup,
       [
         { key: 'ripples', sg: ripplesServiceSecurityGroup },
         { key: 'backend', sg: backendSecurityGroup },
       ]
+    );
+
+    new JumpBastionStack(
+      this,
+      'JumpBastionStack',
+      vpcStack.vpc,
+      bastionSecurityGroup
     );
 
     const ingestStack = new IngestStack(
@@ -91,7 +114,7 @@ export class AppInfraStack extends cdk.Stack {
       kinesisStack.writeDownstreamPerms
     );
     ripplesStack.addDependency(kinesisStack);
-    ripplesStack.addDependency(influxStack);
+    ripplesStack.addDependency(influxDbStack);
 
     const backendStack = new BackendStack(
       this,
@@ -102,7 +125,7 @@ export class AppInfraStack extends cdk.Stack {
       albStack.backendAlbListener
     );
     backendStack.addDependency(wsApigatewayStack);
-    backendStack.addDependency(influxStack);
+    backendStack.addDependency(influxDbStack);
 
     const dashboardStack = new DashboardStack(
       this,

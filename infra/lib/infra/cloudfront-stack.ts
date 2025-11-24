@@ -19,7 +19,7 @@ export class FrontendStack extends cdk.NestedStack {
     const certificate = acm.Certificate.fromCertificateArn(
       this,
       'FrontendCert',
-      `arn:aws:acm:us-east-1:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_CLOUDFRONT_CERT}`
+      `arn:aws:acm:us-east-1:${process.env.AWS_ACCOUNT_ID}:certificate/${process.env.ACM_CLOUDFRONT_CERT}`
     );
 
     const bucket = s3.Bucket.fromBucketName(

@@ -46,8 +46,8 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
         actions: ['dynamodb:PutItem', 'dynamodb:DeleteItem'],
         effect: iam.Effect.ALLOW,
         resources: [
-          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:table/${process.env.WS_CONNS_TABLE_NAME}`,
-          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:table/${process.env.WS_CONNS_BY_SYMBOL_INDEX}/index`
+          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:table/${process.env.WS_CONNS_TABLE_NAME}`,
+          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:table/${process.env.WS_CONNS_BY_SYMBOL_INDEX}/index`
         ]
       })
     );
@@ -141,7 +141,7 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
       certificate: acm.Certificate.fromCertificateArn(
         this,
         'Certificate',
-        `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_APIGW_CERT}`
+        `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:certificate/${process.env.ACM_APIGW_CERT}`
       )
     });
 

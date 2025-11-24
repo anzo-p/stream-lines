@@ -20,7 +20,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
       ],
       effect: iam.Effect.ALLOW,
       resources: [
-        `arn:aws:kinesis:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:stream/${streamName}`
+        `arn:aws:kinesis:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:stream/${streamName}`
       ]
     });
   }
@@ -37,7 +37,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
       ],
       effect: iam.Effect.ALLOW,
       resources: [
-        `arn:aws:kinesis:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:stream/${streamName}`
+        `arn:aws:kinesis:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:stream/${streamName}`
       ]
     });
   }
@@ -93,8 +93,8 @@ export class KinesisStreamsStack extends cdk.NestedStack {
         actions: ['dynamodb:Query', 'dynamodb:DeleteItem'],
         effect: iam.Effect.ALLOW,
         resources: [
-          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:table/${process.env.WS_CONNS_TABLE_NAME}`,
-          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:table/${process.env.WS_CONNS_TABLE_NAME}/index/${process.env.WS_CONNS_BY_SYMBOL_INDEX}`
+          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:table/${process.env.WS_CONNS_TABLE_NAME}`,
+          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:table/${process.env.WS_CONNS_TABLE_NAME}/index/${process.env.WS_CONNS_BY_SYMBOL_INDEX}`
         ]
       })
     );

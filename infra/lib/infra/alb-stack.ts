@@ -52,13 +52,13 @@ export class AlbStack extends cdk.NestedStack {
     const backendAlbCertificate = acm.Certificate.fromCertificateArn(
       this,
       'BackendCertificate',
-      `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_BACKEND_CERT}`
+      `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:certificate/${process.env.ACM_BACKEND_CERT}`
     );
 
     const webappAlbCertificate = acm.Certificate.fromCertificateArn(
       this,
       'WebAppCertificate',
-      `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT}:certificate/${process.env.ACM_WEBAPP_CERT}`
+      `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:certificate/${process.env.ACM_WEBAPP_CERT}`
     );
 
     this.backendAlbListener = backendAlb.addListener('BackendAlbListener', {

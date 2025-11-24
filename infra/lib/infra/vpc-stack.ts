@@ -9,7 +9,7 @@ export class VpcStack extends cdk.NestedStack {
     super(scope, id, props);
 
     this.vpc = new ec2.Vpc(this, 'StreamLinesVpc', {
-      maxAzs: 2,
+      availabilityZones: ['eu-north-1a', 'eu-north-1b'],
       subnetConfiguration: [
         {
           name: 'public',
@@ -28,12 +28,12 @@ export class VpcStack extends cdk.NestedStack {
       service: ec2.GatewayVpcEndpointAwsService.S3,
     });
 
-    const ecrEndpointSg = new ec2.SecurityGroup(this, 'EcrEndpointSg', {
+    const vpnEndpointSg = new ec2.SecurityGroup(this, 'EcrEndpointSg', {
       vpc: this.vpc,
       allowAllOutbound: true,
     });
 
-    ecrEndpointSg.addIngressRule(
+    vpnEndpointSg.addIngressRule(
       ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
       ec2.Port.tcp(443),
       'Allow VPC to reach AWS Services' // without a NAT Gateway
@@ -41,6 +41,7 @@ export class VpcStack extends cdk.NestedStack {
 
     [
       { id: 'CloudWatchLogsEndpoint', service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS },
+      { id: 'Ec2Endpoint', service: ec2.InterfaceVpcEndpointAwsService.EC2 },
       { id: 'EcrApiEndpoint', service: ec2.InterfaceVpcEndpointAwsService.ECR },
       { id: 'EcrDockerEndpoint', service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER },
       { id: 'ElasticFilesystemEndpoint', service: ec2.InterfaceVpcEndpointAwsService.ELASTIC_FILESYSTEM },
@@ -53,7 +54,7 @@ export class VpcStack extends cdk.NestedStack {
         vpc: this.vpc,
         service,
         privateDnsEnabled: true,
-        securityGroups: [ecrEndpointSg],
+        securityGroups: [vpnEndpointSg],
         subnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       });
     });

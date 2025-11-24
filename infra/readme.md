@@ -1,77 +1,107 @@
-## This module provides all the cloud infrastructure required to run the Stream Lines application.
+# Infra
 
-!NB some resources might fail to teardown completely. AWS itself recommends to browse through your console and delete/remove all residual components manually, lest they incur hourly based costs for mere existence. API Gateway, ECS, EC2, Kinesis, VPC..
+This module provides all cloud infrastructure required to run the App.
 
+## 1. !NB
 
-Running CDK
+On stack destroy some resources might fail to teardown completely. _AWS recommends to browse through your console and delete/remove all residual components manually_, lest they incur hourly based costs for mere existence. API Gateway, ECS, EC2, Kinesis, VPC..
+
+## 2. Foundational resources
+
+The app needs the following resource that must live and persist outside the apps Vpc and scope.
+
+### 2.1. Add an S3 bucket
+
+With following structure
 ```
-npm install -g aws-cdk
-npm install
-
-# once
-npx cdk bootstrap aws://<account>/<region> -c stack=foundations
-npx cdk bootstrap aws://<account>/<region> -c stack=infra
-
-npx cdk synth -c stack=<stack>
-npx cdk deploy -c stack=<stack>
+flink/
+lambdas/
 ```
 
-## 1 Provision foundational resources
+### 2.2. Required ECR repositories
 
-`lib/foundations` lists out some of the resources that must be available when provisioning the main app infra. Pay attention that none of these resources exists inside the Vpc to be created for the App.
+These ar 'backend', 'dashboard', 'influxdb', 'ingest', 'ripples', and they need to be acuirable from CDK like so
 
-It might be easire to provision them manually as it will eitherway not succeed in one go. Those substacks still documents the minimal parameters required for manual provisioning.
+```
+ecr.Repository.fromRepositoryName(this, 'EcrRepository', '<repo-name>')
+```
 
-### 1.1 File system for InfluxDB
+### 2.3. Add the following Required DynamoDB tables
+<table>
+  <tr>
+    <th>Table or GSI</th>
+    <th>Table Name</th>
+    <th>Partition Key</th>
+    <th>Sort Key</th>
+  </tr>
+  <tr>
+    <td>Table</td>
+    <td>StreamLinesWebsocketConnectionTable</td>
+    <td>connectionId: S</td>
+  </tr>
+  <tr>
+    <td>GSI onto ..WebsocketConnectionTable</td>
+    <td>StreamLinesWebsocketGetConnectionsBySymbolIndex</td>
+    <td>symbol: S</td>
+</table>
 
-Influx DB will be needing an EFS File System to persist its data. This data must last accross redeploys. Importantly it also contains all configuration data such as issued read and write tokens.
+### 2.4. Add an EBS drive
 
-Note that the EFS Volume lives in another Vpc and we only create mount points to it fromt he target Vpc. Therefore all mount points to it must be removed after creation.
+A drive is required to persist InfluxDB data through stack destroys and re-deploys. An EBS is much faster and guaranteed cheaper than EFS. This drive contains not only the important data of the app, but also all configuration data given to and required by the database management system.
 
-## 2 Provision the entire app infra
+Go to AWS Console > EC2 > Elastic Block Store > Volumes > Create Volume. `gp3` with defaults will do. Leave it unmounted. Note down the Volume ID.
 
-### 2.1 Lambdas
+### 2.5. Deploy the AWS lambdas
 
-First deploy any lambdas from their root level module. This will require applicable S3 bucket to exists from foundations stack.
 ```
 cd lambdas/<lambda dir>
 make
 ```
 
-### 2.2 InfluxDB tokens
+## 3. Deplopy the app
 
-Varioius services will need access to read and/or write to influx. This requires read and write tokens which are nonexistent when system is provisioned form a clean state without a pre-existing EFS.
+Before hitting cdk dploy make sure to read section 2.2 below about InfluxDB tokens.
 
-#### The process to obtain read and write tokens (ie. how to Exec into a running AWS ESC Container)
+### 3.1. CDK deploy commands
 
-1. Install AWS Session Manager Plugin
 ```
-brew install --cask session-manager-plugin
+npm install -g aws-cdk
+npm install
+
+# once
+npx cdk bootstrap aws://<account>/<region>
+
+npx cdk synth
+npx cdk deploy
 ```
 
-2. Enable execute command on the target service in cdk
+### 3.2. InfluxDB tokens
+
+Varioius services will need access to read and/or write to influx. This requires read and write tokens which are nonexistent when system is provisioned for the first time (ie. form a clean EBS).
+
+Use ssh or Session Manager to connect into the EC2 
+
+1. In cdk enable SSM to execute command on target instance
 ```
-new ecs.FargateService(this, 'InfluxDbEcsService'
-  {    
-      cluster: ecsCluster,
-      taskDefinition,
+   const ssmRole = new iam.Role(this, 'Ec2SsmRole', {
+      assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
+    });
+
+    ssmRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'),
+    );
+
+    const instance = new ec2.Instance(this, 'InfluxDbEc2Instance', {
       ...
-      enableExecuteCommand: true,
+      role: ssmRole,
+    });
 ```
 
-3. Run CDK Deploy without the services that will be using Influx by commenting them out (ripples, backend..). This is _not strictly necessary_ as they might either not yet make actual calls to influx or those calls wiill only fail on isufficient authorization.
+3. Run CDK Deploy without the services that will be using Influx by commenting them out (ripples, backend..). This is _not strictly necessary_ as they might either not yet make actual calls to influx or those calls will only fail on isufficient authorization.
 
-4. `Exec` into the Influx AWS ESC Task container
-```
-aws ecs execute-command \
-  --cluster <cluster-arn>  \
-  --task <task-arn> \
-  --container <container-name> \
-  --interactive \
-  --command "/bin/bash"
-```
+4. Inside the EC2 isnstance (sudo) docker exec into the influxdb container  and issue tokens
 
-5. Issue tokens through influx CLI inside the container. Prefer separate tokens for read and write
+Prefer separate tokens for read and write
 ```
 influx auth create \
   --host http://localhost:8086 \
@@ -82,12 +112,55 @@ influx auth create \
   --token <from DOCKER_INFLUXDB_INIT_ADMIN_TOKEN in cdk>
 ```
 
-6. Pass those tokens to the client services via ENVs, enable those services and redeploy CDK
+5. Pass those tokens to the client services via ENVs, enable those services and redeploy CDK
 
-### 2.3 CloudFront stack
+#### 3.2.1. Troubleshooting InfluxDB host service
 
-Cloudfront is an experimental layer to this system which requires to deploy `Dashboard` (or at least the Client side of it) statically out of an S3 bucket. This is not currently activated but the required stack goes along with the repo for further experiments. Importantly CloudFront requires its ACM Certificate to be issued against `us-east-1` region.
+Use SSM or SSH to connect into the EC2 instance hosting InfluxDB.
 
-## 3 Provision the backend only
+See the results of SSM commands of Influx stack in cdk. In this setup ssm commands are those that can access the internet, update system, install packages etc.
+```
+sudo tail -n 200 /var/log/amazon/ssm/amazon-ssm-agent.log
+```
+See the resuls of userdata commands of Influx stack in cdk. This is the normal shell and contains all the commands that do not require internet access.
+```
+sudo tail -n 300 /var/log/cloud-init-output.log
+```
 
-A much sleeker and cost-effective version of the app would be to only provide a [Graphana OOS](https://grafana.com/oss/grafana/?plcmt=oss-nav) instance read access to the InfluxDB securely, eg. via an ALB or Bastion.
+### 3.3. CloudFront stack
+
+The stack to inlude a Cloudfront is an experimental layer to this system which requires to deploy `Dashboard` (or at least the Client side of it) statically out of an S3 bucket. This is not currently activated but the required stack goes along with the repo for further experiments. Importantly CloudFront requires its ACM Certificate to be issued against `us-east-1` region.
+
+## 4. Alternatively provision the backend only
+
+A much sleeker and cost-effective version of the app would be to only provide read access for the InfluxDB to a [Grafana OSS](https://grafana.com/oss/grafana/?plcmt=oss-nav) instance. This would deploy everyhting up to InfluxDB so VPC, Kinesis upstream, Ingest, Ripples, InfluxDB and a means to access the data securely, eg. via an ALB or Bastion. (Only none of the API Gateway, Lambdas, Kinesis downstream, ALBs, Backend, Dashboard, CloudFront, ACM Certifications etc. are deployed.)
+
+### 4.1. Access InfluxDb form open internet
+
+Generate ssh keys
+```
+ssh-keygen -t rsa -b 4096 -C "stream-lines-bastion" -f ~/.ssh/stream-lines-bastion
+```
+
+Make base64 formats for AWS out of the public keys
+
+```
+# Linux
+base64 -w0 ~/.ssh/stream-lines-bastion.pub > ~/.ssh/stream-lines-bastion.pub.b64
+
+# Mac
+base64 < ~/.ssh/stream-lines-bastion.pub | tr -d '\n' > ~/.ssh/stream-lines-bastion.pub.b64
+```
+
+Import the public key into AWS EC2
+```
+aws ec2 import-key-pair \
+  --key-name stream-lines-bastion \
+  --public-key-material file://~/.ssh/stream-lines-bastion.pub.b64
+```
+
+Access Influx via SSH tunnel through Bastion
+```
+ssh -i ~/.ssh/stream-lines-bastion \
+  -L 8086:<influx instance private IP>:8086 ec2-user@<bastion instance public IP>
+```
