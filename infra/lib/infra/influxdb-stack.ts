@@ -181,6 +181,18 @@ export class InfluxDbHostStack extends cdk.NestedStack {
         ${process.env.AWS_ACCOUNT_ID}.dkr.ecr.${cdk.Stack.of(this).region}.amazonaws.com/stream-lines-influxdb:latest`
     );
 
+    influxDbInstance.addUserData(
+      `influx bucket create --org ${process.env.INFLUXDB_INIT_ORG} \
+      --token ${process.env.INFLUXDB_INIT_ADMIN_TOKEN} \
+      --name stream-lines-market-data-realtime \
+      --retention 0`,
+
+      `influx bucket create --org ${process.env.INFLUXDB_INIT_ORG} \
+      --token ${process.env.INFLUXDB_INIT_ADMIN_TOKEN} \
+      --name stream-lines-market-data-historical \
+      --retention 0`,
+    )
+
     // local watchdog
     influxDbInstance.addUserData(
       'URL = "http://localhost:8086/health"',

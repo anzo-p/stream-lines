@@ -9,9 +9,9 @@ sealed trait WindowedVolumesMeasurement {
 }
 
 case object WindowedStockQuotationVolumesMeasurement extends WindowedVolumesMeasurement {
-  override val value = "windowed-stock-quotation-volumes"
+  override val value = "stock-quotation-aggregates-sliding-window"
 }
 
 case object WindowedCryptoQuotationVolumesMeasurement extends WindowedVolumesMeasurement {
-  override val value = "windowed-crypto-quotation-volumes"
+  override val value = "crypto-quotation-aggregates-sliding-window"
 }
