@@ -16,8 +16,8 @@ class TradingVolumesRepository(
         tradingVolumes.forEach { (key, volumes) ->
             saveItem(
                 mapOf(
-                    "PK" to "monthlyTradingVolumes".toAttrib(),
-                    "SK" to "year-month#${key}".toAttrib(),
+                    "pk" to "monthlyTradingVolumes".toAttrib(),
+                    "sk" to "year-month#${key}".toAttrib(),
                     "tradingVolumes" to volumes.toAttrib()
                 )
             )
@@ -25,8 +25,8 @@ class TradingVolumesRepository(
 
     fun getTradingVolumes(key: String): Map<String, BigDecimal> {
         val key = mapOf(
-            "PK" to "monthlyTradingVolumes".toAttrib(),
-            "SK" to "year-month#${key}".toAttrib(),
+            "pk" to "monthlyTradingVolumes".toAttrib(),
+            "sk" to "year-month#${key}".toAttrib(),
         )
         return getItem(key)
             ?.let { it["tradingVolumes"]?.toMapBigDecimalValues() }

@@ -100,7 +100,7 @@ open class DynamoDbCore(
     ): QueryRequest.Builder =
         QueryRequest.builder()
             .tableName(awsConfig.dynamodb.tableName)
-            .keyConditionExpression("PK = :pk")
+            .keyConditionExpression("pk = :pk")
             .expressionAttributeValues(mapOf(":pk" to AttributeValue.builder().s(pkValue).build()))
 
 
@@ -117,7 +117,7 @@ open class DynamoDbCore(
         dynamoDbClient
             .query(
                 queryByPkBase(pkValue)
-                    .projectionExpression("SK")
+                    .projectionExpression("sk")
                     .build()
             )
             .items()

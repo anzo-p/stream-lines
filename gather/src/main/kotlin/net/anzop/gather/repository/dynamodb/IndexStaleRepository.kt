@@ -19,8 +19,8 @@ class IndexStaleRepository(
         }
         saveItem(
             mapOf(
-                "PK" to "indexStaleFrom".toAttrib(),
-                "SK" to "indexStaleFrom".toAttrib(),
+                "pk" to "indexStaleFrom".toAttrib(),
+                "sk" to "indexStaleFrom".toAttrib(),
                 "indexStaleFrom" to date.toAttrib()
             )
         )
@@ -28,8 +28,8 @@ class IndexStaleRepository(
 
     fun getIndexStaleFrom(): LocalDate? {
         val key = mapOf(
-            "PK" to "indexStaleFrom".toAttrib(),
-            "SK" to "indexStaleFrom".toAttrib()
+            "pk" to "indexStaleFrom".toAttrib(),
+            "sk" to "indexStaleFrom".toAttrib()
         )
         return getItem(key)
             ?.get("indexStaleFrom")
@@ -40,8 +40,8 @@ class IndexStaleRepository(
     fun deleteIndexStaleFrom() =
         deleteItem(
             mapOf(
-                "PK" to "indexStaleFrom".toAttrib(),
-                "SK" to "indexStaleFrom".toAttrib()
+                "pk" to "indexStaleFrom".toAttrib(),
+                "sk" to "indexStaleFrom".toAttrib()
             )
         )
 }

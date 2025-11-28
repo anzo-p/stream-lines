@@ -19,16 +19,16 @@ class IndexMemberRepository(
     fun storeMemberSecurities(measurement: Measurement, securities: MutableIndexMembers) =
         saveItem(
             mapOf(
-                "PK" to "memberSecurity".toAttrib(),
-                "SK" to "measurement#${measurement.code}".toAttrib(),
+                "pk" to "memberSecurity".toAttrib(),
+                "sk" to "measurement#${measurement.code}".toAttrib(),
                 "memberSecurities" to securities.toAttrib()
             )
         )
 
     fun getMemberSecurities(measurement: Measurement): MutableIndexMembers {
         val key = mapOf(
-            "PK" to "memberSecurity".toAttrib(),
-            "SK" to "measurement#${measurement.code}".toAttrib(),
+            "pk" to "memberSecurity".toAttrib(),
+            "sk" to "measurement#${measurement.code}".toAttrib(),
         )
         return getItem(key)
             ?.let { parseMemberSecurities(it) }
@@ -38,8 +38,8 @@ class IndexMemberRepository(
     fun deleteMemberSecurities(measurement: Measurement) =
         deleteItem(
             mapOf(
-                "PK" to "memberSecurity".toAttrib(),
-                "SK" to "measurement#${measurement.code}".toAttrib(),
+                "pk" to "memberSecurity".toAttrib(),
+                "sk" to "measurement#${measurement.code}".toAttrib(),
             )
         )
 

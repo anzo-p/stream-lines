@@ -19,8 +19,8 @@ class FinancialsRepository(
         financials.map {
             saveItem(
                 mapOf(
-                    "PK" to "financials#$ticker".toAttrib(),
-                    "SK" to it.reportPeriod.toString().toAttrib(),
+                    "pk" to "financials#$ticker".toAttrib(),
+                    "sk" to it.reportPeriod.toString().toAttrib(),
                     "financialData" to it.toAttrib()
                 )
             )
@@ -37,16 +37,16 @@ class FinancialsRepository(
     fun queryReportPeriods(ticker: String): List<ReportPeriod> =
         queryItems("financials#$ticker")
             .takeIf { it.isNotEmpty() }
-            ?.map {
-                it["SK"]?.toStringOrNull()?.let { ReportPeriod.fromString(it) }
-            }
-            ?.filterNotNull()
+            ?.mapNotNull { elem ->
+                elem["sk"]
+                    ?.toStringOrNull()
+                    ?.let { ReportPeriod.fromString(it) } }
             .orEmpty()
 
     fun getFinancials(ticker: String, reportPeriod: ReportPeriod): Financials? {
         val key = mapOf(
-            "PK" to "financials#$ticker".toAttrib(),
-            "SK" to reportPeriod.toString().toAttrib(),
+            "pk" to "financials#$ticker".toAttrib(),
+            "sk" to reportPeriod.toString().toAttrib(),
         )
 
         return getItem(key)
