@@ -1,16 +1,12 @@
 package helpers.date
 
-import io.mockk.called
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import java.time.Instant
 import java.time.LocalDate
 import net.anzop.gather.helpers.date.generateWeekdayRange
 import net.anzop.gather.helpers.date.minOfOpt
-import net.anzop.gather.helpers.date.minOfOptWithFallback
 import net.anzop.gather.helpers.date.nyseTradingHoursOr24h
-import net.anzop.gather.helpers.date.toInstant
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
@@ -62,36 +58,6 @@ internal class HelpersTest {
 
         assertThat(minOfOpt(instant, null)).isEqualTo(instant)
         assertThat(minOfOpt(null, instant)).isEqualTo(instant)
-    }
-
-    @Test
-    fun `minOfOptWithFallback works like builtin minOf when both args non-null`() {
-        val now = LocalDate.now().toInstant()
-        val before = now.minusMillis(1)
-        val after = now.plusMillis(1)
-
-        assertThat(minOfOptWithFallback(before, after, fallbackAction)).isEqualTo(before)
-        assertThat(minOfOptWithFallback(after, before, fallbackAction)).isEqualTo(before)
-        verify { mockAction wasNot called }
-    }
-
-    @Test
-    fun `minOfOptWithFallback runs fallback action and returns null when both args null`() {
-        assertThat(minOfOptWithFallback(null, null, fallbackAction)).isNull()
-        verify(exactly = 1) { mockAction.run() }
-    }
-
-    @Test
-    fun `minOfOptWithFallback does not run fallback action and returns either only non-null arg`() {
-        val now = LocalDate.now().toInstant()
-        val before = now.minusMillis(1)
-        val after = now.plusMillis(1)
-
-        assertThat(minOfOptWithFallback(before, null, fallbackAction)).isEqualTo(before)
-        assertThat(minOfOptWithFallback(null, before, fallbackAction)).isEqualTo(before)
-        assertThat(minOfOptWithFallback(after, null, fallbackAction)).isEqualTo(after)
-        assertThat(minOfOptWithFallback(null, after, fallbackAction)).isEqualTo(after)
-        verify { mockAction wasNot called }
     }
 
     @Test

@@ -61,16 +61,6 @@ fun minOfOpt(instant1: Instant?, instant2: Instant?): Instant? =
         else -> minOf(instant1, instant2)
     }
 
-fun minOfOptWithFallback(
-    instant1: Instant?,
-    instant2: Instant?,
-    fallbackAction: () -> Unit
-): Instant? =
-    minOfOpt(instant1, instant2) ?: run {
-        fallbackAction()
-        null
-    }
-
 fun nyseTradingHoursOr24h(date: LocalDate, onlyRegularTradingHours: Boolean): Pair<Instant, Instant>? =
     if (onlyRegularTradingHours) {
         nyseTradingHours

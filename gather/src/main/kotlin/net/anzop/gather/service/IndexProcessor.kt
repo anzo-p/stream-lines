@@ -6,7 +6,6 @@ import java.time.temporal.ChronoUnit
 import net.anzop.gather.config.AlpacaProps
 import net.anzop.gather.helpers.date.generateWeekdayRange
 import net.anzop.gather.helpers.date.getPreviousBankDay
-import net.anzop.gather.helpers.date.minOfOptWithFallback
 import net.anzop.gather.helpers.date.toInstant
 import net.anzop.gather.helpers.date.toLocalDate
 import net.anzop.gather.model.MutableIndexMembers
@@ -72,20 +71,23 @@ class IndexProcessor(
     }
 
     // Calculating only stale and/or missing data leads to near 100% optimization on regular runs
-    fun resolveStartDate(measurement: Measurement) =
-        minOfOptWithFallback(
-            instant1 = indexStaleRepository
-                .getIndexStaleFrom()
-                .also { logger.info("Index stale from date for ${measurement.code} is $it") }
-                ?.toInstant(),
-            instant2 = marketDataFacade
-                .getLatestIndexEntry(measurement)
-                .also { logger.info("Latest stored market data for ${measurement.code} is $it") },
-            fallbackAction = { indexStaleRepository.deleteIndexStaleFrom() }
-        )
-            ?.toLocalDate()
-            ?.getPreviousBankDay()
-            ?: alpacaProps.earliestHistoricalDate
+    fun resolveStartDate(measurement: Measurement): LocalDate =
+        if (indexMemberRepository.getMemberSecurities(measurement).isEmpty()) {
+            logger.info("No existing index members for ${measurement.code}, starting from earliest historical date")
+            alpacaProps.earliestHistoricalDate
+        } else {
+            minOf(
+                indexStaleRepository
+                    .getIndexStaleFrom()
+                    .also { logger.info("Index stale from date for ${measurement.code} is $it") }
+                    ?: alpacaProps.earliestHistoricalDate,
+                marketDataFacade
+                    .getLatestMeasurementTime(measurement, "INDEX")
+                    .also { logger.info("Latest stored market data for ${measurement.code} is $it") }
+                    ?.toLocalDate()
+                    ?: alpacaProps.earliestHistoricalDate
+            )
+        }
 
     private fun processPeriod(
         measurement: Measurement,
