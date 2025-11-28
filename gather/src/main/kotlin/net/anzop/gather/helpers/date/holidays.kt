@@ -56,7 +56,7 @@ fun LocalDate.isHoliday(): Boolean {
         }
     }
 
-    val irregular = irregularHolidays.any { it.date == this }
+    val irregular = irregularHolidays.any { it.date.equals(this) }
 
     return fixed || variable || irregular
 }

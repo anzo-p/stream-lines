@@ -12,8 +12,10 @@ class SecurityConfig {
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain =
         http
             .authorizeHttpRequests { auth ->
-                auth.requestMatchers("/api/admin/maintenance/**").hasAuthority("ROLE_ADMIN")
-                auth.anyRequest().authenticated()
+                auth
+                    .requestMatchers(*PUBLIC_PATHS).permitAll()
+                    .requestMatchers("/api/admin/maintenance/**").hasAuthority("ROLE_ADMIN")
+                    .anyRequest().authenticated()
             }
             .oauth2ResourceServer { oauth2 ->
                 oauth2.jwt { jwt ->
@@ -21,4 +23,12 @@ class SecurityConfig {
                 }
             }
             .build()
+
+    companion object {
+        val PUBLIC_PATHS = arrayOf(
+            "/",
+            "/health",
+            "/actuator/health",
+        )
+    }
 }

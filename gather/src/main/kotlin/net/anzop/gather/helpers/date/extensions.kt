@@ -17,14 +17,10 @@ fun LocalDate.isWeekend() =
     this.dayOfWeek in listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
 
 fun LocalDate.getPreviousBankDay(limit: Int = 7): LocalDate =
-    this.minusDays(1).let {
-        return if (limit == 0 || (!it.isWeekend() && !it.isHoliday())) {
-            it
-        } else {
-            it.getPreviousBankDay(limit - 1)
-        }
+    seekBankDay({ it.minusDays(1) }, limit)
 
-    }
+fun LocalDate.getNextBankDay(limit: Int = 7): LocalDate =
+    seekBankDay({ it.plusDays(1) }, limit)
 
 fun LocalDate.toInstant(zoneOffset: ZoneOffset? = ZoneOffset.UTC): Instant =
     this.atStartOfDay().toInstant(zoneOffset)
@@ -37,3 +33,15 @@ fun Instant.toLocalDate(zoneId: ZoneId? = defaultZoneId): LocalDate =
 
 fun Instant.toOffsetDateTime(zoneId: ZoneId? = defaultZoneId): OffsetDateTime =
     OffsetDateTime.ofInstant(this, zoneId)
+
+private tailrec fun LocalDate.seekBankDay(
+    step: (LocalDate) -> LocalDate,
+    limit: Int
+): LocalDate {
+    val next = step(this)
+    return if (limit == 0 || (!next.isWeekend() && !next.isHoliday())) {
+        next
+    } else {
+        next.seekBankDay(step, limit - 1)
+    }
+}

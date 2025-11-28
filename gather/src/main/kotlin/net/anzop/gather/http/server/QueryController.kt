@@ -16,13 +16,13 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api/market-data")
-class MarketDataController(
+@RequestMapping("/api/")
+class QueryController(
     private val marketDataFacade: MarketDataFacade,
     private val sourceDataConfig: SourceDataConfig,
     private val tradingVolumesRepository: TradingVolumesRepository,
 ) {
-    @GetMapping("/rank-by-trading")
+    @GetMapping("/market-data/total-trading-volumes")
     fun fetchFinancials(): ResponseEntity<Map<String, Map<String, BigDecimal>>> {
         val ym = YearMonth.now().minusMonths(1)
         val key = "%04d-%02d".format(ym.year, ym.monthValue)
@@ -42,7 +42,7 @@ class MarketDataController(
         .map { it.marketData.ticker }
         .associateWith { ticker ->
             marketDataFacade.getMeasurements(
-                measurement = Measurement.SECURITY_RAW_SEMI_HOURLY,
+                measurement = Measurement.SECURITIES_30_MIN_BARS_RAW,
                 from = ym.atDay(1).asAmericaNyToInstant(),
                 til  = ym.atEndOfMonth().asAmericaNyToInstant(),
                 ticker = ticker,

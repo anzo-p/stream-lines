@@ -384,16 +384,16 @@ source-data:
         start-date: 1996-01-02
 
     - market-data:
-        ticker: FI
+        ticker: FIS
+        company-name: "Fidelity National Information Services, Inc."
+        start-date: 2006-11-10
+
+    - market-data:
+        ticker: FISV
         company-name: "Fiserv, Inc."
         start-date: 2023-06-07
       fundamentals:
         skip: true
-
-    - market-data:
-        ticker: FIS
-        company-name: "Fidelity National Information Services, Inc."
-        start-date: 2006-11-10
 
     - market-data:
         ticker: FTNT
@@ -475,6 +475,8 @@ source-data:
         ticker: ICE
         company-name: "Intercontinental Exchange, Inc."
         start-date: 2007-09-26
+      fundamentals:
+        skip: true
 
     - market-data:
         ticker: INTC
