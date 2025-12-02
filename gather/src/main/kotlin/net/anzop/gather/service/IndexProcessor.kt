@@ -33,7 +33,7 @@ class IndexProcessor(
 
     fun run() =
         try {
-            Measurement.indexMeasurements.forEach(::process)
+            process(Measurement.INDEX_DAILY_CHANGE_REGULAR_HOURS)
             marketDataFacade.saveAsync(asyncRecordsToInsert)
         } catch (e: Exception) {
             logger.error("IndexProcessor failed", e)
@@ -82,7 +82,7 @@ class IndexProcessor(
                     .also { logger.info("Index stale from date for ${measurement.code} is $it") }
                     ?: alpacaProps.earliestHistoricalDate,
                 marketDataFacade
-                    .getLatestMeasurementTime(measurement, "INDEX")
+                    .getLatestIndexEntry(measurement)
                     .also { logger.info("Latest stored market data for ${measurement.code} is $it") }
                     ?.toLocalDate()
                     ?: alpacaProps.earliestHistoricalDate
@@ -230,8 +230,8 @@ class IndexProcessor(
 
     private fun calculateIndex(measurement: Measurement, priceChanges: List<PriceChange>): PriceChange =
         when (measurement) {
-            Measurement.INDEX_REGULAR_EQUAL_ARITHMETIC_DAILY -> priceChanges.mean()
-            Measurement.INDEX_EXTENDED_EQUAL_ARITHMETIC_DAILY -> priceChanges.mean()
+            Measurement.INDEX_DAILY_CHANGE_EXTENDED_HOURS -> priceChanges.mean()
+            Measurement.INDEX_DAILY_CHANGE_REGULAR_HOURS -> priceChanges.mean()
             else -> throw IllegalArgumentException("Invalid measurement: $measurement for index calculation")
         }
 }

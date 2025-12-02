@@ -9,7 +9,7 @@
 // linear index value development
 from(bucket: "stream-lines-daily-bars")
   |> range(start: time(v: "2016-01-01"), stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_xh_arith_d
+  |> filter(fn: (r) => r["_measurement"] == "index-daily-change-regular-hours")
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
   |> aggregateWindow(every: 1w, fn: mean, createEmpty: false)
 
@@ -28,7 +28,7 @@ backShift = (
 
 base = from(bucket: "stream-lines-daily-bars")
   |> range(start: start, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_xh_arith_d
+  |> filter(fn: (r) => r["_measurement"] == "index-daily-change-regular-hours")
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
   // min, max, first, last, mean, median, sum, count
   |> aggregateWindow(every: 1w, fn: last, createEmpty: false)
@@ -55,27 +55,23 @@ base
 import "math"
 
 fields = ["priceChangeAvg", "priceChangeHigh", "priceChangeLow"]
-start = time(v: "2016-01-01") // time(v: "2016-01-01"), -60mo
+start = -48mo // time(v: "2016-01-01"), -60mo
 
-sortForColors = (r) =>
-  // prefixes provides alphabetical sorting for more pleasing colors in influxdb data explorer
-  if r._field == "priceChangeAvg" then "c_price_change_avg"
-  else if r._field == "priceChangeHigh" then "b_price_change_high"
-  else if r._field == "priceChangeLow" then "a_price_change_low"
-  else r._field
-
-from(bucket: "stream-lines-daily-bars")
+baseQuery = from(bucket: "stream-lines-daily-bars")
   |> range(start: start, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_xh_arith_d
-  |> filter(fn: (r) => contains(value: r._field, set: fields))
-  // experiment between, eg. 1d .. 1w
-  |> aggregateWindow(every: 1w, fn: min, createEmpty: false)
+  |> filter(fn: (r) => r["_measurement"] == "index-daily-change-regular-hours")
+
+aggregateField = (table, field, fn, alias) => table
+  |> filter(fn: (r) => r._field == field)
   |> keep(columns: ["_time", "_value", "_field"])
-  |> map(fn: (r) => ({
-      r with 
-      _value: math.log(x: r._value),
-      _field: sortForColors(r)
-    }))
+  |> aggregateWindow(every: 1w, fn: fn, createEmpty: false)
+  |> map(fn: (r) => ({ r with _field: alias, _value: r._value }))
+
+union(tables: [
+  aggregateField(table: baseQuery, field: "priceChangeLow", fn: min, alias: "a_low"),
+  aggregateField(table: baseQuery, field: "priceChangeHigh", fn: max,  alias: "b_high"),
+  aggregateField(table: baseQuery, field: "priceChangeAvg", fn: mean, alias: "c_avg")
+])
 
 
 // charts the daily and weekly change in index value
@@ -83,7 +79,7 @@ from(bucket: "stream-lines-daily-bars")
 start = -60mo // time(v: "2016-01-05"), -60mo
 
 base_filter = (r) =>
-  r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
+  r._measurement == "index-daily-change-regular-hours"
   and (r._field == "priceChangeAvg" or r._field == "prevPriceChangeAvg")
 
 priceChangePercentage = (r) => (r["priceChangeAvg"] - r["prevPriceChangeAvg"]) / r["prevPriceChangeAvg"] * 100.0
@@ -106,47 +102,22 @@ base
   |> yield(name: "b_weekly")
 
 
-// charts the trend of total dollar value traded on index
-// early visual insight:
-// - over time the bound capital tends to go up in value
-// - if you buy or sell in batches through the trend, so do many others at much of the same prices
-start = -60mo // time(v: "2016-01-01"), -60mo
-
-data = from(bucket: "stream-lines-daily-bars")
-  |> range(start: start, stop: now())
-  |> filter(fn: (r) =>
-        r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
-        and r._field == "totalTradingValue"
-      )
-
-data
-  // try without to see that volume insights naturally imply zero as reference
-  |> keep(columns: ["_time"])
-  |> map(fn: (r) => ({ r with _time: now(), _value: 0.0 }))
-  |> yield(name: "y_zero_dummy")
-
-data
-  |> aggregateWindow(every: 1w, fn: mean, createEmpty: false)
-  |> keep(columns: ["_time", "_value"])
-  |> yield(name: "weeklyTradingValue")
-
-data
-  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)
-  |> keep(columns: ["_time", "_value"])
-  |> yield(name: "dailyTradingValue")
-
-data
-  |> aggregateWindow(every: 4mo, fn: mean, createEmpty: false)
-  |> timeShift(duration: -6w)
-  |> keep(columns: ["_time", "_value"])
-  |> yield(name: "customMovingAverage")
-
-
 // trend of total volume traded on index
+// early insights:
+// - the dollar value keeps going up even though the unit volumes are going down
+// - the market as a whole seems to be timing their buys and sells quite like you too
+start = -60mo // time(v: "2016-01-01"), -60mo
+movingAvg = 33
+
+backShift = (
+  multiplier = 1.5 // half of moving avg period + compensation for window aggregate
+) => 
+  -duration(v: string(v: int(v: float(v: movingAvg) * multiplier)) + "d")
+
 getField = (
-  start = time(v: "2016-01-01"), // time(v: "2016-01-01"), -60mo,
+  start = start,
   stop = now(),
-  measurement = "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
+  measurement = "index-daily-change-regular-hours"
   field,
 ) => 
   from(bucket: "stream-lines-daily-bars")
@@ -160,7 +131,7 @@ totalTradingValue = getField(field: "totalTradingValue")
 priceChangeAvg = getField(field: "priceChangeAvg")
   |> aggregateWindow(every: 1w, fn: mean)
 
-data = join(
+volumes = join(
     tables: {
       volume: totalTradingValue,
       price: priceChangeAvg
@@ -168,18 +139,21 @@ data = join(
     on: ["_time"]
 )
   |> map(fn: (r) => ({ r with _value: r._value_volume / r._value_price }))
-
-data
   |> keep(columns: ["_time", "_value"])
   |> yield(name: "volume")
 
-data
+totalDollarValue = getField(field: "totalTradingValue")
+  |> aggregateWindow(every: 1w, fn: mean, createEmpty: false)
+  |> keep(columns: ["_time", "_value"])
+  |> yield(name: "dollarValue")
+
+totalDollarValue
   |> aggregateWindow(every: 4mo, fn: mean, createEmpty: false)
-  |> timeShift(duration: -6w) // 6w to 4mo makes a nice visual symmetry
+  |> timeShift(duration: backShift())
   |> keep(columns: ["_time", "_value"])
   |> yield(name: "customMovingAverage")
 
-data
+totalDollarValue
   |> keep(columns: ["_time"])
   |> map(fn: (r) => ({ r with _time: now(), _value: 0.0 }))
   |> yield(name: "y_zero_dummy")
@@ -191,7 +165,7 @@ start = -13mo
 stop = now()
 
 base_filter = (r) =>
-  r._measurement == "ix_reg_arith_d" // ix_reg_arith_d, ix_xh_arith_d
+  r._measurement == "index-daily-change-regular-hours"
   and (r._field == "priceChangeAvg" or r._field == "prevPriceChangeAvg" or r._field == "totalTradingValue")
 
 from(bucket: "stream-lines-daily-bars")
@@ -214,7 +188,7 @@ startResults = time(v: "2017-01-01")
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: startResults, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "ix_reg_arith_d") // ix_reg_arith_d, ix_xh_arith_d
+  |> filter(fn: (r) => r["_measurement"] == "index-daily-change-regular-hours")
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
   |> filter(fn: (r) => r["_time"] > startResults)
   |> filter(fn: (r) => r["_value"] > 1.0)
@@ -224,7 +198,10 @@ from(bucket: "stream-lines-daily-bars")
   |> map(fn: (r) => ({ r with _value: (math.pow(x: r._value, y: 1.0 / r.yearsBetween) - 1.0) * 100.0 }))
 
 
-// logarithmic trend of individual securities
+// charts the logarithmic trend of individual securities
+// early visual insight
+// - deep underlying growth: almost all companies at least doubled their value in 10 years
+// - failing businessses take many years to rebound, if everimport "math"
 import "math"
 
 included = []
@@ -232,7 +209,7 @@ excluded = []
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: time(v: "2016-01-01"), stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_xh_arith_d
+  |> filter(fn: (r) => r["_measurement"] == "securities-daily-change-regular-hours")
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
   |> aggregateWindow(every: 1w, fn: last, createEmpty: false)
   |> filter(fn: (r) => r._value > 1.0)
@@ -244,16 +221,18 @@ from(bucket: "stream-lines-daily-bars")
 
 // charts the daily change in value for individual securities
 // early visual insight: interesing things tends to happen when the daily change spreads out
+import "math"
+
 included = []
 excluded = []
-start = -11w
+start = -13w
 stop = now()
 
 priceChangePercentage = (r) => (r["priceChangeAvg"] - r["prevPriceChangeAvg"]) / r["prevPriceChangeAvg"] * 100.0
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: start, stop: stop)
-  |> filter(fn: (r) => r["_measurement"] == "sec_xh_arith_d") // sec_reg_arith_d, sec_xh_arith_d
+  |> filter(fn: (r) => r["_measurement"] == ""securities-daily-change-extended-hours")
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg" or  r["_field"] == "prevPriceChangeAvg")
   |> filter(fn: (r) => (length(arr: included) == 0 or contains(value: r.ticker, set: included))) // only when not empty
   |> filter(fn: (r) => (length(arr: excluded) == 0 or not contains(value: r.ticker, set: excluded))) // o/wise all except these 
@@ -264,19 +243,23 @@ from(bucket: "stream-lines-daily-bars")
       company: r.company,
       _value: priceChangePercentage(r)
     }))
+  // simple attribution thorugh optional cumulation
+  //|> cumulativeSum(columns: ["_value"])
 
 
-// charts the logarithmic trend of individual securities
-// earli visual insight
-// - deep underlying growth: almost all companies at least doubled their value in 10 years
-// - failing businessses take many years to rebound, if ever
+  // spread the values away from 0.0 with increased force the closer the value is to 0.0, while maintaining overall shape
+  // at 10000.0 and 0.01 there is virtually no effect
+  |> map(fn: (r) => ({ r with _value: 10000.0 * math.tanh(x: r._value * 0.3) }))
+
+
+// logarithmic trend of trading volumes for individual securities
 import "math"
 
 excluded = []
 
 from(bucket: "stream-lines-daily-bars")
   |> range(start: time(v: "2016-01-01"), stop: now()) // time(v: "2016-01-01"), -60w
-  |> filter(fn: (r) => r["_measurement"] == "sec_reg_arith_d") // sec_reg_arith_d, sec_xh_arith_d
+  |> filter(fn: (r) => r["_measurement"] == "securities-daily-change-regular-hours")
   |> filter(fn: (r) => r["_field"] == "totalTradingValue")
   |> aggregateWindow(every: 1w, fn: last, createEmpty: false)
   |> filter(fn: (r) => not contains(value: r.ticker, set: excluded))
@@ -293,7 +276,7 @@ stop = now()
 isEmpty = (arr) => length(arr) == 0
 
 base_filter = (r) =>
-  r._measurement == "sec_xh_arith_d" // sec_reg_arith_d, sec_xh_arith_d
+  r._measurement == ""securities-daily-change-extended-hours"
   and (r._field == "priceChangeAvg" or r._field == "prevPriceChangeAvg" or r._field == "totalTradingValue")
   and (length(arr: included) == 0 or contains(value: r.ticker, set: included)) // only when not empty
   and (length(arr: excluded) == 0 or not contains(value: r.ticker, set: excluded)) // o/wise all except these 
@@ -316,25 +299,24 @@ from(bucket: "stream-lines-daily-bars")
 // - dip buying the sp500 appears to work
 // - the bottoms tend to be sharp and reboynds swift
 // - rarely falls below 20%, altough might
-start = time(v: "2016-01-01") // time(v: "2016-01-01"), -60mo
+start = -48mo // time(v: "2016-01-01"), -60mo
 stop = now()
 
 baseQuery = from(bucket: "stream-lines-daily-bars")
   |> range(start: start, stop: stop)
-  |> filter(fn: (r) => r["_measurement"] == "drawdown")
-  |> filter(fn: (r) => r["_field"] == "drawdown")
-  |> keep(columns: ["_time", "_value", "_field"])
+  |> filter(fn: (r) => r._measurement == "drawdown")
 
-aggregateField = (table, fn, alias) => 
-  table
-    // experiment between, eg. 2d .. 1w
-    |> aggregateWindow(every: 1w, fn: fn, createEmpty: false)
-    |> map(fn: (r) => ({ r with _field: alias, _value: r._value }))
+aggregateField = (table, field, fn, alias) => table
+  // experiment between, eg. 2d .. 1w
+  |> filter(fn: (r) => r._field == field)
+  |> keep(columns: ["_time", "_value", "_field"])
+  |> aggregateWindow(every: 1w, fn: fn, createEmpty: false)
+  |> map(fn: (r) => ({ r with _field: alias, _value: r._value }))
 
 union(tables: [
-  aggregateField(table: baseQuery, fn: min, alias: "a_drawdown_min"),
-  aggregateField(table: baseQuery, fn: max, alias: "b_drawdown_max"),
-  aggregateField(table: baseQuery, fn: mean, alias: "c_drawdown_mean")
+  aggregateField(table: baseQuery, field: "drawdownLow", fn: min, alias: "a_low"),
+  aggregateField(table: baseQuery, field: "drawdownHigh", fn: max,  alias: "b_high"),
+  aggregateField(table: baseQuery, field: "drawdownAvg", fn: mean, alias: "c_avg")
 ])
 
 
@@ -348,3 +330,84 @@ from(bucket: "stream-lines-daily-bars")
   |> filter(fn: (r) => contains(value: r._field, set: fields))
   |> aggregateWindow(every: 1w, fn: mean, createEmpty: false)
   |> yield(name: "mean")
+
+
+// charts the daily attribution of each ticker to movement of index
+// early insight suggests
+// - there are times when members of the index move together as a coherent looking whole
+// - and days when companies get an expanded spread of much more individual looking appraisals
+// - it appears helpful to give more weight to events where the index itself also moves more
+import "math"
+
+included = [] // filters onto these if list is not empty
+excluded = [] // included is empty? then all except these
+start = -4mo
+stop =  now()
+indexRelevance = 0.5 // higher values emphasise days when the index itself moves, practical limits: 0.00001 .. 1.0 
+indexDirection = "" // { "bull", "bear", "flat", else shows all }
+flatLimit = 0.2 // from experience with data yields less measures than "bear" over any indexRelevance
+
+priceChangeRate = (r) => ((r["priceChangeAvg"] - r["prevPriceChangeAvg"]) / r["prevPriceChangeAvg"]) * 100.0
+
+attribution = (index, member, indexRelevance) =>
+  // think: member / f(index, indexRelevance)
+  (member * index) / (math.pow(x: index, y: 2.0) + float(v: indexRelevance))
+
+option plotPriceChange = (table=<-) =>
+  table
+    |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+    |> map(fn: (r) => ({
+        _time: r._time,
+        ticker: r.ticker,
+        company: r.company,
+        _value: priceChangeRate(r)
+      }))
+
+base = (measurement) =>
+  from(bucket: "stream-lines-daily-bars")
+    |> range(start: start, stop: stop)
+    |> filter(fn: (r) => r["_measurement"] == measurement)
+    |> filter(fn: (r) => r["_field"] == "priceChangeAvg" or  r["_field"] == "prevPriceChangeAvg")
+
+index = base(measurement: "index-daily-change-regular-hours")
+  |> plotPriceChange()
+  |> filter(fn: (r) =>
+    // comanies that push or drag the index
+    if      indexDirection == "bull" then r._value > float(v: flatLimit)
+    // companies that move anyway
+    else if indexDirection == "bear" then r._value < float(v: flatLimit * -1.0)
+    // companies that pull away when others lag or either follow or lead the lag
+    else if indexDirection == "flat" then r._value <= float(v: flatLimit) and r._value >= float(v: flatLimit * -1.0)
+    else true
+  )
+
+members = base(measurement: "securities-daily-change-regular-hours")
+  |> filter(fn: (r) => (length(arr: included) == 0 or     contains(value: r.ticker, set: included))) 
+  |> filter(fn: (r) => (length(arr: excluded) == 0 or not contains(value: r.ticker, set: excluded)))
+  |> plotPriceChange()
+
+join(
+  tables: {
+    index: index
+      |> keep(columns: ["_time", "_field", "_value"])
+      |> rename(columns: {_value: "index"}),
+    member: members
+      |> keep(columns: ["_time", "_field", "_value", "ticker", "company"])
+      |> rename(columns: {_value: "member"})
+  },
+  on: ["_time"]
+)
+  |> map(fn: (r) => ({
+      _time: r._time,
+      ticker: r.ticker,
+      company: r.company,
+      _value: attribution(index: r.index, member: r.member, indexRelevance: indexRelevance)
+    }))
+  |> cumulativeSum(columns: ["_value"])
+
+
+
+hi low bands näkymä hyötyisi siitä, että mikä on alin hinta viikon siihen astisen ylimmän jälkeen
+koska nykyisellään se näyttää laajaa nauhaa vaikkakin alin hinta tapahtuu useimmiten ajallisesti aikaisemmin
+
+yhdistä volyymit ja dollarimäärät. AMAA ei tarvinne

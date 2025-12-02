@@ -1,0 +1,721 @@
+{
+ "meta": {
+  "version": "1",
+  "type": "dashboard",
+  "name": "Member Charts-Template",
+  "description": "template created from dashboard: Member Charts"
+ },
+ "content": {
+  "data": {
+   "type": "dashboard",
+   "attributes": {
+    "name": "Member Charts",
+    "description": ""
+   },
+   "relationships": {
+    "label": {
+     "data": []
+    },
+    "cell": {
+     "data": [
+      {
+       "type": "cell",
+       "id": "0fc35e3bedb48000"
+      },
+      {
+       "type": "cell",
+       "id": "0fc35e63c1b48000"
+      },
+      {
+       "type": "cell",
+       "id": "0fc35e89a4f48000"
+      },
+      {
+       "type": "cell",
+       "id": "0fc38f46f7b48000"
+      }
+     ]
+    },
+    "variable": {
+     "data": [
+      {
+       "type": "variable",
+       "id": "0fc3e95583314000"
+      },
+      {
+       "type": "variable",
+       "id": "0fc3ee9417f14000"
+      },
+      {
+       "type": "variable",
+       "id": "0fc797acb6f14000"
+      },
+      {
+       "type": "variable",
+       "id": "0fca595fd9714000"
+      },
+      {
+       "type": "variable",
+       "id": "0fca59c700b14000"
+      },
+      {
+       "type": "variable",
+       "id": "0fd54bb7d1e5e000"
+      }
+     ]
+    }
+   }
+  },
+  "included": [
+   {
+    "id": "0fc35e3bedb48000",
+    "type": "cell",
+    "attributes": {
+     "x": 0,
+     "y": 5,
+     "w": 6,
+     "h": 4
+    },
+    "relationships": {
+     "view": {
+      "data": {
+       "type": "view",
+       "id": "0fc35e3bedb48000"
+      }
+     }
+    }
+   },
+   {
+    "id": "0fc35e63c1b48000",
+    "type": "cell",
+    "attributes": {
+     "x": 0,
+     "y": 0,
+     "w": 6,
+     "h": 5
+    },
+    "relationships": {
+     "view": {
+      "data": {
+       "type": "view",
+       "id": "0fc35e63c1b48000"
+      }
+     }
+    }
+   },
+   {
+    "id": "0fc35e89a4f48000",
+    "type": "cell",
+    "attributes": {
+     "x": 6,
+     "y": 4,
+     "w": 6,
+     "h": 5
+    },
+    "relationships": {
+     "view": {
+      "data": {
+       "type": "view",
+       "id": "0fc35e89a4f48000"
+      }
+     }
+    }
+   },
+   {
+    "id": "0fc38f46f7b48000",
+    "type": "cell",
+    "attributes": {
+     "x": 6,
+     "y": 0,
+     "w": 6,
+     "h": 4
+    },
+    "relationships": {
+     "view": {
+      "data": {
+       "type": "view",
+       "id": "0fc38f46f7b48000"
+      }
+     }
+    }
+   },
+   {
+    "type": "view",
+    "id": "0fc35e3bedb48000",
+    "attributes": {
+     "name": "Member Attribution to Index",
+     "properties": {
+      "shape": "chronograf-v2",
+      "queries": [
+       {
+        "text": "// charts the daily attribution of each ticker to movement of index\n// early insight suggests\n// - there are times when members of the index move together as a coherent looking whole\n// - and days when companies get an expanded spread of much more individual looking appraisals\n// - it appears helpful to give more weight to events where the index itself also moves more\nimport \"math\"\n\nincluded = [] // filters onto these if list is not empty\nexcluded = [] // included is empty? then all except these\nstart = duration(v: v.nearTermMonths)\nstop =  now()\nindexRelevance = float(v: v.attrIndexRel) // higher values emphasise days when the index itself moves, practical limits: 0.00001 .. 1.0 \nindexDirection = v.attrIndexDir // { \"bull\", \"bear\", \"flat\", else shows all }\nflatLimit = 0.2 // from experience with data yields less measures than \"bear\" over any indexRelevance\n\npriceChangeRate = (r) => ((r[\"priceChangeAvg\"] - r[\"prevPriceChangeAvg\"]) / r[\"prevPriceChangeAvg\"]) * 100.0\n\nattribution = (index, member, indexRelevance) =>\n  // think: member / f(index, indexRelevance)\n  (member * index) / (math.pow(x: index, y: 2.0) + float(v: indexRelevance))\n\noption plotPriceChange = (table=<-) =>\n  table\n    |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n    |> map(fn: (r) => ({\n        _time: r._time,\n        ticker: r.ticker,\n        company: r.company,\n        _value: priceChangeRate(r)\n      }))\n\nbase = (measurement) =>\n  from(bucket: \"stream-lines-market-data-historical\")\n    |> range(start: start, stop: stop)\n    |> filter(fn: (r) => r[\"_measurement\"] == measurement)\n    |> filter(fn: (r) => r[\"_field\"] == \"priceChangeAvg\" or  r[\"_field\"] == \"prevPriceChangeAvg\")\n\nindex = base(measurement: \"index-daily-change-regular-hours\")\n  |> plotPriceChange()\n  |> filter(fn: (r) =>\n    // comanies that push or drag the index\n    if      indexDirection == \"bull\" then r._value > float(v: flatLimit)\n    // companies that move anyway\n    else if indexDirection == \"bear\" then r._value < float(v: flatLimit * -1.0)\n    // companies that pull away when others lag or either follow or lead the lag\n    else if indexDirection == \"flat\" then r._value <= float(v: flatLimit) and r._value >= float(v: flatLimit * -1.0)\n    else true\n  )\n\nmembers = base(measurement: \"securities-daily-change-regular-hours\")\n  |> filter(fn: (r) => (length(arr: included) == 0 or     contains(value: r.ticker, set: included))) \n  |> filter(fn: (r) => (length(arr: excluded) == 0 or not contains(value: r.ticker, set: excluded)))\n  |> plotPriceChange()\n\njoin(\n  tables: {\n    index: index\n      |> keep(columns: [\"_time\", \"_field\", \"_value\"])\n      |> rename(columns: {_value: \"index\"}),\n    member: members\n      |> keep(columns: [\"_time\", \"_field\", \"_value\", \"ticker\", \"company\"])\n      |> rename(columns: {_value: \"member\"})\n  },\n  on: [\"_time\"]\n)\n  |> map(fn: (r) => ({\n      _time: r._time,\n      ticker: r.ticker,\n      company: r.company,\n      _value: attribution(index: r.index, member: r.member, indexRelevance: indexRelevance)\n    }))\n  |> cumulativeSum(columns: [\"_value\"])",
+        "editMode": "advanced",
+        "name": "",
+        "builderConfig": {
+         "buckets": [],
+         "tags": [
+          {
+           "key": "_measurement",
+           "values": [],
+           "aggregateFunctionType": "filter"
+          }
+         ],
+         "functions": [
+          {
+           "name": "mean"
+          }
+         ],
+         "aggregateWindow": {
+          "period": "auto",
+          "fillValues": false
+         }
+        }
+       }
+      ],
+      "axes": {
+       "x": {
+        "bounds": [
+         "",
+         ""
+        ],
+        "label": "",
+        "prefix": "",
+        "suffix": "",
+        "base": "10",
+        "scale": "linear"
+       },
+       "y": {
+        "bounds": [
+         "",
+         ""
+        ],
+        "label": "",
+        "prefix": "",
+        "suffix": "",
+        "base": "10",
+        "scale": "linear"
+       }
+      },
+      "type": "xy",
+      "legend": {},
+      "geom": "monotoneX",
+      "colors": [
+       {
+        "id": "1c9b0237-0b04-4441-b634-c18dcfd4c028",
+        "type": "scale",
+        "hex": "#8F8AF4",
+        "name": "Do Androids Dream of Electric Sheep?",
+        "value": 0
+       },
+       {
+        "id": "284dcc2e-41fb-4b32-9a6c-0bae246f8043",
+        "type": "scale",
+        "hex": "#A51414",
+        "name": "Do Androids Dream of Electric Sheep?",
+        "value": 0
+       },
+       {
+        "id": "e8d7e771-83bf-4443-9bec-e2563247a9dd",
+        "type": "scale",
+        "hex": "#F4CF31",
+        "name": "Do Androids Dream of Electric Sheep?",
+        "value": 0
+       }
+      ],
+      "note": "",
+      "showNoteWhenEmpty": false,
+      "xColumn": "_time",
+      "generateXAxisTicks": [],
+      "xTotalTicks": 0,
+      "xTickStart": 0,
+      "xTickStep": 0,
+      "yColumn": "_value",
+      "generateYAxisTicks": [],
+      "yTotalTicks": 0,
+      "yTickStart": 0,
+      "yTickStep": 0,
+      "shadeBelow": false,
+      "position": "overlaid",
+      "timeFormat": "",
+      "hoverDimension": "auto",
+      "legendColorizeRows": true,
+      "legendOpacity": 1,
+      "legendOrientationThreshold": 100000000
+     }
+    }
+   },
+   {
+    "type": "view",
+    "id": "0fc35e63c1b48000",
+    "attributes": {
+     "name": "Member Trends",
+     "properties": {
+      "shape": "chronograf-v2",
+      "queries": [
+       {
+        "text": "// charts the logarithmic trend of individual securities\n// early visual insight\n// - deep underlying growth: almost all companies at least doubled their value in 10 years\n// - failing businessses take many years to rebound, if everimport \"math\"\nimport \"math\"\n\nincluded = []\nexcluded = []\n\nstart = duration(v: v.longTermYears)\nfn = if      v.aggFn == \"first\"  then first\n     else if v.aggFn == \"last\"   then last\n     else if v.aggFn == \"max\"    then max\n     else if v.aggFn == \"mean\"   then mean\n     else if v.aggFn == \"median\" then median\n     else if v.aggFn == \"min\"    then min\n     else                             mean\n\nfrom(bucket: \"stream-lines-market-data-historical\")\n  |> range(start: start, stop: now())\n  |> filter(fn: (r) => r[\"_measurement\"] == \"securities-daily-change-regular-hours\")\n  |> filter(fn: (r) => r[\"_field\"] == \"priceChangeAvg\")\n  |> aggregateWindow(every: duration(v: v.aggDays), fn: fn, createEmpty: false)\n  |> filter(fn: (r) => r._value > 0.667)\n  |> filter(fn: (r) => (length(arr: included) == 0 or     contains(value: r.ticker, set: included))) // only when not empty\n  |> filter(fn: (r) => (length(arr: excluded) == 0 or not contains(value: r.ticker, set: excluded))) // o/wise all except these \n  |> keep(columns: [\"_time\", \"_value\", \"_field\", \"company\", \"ticker\"])\n  |> map(fn: (r) => ({ r with _value: math.log(x: r._value) }))",
+        "editMode": "advanced",
+        "name": "",
+        "builderConfig": {
+         "buckets": [],
+         "tags": [
+          {
+           "key": "_measurement",
+           "values": [],
+           "aggregateFunctionType": "filter"
+          }
+         ],
+         "functions": [
+          {
+           "name": "mean"
+          }
+         ],
+         "aggregateWindow": {
+          "period": "auto",
+          "fillValues": false
+         }
+        }
+       }
+      ],
+      "axes": {
+       "x": {
+        "bounds": [
+         "",
+         ""
+        ],
+        "label": "",
+        "prefix": "",
+        "suffix": "",
+        "base": "10",
+        "scale": "linear"
+       },
+       "y": {
+        "bounds": [
+         "",
+         ""
+        ],
+        "label": "",
+        "prefix": "",
+        "suffix": "",
+        "base": "10",
+        "scale": "linear"
+       }
+      },
+      "type": "xy",
+      "legend": {},
+      "geom": "monotoneX",
+      "colors": [
+       {
+        "id": "332688fa-298e-405a-bfa4-952f782bf822",
+        "type": "scale",
+        "hex": "#DA6FF1",
+        "name": "Ectoplasm",
+        "value": 0
+       },
+       {
+        "id": "db88209e-1db0-4eca-b51f-fb76f1ae775c",
+        "type": "scale",
+        "hex": "#00717A",
+        "name": "Ectoplasm",
+        "value": 0
+       },
+       {
+        "id": "524fe6fc-8c5a-447a-82fc-4d7e57057b89",
+        "type": "scale",
+        "hex": "#ACFF76",
+        "name": "Ectoplasm",
+        "value": 0
+       }
+      ],
+      "note": "",
+      "showNoteWhenEmpty": false,
+      "xColumn": "_time",
+      "generateXAxisTicks": [],
+      "xTotalTicks": 1,
+      "xTickStart": 1451599200000,
+      "xTickStep": 1000000,
+      "yColumn": "_value",
+      "generateYAxisTicks": [],
+      "yTotalTicks": 0,
+      "yTickStart": 0,
+      "yTickStep": 0,
+      "shadeBelow": true,
+      "position": "overlaid",
+      "timeFormat": "",
+      "hoverDimension": "auto",
+      "legendColorizeRows": true,
+      "legendOpacity": 1,
+      "legendOrientationThreshold": 100000000
+     }
+    }
+   },
+   {
+    "type": "view",
+    "id": "0fc35e89a4f48000",
+    "attributes": {
+     "name": "Daily Development of Members (w. extended hours)",
+     "properties": {
+      "shape": "chronograf-v2",
+      "queries": [
+       {
+        "text": "// charts the daily change in value for individual securities\n// early visual insight: interesing things tends to happen when the daily change spreads out\nimport \"math\"\n\nincluded = []\nexcluded = []\nstart = duration(v: v.nearTermMonths)\nstop = now()\n\npriceChangePercentage = (r) => (r[\"priceChangeAvg\"] - r[\"prevPriceChangeAvg\"]) / r[\"prevPriceChangeAvg\"] * 100.0\n\nfrom(bucket: \"stream-lines-market-data-historical\")\n  |> range(start: start, stop: stop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"securities-daily-change-regular-hours\")\n  |> filter(fn: (r) => r[\"_field\"] == \"priceChangeAvg\" or  r[\"_field\"] == \"prevPriceChangeAvg\")\n  |> filter(fn: (r) => (length(arr: included) == 0 or contains(value: r.ticker, set: included))) // only when not empty\n  |> filter(fn: (r) => (length(arr: excluded) == 0 or not contains(value: r.ticker, set: excluded))) // o/wise all except these \n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({\n      _time: r._time,\n      ticker: r.ticker,\n      company: r.company,\n      _value: priceChangePercentage(r)\n    }))\n  // simple attribution thorugh optional cumulation\n  //|> cumulativeSum(columns: [\"_value\"])",
+        "editMode": "advanced",
+        "name": "",
+        "builderConfig": {
+         "buckets": [],
+         "tags": [
+          {
+           "key": "_measurement",
+           "values": [],
+           "aggregateFunctionType": "filter"
+          }
+         ],
+         "functions": [
+          {
+           "name": "mean"
+          }
+         ],
+         "aggregateWindow": {
+          "period": "auto",
+          "fillValues": false
+         }
+        }
+       }
+      ],
+      "axes": {
+       "x": {
+        "bounds": [
+         "",
+         ""
+        ],
+        "label": "",
+        "prefix": "",
+        "suffix": "",
+        "base": "10",
+        "scale": "linear"
+       },
+       "y": {
+        "bounds": [
+         "",
+         ""
+        ],
+        "label": "",
+        "prefix": "",
+        "suffix": "",
+        "base": "10",
+        "scale": "linear"
+       }
+      },
+      "type": "xy",
+      "legend": {},
+      "geom": "monotoneX",
+      "colors": [
+       {
+        "id": "332688fa-298e-405a-bfa4-952f782bf822",
+        "type": "scale",
+        "hex": "#DA6FF1",
+        "name": "Ectoplasm",
+        "value": 0
+       },
+       {
+        "id": "db88209e-1db0-4eca-b51f-fb76f1ae775c",
+        "type": "scale",
+        "hex": "#00717A",
+        "name": "Ectoplasm",
+        "value": 0
+       },
+       {
+        "id": "524fe6fc-8c5a-447a-82fc-4d7e57057b89",
+        "type": "scale",
+        "hex": "#ACFF76",
+        "name": "Ectoplasm",
+        "value": 0
+       }
+      ],
+      "note": "",
+      "showNoteWhenEmpty": false,
+      "xColumn": "_time",
+      "generateXAxisTicks": [],
+      "xTotalTicks": 0,
+      "xTickStart": 0,
+      "xTickStep": 0,
+      "yColumn": "_value",
+      "generateYAxisTicks": [],
+      "yTotalTicks": 0,
+      "yTickStart": 0,
+      "yTickStep": 0,
+      "shadeBelow": false,
+      "position": "overlaid",
+      "timeFormat": "",
+      "hoverDimension": "auto",
+      "legendColorizeRows": true,
+      "legendOpacity": 1,
+      "legendOrientationThreshold": 100000000
+     }
+    }
+   },
+   {
+    "type": "view",
+    "id": "0fc38f46f7b48000",
+    "attributes": {
+     "name": "Members Trading Volumes",
+     "properties": {
+      "shape": "chronograf-v2",
+      "queries": [
+       {
+        "text": "// logarithmic trend of trading volumes for individual securities\nimport \"math\"\n\nexcluded = []\nstart = duration(v: v.longTermYears)\nfn = if      v.aggFn == \"first\"  then first\n     else if v.aggFn == \"last\"   then last\n     else if v.aggFn == \"max\"    then max\n     else if v.aggFn == \"mean\"   then mean\n     else if v.aggFn == \"median\" then median\n     else if v.aggFn == \"min\"    then min\n     else                             mean\n\nfrom(bucket: \"stream-lines-market-data-historical\")\n  |> range(start: start, stop: now()) // time(v: \"2016-01-01\"), -60w\n  |> filter(fn: (r) => r[\"_measurement\"] == \"securities-daily-change-regular-hours\")\n  |> filter(fn: (r) => r[\"_field\"] == \"totalTradingValue\")\n  |> aggregateWindow(every: duration(v: v.aggDays), fn: fn, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_field\", \"_value\", \"company\", \"ticker\"])\n  |> filter(fn: (r) => not contains(value: r.ticker, set: excluded))\n  //|> map(fn: (r) => ({ r with _value: math.log(x: r._value) }))\n  |> yield(name: \"last\")",
+        "editMode": "advanced",
+        "name": "",
+        "builderConfig": {
+         "buckets": [],
+         "tags": [
+          {
+           "key": "_measurement",
+           "values": [],
+           "aggregateFunctionType": "filter"
+          }
+         ],
+         "functions": [
+          {
+           "name": "mean"
+          }
+         ],
+         "aggregateWindow": {
+          "period": "auto",
+          "fillValues": false
+         }
+        }
+       }
+      ],
+      "axes": {
+       "x": {
+        "bounds": [
+         "",
+         ""
+        ],
+        "label": "",
+        "prefix": "",
+        "suffix": "",
+        "base": "10",
+        "scale": "linear"
+       },
+       "y": {
+        "bounds": [
+         "",
+         ""
+        ],
+        "label": "",
+        "prefix": "",
+        "suffix": "",
+        "base": "10",
+        "scale": "linear"
+       }
+      },
+      "type": "xy",
+      "legend": {},
+      "geom": "monotoneX",
+      "colors": [
+       {
+        "id": "301db1df-3728-4747-ae24-b97920b23c43",
+        "type": "scale",
+        "hex": "#DA6FF1",
+        "name": "Ectoplasm",
+        "value": 0
+       },
+       {
+        "id": "9716e1ea-4c1f-4518-b267-332cc0c95c3e",
+        "type": "scale",
+        "hex": "#00717A",
+        "name": "Ectoplasm",
+        "value": 0
+       },
+       {
+        "id": "72e0b3d6-bc2b-49de-a70e-336f4f9213d9",
+        "type": "scale",
+        "hex": "#ACFF76",
+        "name": "Ectoplasm",
+        "value": 0
+       }
+      ],
+      "note": "",
+      "showNoteWhenEmpty": false,
+      "xColumn": "_time",
+      "generateXAxisTicks": [],
+      "xTotalTicks": 0,
+      "xTickStart": 0,
+      "xTickStep": 0,
+      "yColumn": "_value",
+      "generateYAxisTicks": [],
+      "yTotalTicks": 0,
+      "yTickStart": 0,
+      "yTickStep": 0,
+      "shadeBelow": true,
+      "position": "overlaid",
+      "timeFormat": "",
+      "hoverDimension": "auto",
+      "legendColorizeRows": true,
+      "legendOpacity": 1,
+      "legendOrientationThreshold": 100000000
+     }
+    }
+   },
+   {
+    "id": "0fc3e95583314000",
+    "type": "variable",
+    "attributes": {
+     "name": "attrIndexRel",
+     "arguments": {
+      "type": "map",
+      "values": {
+       "0.00001": "0.00001",
+       "0.0001": "0.0001",
+       "0.001": "0.001",
+       "0.01": "0.01",
+       "0.1": "0.1",
+       "0.2": "0.2",
+       "0.5": "0.5",
+       "1.0": "1.0"
+      }
+     },
+     "selected": [
+      "0.5"
+     ]
+    },
+    "relationships": {
+     "label": {
+      "data": []
+     }
+    }
+   },
+   {
+    "id": "0fc3ee9417f14000",
+    "type": "variable",
+    "attributes": {
+     "name": "attrIndexDir",
+     "arguments": {
+      "type": "map",
+      "values": {
+       "all": "",
+       "bear": "bear",
+       "bull": "bull",
+       "flat": "flat"
+      }
+     },
+     "selected": [
+      "all"
+     ]
+    },
+    "relationships": {
+     "label": {
+      "data": []
+     }
+    }
+   },
+   {
+    "id": "0fc797acb6f14000",
+    "type": "variable",
+    "attributes": {
+     "name": "aggFn",
+     "arguments": {
+      "type": "map",
+      "values": {
+       "first": "first",
+       "last": "last",
+       "max": "max",
+       "mean": "mean",
+       "median": "median",
+       "min": "min"
+      }
+     },
+     "selected": [
+      "mean"
+     ]
+    },
+    "relationships": {
+     "label": {
+      "data": []
+     }
+    }
+   },
+   {
+    "id": "0fca595fd9714000",
+    "type": "variable",
+    "attributes": {
+     "name": "nearTermMonths",
+     "arguments": {
+      "type": "map",
+      "values": {
+       "1": "-1mo",
+       "2": "-2mo",
+       "3": "-3mo",
+       "4": "-4mo",
+       "6": "-6mo",
+       "12": "-12mo"
+      }
+     },
+     "selected": [
+      "3"
+     ]
+    },
+    "relationships": {
+     "label": {
+      "data": []
+     }
+    }
+   },
+   {
+    "id": "0fca59c700b14000",
+    "type": "variable",
+    "attributes": {
+     "name": "longTermYears",
+     "arguments": {
+      "type": "map",
+      "values": {
+       "1": "-1y",
+       "2": "-2y",
+       "3": "-3y",
+       "4": "-4y",
+       "6": "-6y",
+       "10": "-10y"
+      }
+     },
+     "selected": [
+      "4"
+     ]
+    },
+    "relationships": {
+     "label": {
+      "data": []
+     }
+    }
+   },
+   {
+    "id": "0fd54bb7d1e5e000",
+    "type": "variable",
+    "attributes": {
+     "name": "aggDays",
+     "arguments": {
+      "type": "map",
+      "values": {
+       "1": "1d",
+       "2": "2d",
+       "4": "4d",
+       "7": "7d",
+       "10": "10d",
+       "14": "14d"
+      }
+     },
+     "selected": [
+      "7"
+     ]
+    },
+    "relationships": {
+     "label": {
+      "data": []
+     }
+    }
+   }
+  ]
+ },
+ "labels": []
+}

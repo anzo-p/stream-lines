@@ -46,6 +46,19 @@ influx delete --org <organisation> \
   --bucket <bucket> \
   --start <one full day before split event> \
   --stop '2099-12-31T23:59:59Z' \
-  --predicate '_measurement="sec_raw_30mi" AND ticker=<ticker>' \
+  --predicate '_measurement="securities-30min-bars-raw" AND ticker=<ticker>' \
   --token <token>
 ```
+
+### Intraday Bars
+
+The system can download intraday bars and compose the index out of those. This is controlled in the setting alpaca/bar_data_time_frame (Application .conf). This feature is currently turned off by hard coding. Intraday bars would add a substantial amount of data, for which there is little actual use case for now. As a consequence
+
+- Bar data fetcher only fetches daily bars
+- Daily bars contain only the trades made during regular trading hours, ie. when the market is open
+- The calculated index also contains only the regular trading hours.
+
+#### NB! The "extended hours" -data is turned off by
+
+- Selective choice of Measurement enum values
+- Outcommenting, where required

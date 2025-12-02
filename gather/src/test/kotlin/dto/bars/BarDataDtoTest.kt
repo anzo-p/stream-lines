@@ -20,7 +20,7 @@ internal class BarDataDtoTest {
     private val nyseHoursInstant = nyseTradingHours.from(LocalDate.of(2026, 1, 2))!!.first
     private val nyseHoursOffsetDateTime = OffsetDateTime.ofInstant(nyseHoursInstant, nyseTradingHours.zoneId)
 
-    private val measurement = Measurement.SECURITY_REGULAR_PRICE_CHANGE_ARITHMETIC_DAILY
+    private val measurement = Measurement.SECURITIES_DAILY_CHANGE_REGULAR_HOURS
 
     private val params = SourceDataParams(
         marketData = MarketDataParams(

@@ -42,7 +42,7 @@ class QueryController(
         .map { it.marketData.ticker }
         .associateWith { ticker ->
             marketDataFacade.getMeasurements(
-                measurement = Measurement.SECURITIES_30_MIN_BARS_RAW,
+                measurement = Measurement.SECURITIES_DAILY_BARS_RAW,
                 from = ym.atDay(1).asAmericaNyToInstant(),
                 til  = ym.atEndOfMonth().asAmericaNyToInstant(),
                 ticker = ticker,

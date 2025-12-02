@@ -1,0 +1,786 @@
+{
+  "meta": {
+    "version": "1",
+    "type": "dashboard",
+    "name": "Index Charts-Template",
+    "description": "template created from dashboard: Index Charts"
+  },
+  "content": {
+    "data": {
+      "type": "dashboard",
+      "attributes": {
+        "name": "Index Charts",
+        "description": ""
+      },
+      "relationships": {
+        "label": {
+          "data": []
+        },
+        "cell": {
+          "data": [
+            {
+              "type": "cell",
+              "id": "0fc492e88a348000"
+            },
+            {
+              "type": "cell",
+              "id": "0fc492e88a748000"
+            },
+            {
+              "type": "cell",
+              "id": "0fc492e88ab48000"
+            },
+            {
+              "type": "cell",
+              "id": "0fc492e88af48000"
+            },
+            {
+              "type": "cell",
+              "id": "0fc492e88bb48000"
+            }
+          ]
+        },
+        "variable": {
+          "data": [
+            {
+              "type": "variable",
+              "id": "0fc797acb6f14000"
+            },
+            {
+              "type": "variable",
+              "id": "0fca59c700b14000"
+            },
+            {
+              "type": "variable",
+              "id": "0fd54bb7d1e5e000"
+            },
+            {
+              "type": "variable",
+              "id": "0fd7ed9fa1e5e000"
+            }
+          ]
+        }
+      }
+    },
+    "included": [
+      {
+        "id": "0fc492e88a348000",
+        "type": "cell",
+        "attributes": {
+          "x": 0,
+          "y": 4,
+          "w": 6,
+          "h": 4
+        },
+        "relationships": {
+          "view": {
+            "data": {
+              "type": "view",
+              "id": "0fc492e88a348000"
+            }
+          }
+        }
+      },
+      {
+        "id": "0fc492e88a748000",
+        "type": "cell",
+        "attributes": {
+          "x": 6,
+          "y": 3,
+          "w": 6,
+          "h": 3
+        },
+        "relationships": {
+          "view": {
+            "data": {
+              "type": "view",
+              "id": "0fc492e88a748000"
+            }
+          }
+        }
+      },
+      {
+        "id": "0fc492e88ab48000",
+        "type": "cell",
+        "attributes": {
+          "x": 6,
+          "y": 0,
+          "w": 6,
+          "h": 3
+        },
+        "relationships": {
+          "view": {
+            "data": {
+              "type": "view",
+              "id": "0fc492e88ab48000"
+            }
+          }
+        }
+      },
+      {
+        "id": "0fc492e88af48000",
+        "type": "cell",
+        "attributes": {
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "relationships": {
+          "view": {
+            "data": {
+              "type": "view",
+              "id": "0fc492e88af48000"
+            }
+          }
+        }
+      },
+      {
+        "id": "0fc492e88bb48000",
+        "type": "cell",
+        "attributes": {
+          "x": 6,
+          "y": 6,
+          "w": 6,
+          "h": 3
+        },
+        "relationships": {
+          "view": {
+            "data": {
+              "type": "view",
+              "id": "0fc492e88bb48000"
+            }
+          }
+        }
+      },
+      {
+        "type": "view",
+        "id": "0fc492e88a348000",
+        "attributes": {
+          "name": "Index Trading Volumes",
+          "properties": {
+            "shape": "chronograf-v2",
+            "queries": [
+              {
+                "text": "// trend of total volume traded on index\n// early insights:\n// - the dollar value keeps going up even though the unit volumes are going down\n// - the market as a whole is as suboptimal to best timings as anyone\nstart = duration(v: v.longTermYears)\nmovingAvg = int(v: v.mAvgDays)\nfn = if      v.aggFn == \"first\"  then first\n     else if v.aggFn == \"last\"   then last\n     else if v.aggFn == \"max\"    then max\n     else if v.aggFn == \"mean\"   then mean\n     else if v.aggFn == \"median\" then median\n     else if v.aggFn == \"min\"    then min\n     else                             mean\n\nbackShift = (\n  multiplier = 0.2 // half of moving avg period + compensation for window aggregate\n) => \n  -duration(v: string(v: int(v: float(v: movingAvg) * multiplier)) + \"d\")\n\ngetField = (\n  start = start,\n  stop = now(),\n  measurement = \"index-daily-change-regular-hours\"\n  field,\n) => \n  from(bucket: \"stream-lines-market-data-historical\")\n    |> range(start: start, stop: stop)\n    |> filter(fn: (r) => r._measurement == measurement)\n    |> filter(fn: (r) => r._field == field)\n\ntotalTradingValue = getField(field: \"totalTradingValue\")\n  //|> aggregateWindow(every: duration(v: v.aggDays), fn: fn)\n\npriceChangeAvg = getField(field: \"priceChangeAvg\")\n  //|> aggregateWindow(every: duration(v: v.aggDays), fn: fn)\n\njoin(\n    tables: {\n      volume: totalTradingValue,\n      price: priceChangeAvg\n    },\n    on: [\"_time\"]\n)\n  |> map(fn: (r) => ({ r with _value: r._value_volume / r._value_price }))\n  |> aggregateWindow(every: duration(v: v.aggDays), fn: fn, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> yield(name: \"volume\")\n\ntotalTradingValue\n  |> aggregateWindow(every: duration(v: v.aggDays), fn: fn, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> yield(name: \"dollarValue\")\n\ntotalTradingValue\n  |> aggregateWindow(\n        every: duration(v: string(v: int(v: movingAvg)) + \"d\"),\n        fn: mean,\n        createEmpty: false\n     )\n  |> timeShift(duration: backShift())\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> yield(name: \"customMovingAverage\")\n\ntotalTradingValue\n  |> keep(columns: [\"_time\"])\n  |> map(fn: (r) => ({ r with _time: now(), _value: 0.0 }))\n  |> yield(name: \"y_zero_dummy\")\n",
+                "editMode": "advanced",
+                "name": "",
+                "builderConfig": {
+                  "buckets": [],
+                  "tags": [
+                    {
+                      "key": "_measurement",
+                      "values": [],
+                      "aggregateFunctionType": "filter"
+                    }
+                  ],
+                  "functions": [
+                    {
+                      "name": "mean"
+                    }
+                  ],
+                  "aggregateWindow": {
+                    "period": "auto",
+                    "fillValues": false
+                  }
+                }
+              }
+            ],
+            "axes": {
+              "x": {
+                "bounds": [
+                  "",
+                  ""
+                ],
+                "label": "",
+                "prefix": "",
+                "suffix": "",
+                "base": "10",
+                "scale": "linear"
+              },
+              "y": {
+                "bounds": null,
+                "label": "",
+                "prefix": "",
+                "suffix": "",
+                "base": "10",
+                "scale": "linear"
+              }
+            },
+            "type": "xy",
+            "legend": {},
+            "geom": "monotoneX",
+            "colors": [
+              {
+                "id": "2907e64b-c65f-41a2-ad8e-68aecd1211c2",
+                "type": "scale",
+                "hex": "#FDC44F",
+                "name": "Cthulhu",
+                "value": 0
+              },
+              {
+                "id": "b0ea3c5a-f4be-4b34-b4e4-ae4da833c401",
+                "type": "scale",
+                "hex": "#007C76",
+                "name": "Cthulhu",
+                "value": 0
+              },
+              {
+                "id": "a158d1b4-6856-4913-9529-00dd7d2eea45",
+                "type": "scale",
+                "hex": "#8983FF",
+                "name": "Cthulhu",
+                "value": 0
+              }
+            ],
+            "note": "",
+            "showNoteWhenEmpty": false,
+            "xColumn": "_time",
+            "generateXAxisTicks": [],
+            "xTotalTicks": 0,
+            "xTickStart": 0,
+            "xTickStep": 0,
+            "yColumn": "_value",
+            "generateYAxisTicks": [],
+            "yTotalTicks": 0,
+            "yTickStart": 0,
+            "yTickStep": 0,
+            "shadeBelow": true,
+            "position": "overlaid",
+            "timeFormat": "",
+            "hoverDimension": "auto",
+            "legendColorizeRows": true,
+            "legendOpacity": 1,
+            "legendOrientationThreshold": 100000000
+          }
+        }
+      },
+      {
+        "type": "view",
+        "id": "0fc492e88a748000",
+        "attributes": {
+          "name": "Index Drawdown",
+          "properties": {
+            "shape": "chronograf-v2",
+            "queries": [
+              {
+                "text": "// charts the drawdown on index as windowed in min, mean, and max over Avg Price Change\n// early visual insight:\n// - dip buying the sp500 appears to work\n// - the bottoms tend to be sharp and reboynds swift\n// - rarely falls below 20%, altough might\nstart = duration(v: v.longTermYears)\nstop = now()\nfn = if      v.aggFn == \"first\"  then first\n     else if v.aggFn == \"last\"   then last\n     else if v.aggFn == \"max\"    then max\n     else if v.aggFn == \"mean\"   then mean\n     else if v.aggFn == \"median\" then median\n     else if v.aggFn == \"min\"    then min\n     else                             mean\n\nbaseQuery = from(bucket: \"stream-lines-market-data-historical\")\n  |> range(start: start, stop: stop)\n  |> filter(fn: (r) => r._measurement == \"drawdown-analysis\")\n\naggregateField = (table, field, fn, alias) => table\n  // experiment between, eg. 2d .. 1w\n  |> filter(fn: (r) => r._field == field)\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> aggregateWindow(every: duration(v: v.aggDays), fn: fn, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: alias, _value: r._value }))\n\nunion(tables: [\n  aggregateField(table: baseQuery, field: \"drawdownLow\", fn: min, alias: \"a_low\"),\n  aggregateField(table: baseQuery, field: \"drawdownHigh\", fn: max,  alias: \"b_high\"),\n  aggregateField(table: baseQuery, field: \"drawdownAvg\", fn: fn, alias: \"c_avg\")\n])",
+                "editMode": "advanced",
+                "name": "",
+                "builderConfig": {
+                  "buckets": [],
+                  "tags": [
+                    {
+                      "key": "_measurement",
+                      "values": [],
+                      "aggregateFunctionType": "filter"
+                    }
+                  ],
+                  "functions": [
+                    {
+                      "name": "mean"
+                    }
+                  ],
+                  "aggregateWindow": {
+                    "period": "auto",
+                    "fillValues": false
+                  }
+                }
+              }
+            ],
+            "axes": {
+              "x": {
+                "bounds": [
+                  "",
+                  ""
+                ],
+                "label": "",
+                "prefix": "",
+                "suffix": "",
+                "base": "10",
+                "scale": "linear"
+              },
+              "y": {
+                "bounds": [
+                  "",
+                  ""
+                ],
+                "label": "",
+                "prefix": "",
+                "suffix": "",
+                "base": "10",
+                "scale": "linear"
+              }
+            },
+            "type": "xy",
+            "legend": {},
+            "geom": "monotoneX",
+            "colors": [
+              {
+                "id": "17c88b40-c60d-4ec1-9791-1c29ae2f653a",
+                "type": "scale",
+                "hex": "#FD7A5D",
+                "name": "Delorean",
+                "value": 0
+              },
+              {
+                "id": "9fc6c089-158c-473d-8704-186a941514f2",
+                "type": "scale",
+                "hex": "#5F1CF2",
+                "name": "Delorean",
+                "value": 0
+              },
+              {
+                "id": "f4955dbd-a8af-4d84-b0b5-a571752d0c91",
+                "type": "scale",
+                "hex": "#4CE09A",
+                "name": "Delorean",
+                "value": 0
+              }
+            ],
+            "note": "",
+            "showNoteWhenEmpty": false,
+            "xColumn": "_time",
+            "generateXAxisTicks": [],
+            "xTotalTicks": 0,
+            "xTickStart": 0,
+            "xTickStep": 0,
+            "yColumn": "_value",
+            "generateYAxisTicks": [],
+            "yTotalTicks": 0,
+            "yTickStart": 0,
+            "yTickStep": 0,
+            "shadeBelow": false,
+            "position": "overlaid",
+            "timeFormat": "",
+            "hoverDimension": "auto",
+            "legendColorizeRows": true,
+            "legendOpacity": 1,
+            "legendOrientationThreshold": 100000000
+          }
+        }
+      },
+      {
+        "type": "view",
+        "id": "0fc492e88ab48000",
+        "attributes": {
+          "name": "Index Trend - w. High / Low -bands",
+          "properties": {
+            "shape": "chronograf-v2",
+            "queries": [
+              {
+                "text": "// charts the trend of intraday mean index value with a band of highs and lows\n// early visual insight: weekly oscillation already makes room to play, particularly when most in cash\nimport \"math\"\n\nfields = [\"priceChangeAvg\", \"priceChangeHigh\", \"priceChangeLow\"]\nstart = duration(v: v.longTermYears)\nfn = if      v.aggFn == \"first\"  then first\n     else if v.aggFn == \"last\"   then last\n     else if v.aggFn == \"max\"    then max\n     else if v.aggFn == \"mean\"   then mean\n     else if v.aggFn == \"median\" then median\n     else if v.aggFn == \"min\"    then min\n     else                             mean\n\nbaseQuery = from(bucket: \"stream-lines-market-data-historical\")\n  |> range(start: start, stop: now())\n  |> filter(fn: (r) => r[\"_measurement\"] == \"index-daily-change-regular-hours\")\n  \naggregateField = (table, field, fn, alias) => table\n  |> filter(fn: (r) => r._field == field)\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> aggregateWindow(every: duration(v: v.aggDays), fn: fn, createEmpty: false)\n  |> map(fn: (r) => ({ r with _field: alias, _value: math.log(x: r._value) }))\n\nunion(tables: [\n  aggregateField(table: baseQuery, field: \"priceChangeLow\", fn: min, alias: \"a_low\"),\n  aggregateField(table: baseQuery, field: \"priceChangeHigh\", fn: max,  alias: \"b_high\"),\n  aggregateField(table: baseQuery, field: \"priceChangeAvg\", fn: fn, alias: \"c_avg\")\n])",
+                "editMode": "advanced",
+                "name": "",
+                "builderConfig": {
+                  "buckets": [],
+                  "tags": [
+                    {
+                      "key": "_measurement",
+                      "values": [],
+                      "aggregateFunctionType": "filter"
+                    }
+                  ],
+                  "functions": [
+                    {
+                      "name": "mean"
+                    }
+                  ],
+                  "aggregateWindow": {
+                    "period": "auto",
+                    "fillValues": false
+                  }
+                }
+              }
+            ],
+            "axes": {
+              "x": {
+                "bounds": [
+                  "",
+                  ""
+                ],
+                "label": "",
+                "prefix": "",
+                "suffix": "",
+                "base": "10",
+                "scale": "linear"
+              },
+              "y": {
+                "bounds": [
+                  "",
+                  ""
+                ],
+                "label": "",
+                "prefix": "",
+                "suffix": "",
+                "base": "10",
+                "scale": "linear"
+              }
+            },
+            "type": "xy",
+            "legend": {},
+            "geom": "monotoneX",
+            "colors": [
+              {
+                "id": "17c88b40-c60d-4ec1-9791-1c29ae2f653a",
+                "type": "scale",
+                "hex": "#FD7A5D",
+                "name": "Delorean",
+                "value": 0
+              },
+              {
+                "id": "9fc6c089-158c-473d-8704-186a941514f2",
+                "type": "scale",
+                "hex": "#5F1CF2",
+                "name": "Delorean",
+                "value": 0
+              },
+              {
+                "id": "f4955dbd-a8af-4d84-b0b5-a571752d0c91",
+                "type": "scale",
+                "hex": "#4CE09A",
+                "name": "Delorean",
+                "value": 0
+              }
+            ],
+            "note": "",
+            "showNoteWhenEmpty": false,
+            "xColumn": "_time",
+            "generateXAxisTicks": [],
+            "xTotalTicks": 0,
+            "xTickStart": 0,
+            "xTickStep": 0,
+            "yColumn": "_value",
+            "generateYAxisTicks": [],
+            "yTotalTicks": 0,
+            "yTickStart": 0,
+            "yTickStep": 0,
+            "shadeBelow": false,
+            "position": "overlaid",
+            "timeFormat": "",
+            "hoverDimension": "auto",
+            "legendColorizeRows": true,
+            "legendOpacity": 1,
+            "legendOrientationThreshold": 100000000
+          }
+        }
+      },
+      {
+        "type": "view",
+        "id": "0fc492e88af48000",
+        "attributes": {
+          "name": "Index Trend",
+          "properties": {
+            "shape": "chronograf-v2",
+            "queries": [
+              {
+                "text": "// charts the logarithmic trend of index value\n// early visual insight: opportune to sell when exceeding moving avg, particularly Kaufman variant\nimport \"math\"\n\nstart = duration(v: v.longTermYears)\nmovingAvg = int(v: v.mAvgDays)\nfn = if      v.aggFn == \"first\"  then first\n     else if v.aggFn == \"last\"   then last\n     else if v.aggFn == \"max\"    then max\n     else if v.aggFn == \"mean\"   then mean\n     else if v.aggFn == \"median\" then median\n     else if v.aggFn == \"min\"    then min\n     else                             mean\n\nbackShift = (\n  multiplier = 0.5 // half of moving avg period + compensation for window aggregate\n) => \n  -duration(v: string(v: int(v: float(v: movingAvg) * multiplier)) + \"d\")\n\nbase = from(bucket: \"stream-lines-market-data-historical\")\n  |> range(start: start, stop: now())\n  |> filter(fn: (r) => r[\"_measurement\"] == \"index-daily-change-regular-hours\")\n  |> filter(fn: (r) => r[\"_field\"] == \"priceChangeAvg\")\n  |> map(fn: (r) => ({ r with _value: math.log(x: r._value) }))\n  |> keep(columns: [\"_time\", \"_value\", \"result\"])\n\nbase\n  |> aggregateWindow(every: duration(v: v.aggDays), fn: fn, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\", \"regularTradingHours\"])\n  |> yield(name: \"priceChangeAvg\")\n\nbase\n  |> movingAverage(n: movingAvg)\n  |> timeShift(duration: backShift())\n  |> yield(name: \"movingAverage\")\n\nbase\n  // kaufman moving avg reactes faster, ie. much less lag\n  |> kaufmansAMA(n: int(v: movingAvg))\n  |> timeShift(duration: backShift(multiplier: 0.15))\n  |> yield(name: \"kaufmanAMA\")",
+                "editMode": "advanced",
+                "name": "",
+                "builderConfig": {
+                  "buckets": [],
+                  "tags": [
+                    {
+                      "key": "_measurement",
+                      "values": [],
+                      "aggregateFunctionType": "filter"
+                    }
+                  ],
+                  "functions": [
+                    {
+                      "name": "mean"
+                    }
+                  ],
+                  "aggregateWindow": {
+                    "period": "auto",
+                    "fillValues": false
+                  }
+                }
+              }
+            ],
+            "axes": {
+              "x": {
+                "bounds": [
+                  "",
+                  ""
+                ],
+                "label": "",
+                "prefix": "",
+                "suffix": "",
+                "base": "10",
+                "scale": "linear"
+              },
+              "y": {
+                "bounds": [
+                  "",
+                  ""
+                ],
+                "label": "",
+                "prefix": "",
+                "suffix": "",
+                "base": "10",
+                "scale": "linear"
+              }
+            },
+            "type": "xy",
+            "legend": {},
+            "geom": "monotoneX",
+            "colors": [
+              {
+                "id": "2907e64b-c65f-41a2-ad8e-68aecd1211c2",
+                "type": "scale",
+                "hex": "#FDC44F",
+                "name": "Cthulhu",
+                "value": 0
+              },
+              {
+                "id": "b0ea3c5a-f4be-4b34-b4e4-ae4da833c401",
+                "type": "scale",
+                "hex": "#007C76",
+                "name": "Cthulhu",
+                "value": 0
+              },
+              {
+                "id": "a158d1b4-6856-4913-9529-00dd7d2eea45",
+                "type": "scale",
+                "hex": "#8983FF",
+                "name": "Cthulhu",
+                "value": 0
+              }
+            ],
+            "note": "",
+            "showNoteWhenEmpty": false,
+            "xColumn": "_time",
+            "generateXAxisTicks": [],
+            "xTotalTicks": 0,
+            "xTickStart": 0,
+            "xTickStep": 0,
+            "yColumn": "_value",
+            "generateYAxisTicks": [],
+            "yTotalTicks": 0,
+            "yTickStart": 0,
+            "yTickStep": 0,
+            "shadeBelow": true,
+            "position": "overlaid",
+            "timeFormat": "",
+            "hoverDimension": "auto",
+            "legendColorizeRows": true,
+            "legendOpacity": 1,
+            "legendOrientationThreshold": 100000000
+          }
+        }
+      },
+      {
+        "type": "view",
+        "id": "0fc492e88bb48000",
+        "attributes": {
+          "name": "Trends",
+          "properties": {
+            "shape": "chronograf-v2",
+            "queries": [
+              {
+                "text": "// trend analysis\nfields = [\"regression_variance\", \"growth\"] //, \"regression_slope\"]\nstart = duration(v: v.longTermYears)\nfn = if      v.aggFn == \"first\"  then first\n     else if v.aggFn == \"last\"   then last\n     else if v.aggFn == \"max\"    then max\n     else if v.aggFn == \"mean\"   then mean\n     else if v.aggFn == \"median\" then median\n     else if v.aggFn == \"min\"    then min\n     else                             mean\n\nfrom(bucket: \"stream-lines-market-data-historical\")\n  |> range(start: start, stop: now())\n  |> filter(fn: (r) => r[\"_measurement\"] == \"trends-by-statistical-regression\")\n  |> filter(fn: (r) => contains(value: r._field, set: fields))\n  |> aggregateWindow(every: 1w, fn: fn, createEmpty: false)\n  |> yield(name: \"mean\")",
+                "editMode": "advanced",
+                "name": "",
+                "builderConfig": {
+                  "buckets": [],
+                  "tags": [
+                    {
+                      "key": "_measurement",
+                      "values": [],
+                      "aggregateFunctionType": "filter"
+                    }
+                  ],
+                  "functions": [
+                    {
+                      "name": "mean"
+                    }
+                  ],
+                  "aggregateWindow": {
+                    "period": "auto",
+                    "fillValues": false
+                  }
+                }
+              }
+            ],
+            "axes": {
+              "x": {
+                "bounds": [
+                  "",
+                  ""
+                ],
+                "label": "",
+                "prefix": "",
+                "suffix": "",
+                "base": "10",
+                "scale": "linear"
+              },
+              "y": {
+                "bounds": [
+                  "",
+                  ""
+                ],
+                "label": "",
+                "prefix": "",
+                "suffix": "",
+                "base": "10",
+                "scale": "linear"
+              }
+            },
+            "type": "xy",
+            "legend": {},
+            "geom": "monotoneX",
+            "colors": [
+              {
+                "id": "ad9d22c9-5331-40c0-9b7c-56b2055d1471",
+                "type": "scale",
+                "hex": "#31C0F6",
+                "name": "Nineteen Eighty Four",
+                "value": 0
+              },
+              {
+                "id": "dbca81c0-cefc-401d-a0f5-bdd384d443c4",
+                "type": "scale",
+                "hex": "#A500A5",
+                "name": "Nineteen Eighty Four",
+                "value": 0
+              },
+              {
+                "id": "a4c4e316-a811-40c8-83f8-2906fea0054b",
+                "type": "scale",
+                "hex": "#FF7E27",
+                "name": "Nineteen Eighty Four",
+                "value": 0
+              }
+            ],
+            "note": "",
+            "showNoteWhenEmpty": false,
+            "xColumn": "_time",
+            "generateXAxisTicks": [],
+            "xTotalTicks": 0,
+            "xTickStart": 0,
+            "xTickStep": 0,
+            "yColumn": "_value",
+            "generateYAxisTicks": [],
+            "yTotalTicks": 0,
+            "yTickStart": 0,
+            "yTickStep": 0,
+            "shadeBelow": true,
+            "position": "overlaid",
+            "timeFormat": "",
+            "hoverDimension": "auto",
+            "legendColorizeRows": true,
+            "legendOpacity": 1,
+            "legendOrientationThreshold": 100000000
+          }
+        }
+      },
+      {
+        "id": "0fc797acb6f14000",
+        "type": "variable",
+        "attributes": {
+          "name": "aggFn",
+          "arguments": {
+            "type": "map",
+            "values": {
+              "first": "first",
+              "last": "last",
+              "max": "max",
+              "mean": "mean",
+              "median": "median",
+              "min": "min"
+            }
+          },
+          "selected": [
+            "mean"
+          ]
+        },
+        "relationships": {
+          "label": {
+            "data": []
+          }
+        }
+      },
+      {
+        "id": "0fca59c700b14000",
+        "type": "variable",
+        "attributes": {
+          "name": "longTermYears",
+          "arguments": {
+            "type": "map",
+            "values": {
+              "1": "-1y",
+              "2": "-2y",
+              "3": "-3y",
+              "4": "-4y",
+              "6": "-6y",
+              "10": "-10y"
+            }
+          },
+          "selected": [
+            "4"
+          ]
+        },
+        "relationships": {
+          "label": {
+            "data": []
+          }
+        }
+      },
+      {
+        "id": "0fd54bb7d1e5e000",
+        "type": "variable",
+        "attributes": {
+          "name": "aggDays",
+          "arguments": {
+            "type": "map",
+            "values": {
+              "1": "1d",
+              "2": "2d",
+              "4": "4d",
+              "7": "7d",
+              "10": "10d",
+              "14": "14d"
+            }
+          },
+          "selected": [
+            "7"
+          ]
+        },
+        "relationships": {
+          "label": {
+            "data": []
+          }
+        }
+      },
+      {
+        "id": "0fd7ed9fa1e5e000",
+        "type": "variable",
+        "attributes": {
+          "name": "mAvgDays",
+          "arguments": {
+            "type": "map",
+            "values": {
+              "30": "22",
+              "45": "33",
+              "60": "42",
+              "90": "66",
+              "120": "88",
+              "180": "132",
+              "360": "264"
+            }
+          },
+          "selected": [
+            "60"
+          ]
+        },
+        "relationships": {
+          "label": {
+            "data": []
+          }
+        }
+      }
+    ]
+  },
+  "labels": []
+}

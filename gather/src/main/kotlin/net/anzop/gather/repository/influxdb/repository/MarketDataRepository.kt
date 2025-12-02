@@ -93,11 +93,11 @@ class MarketDataRepository (
             stop = earlierThan
         ).max("_time")
 
-        val q = regularTradingHours?.let {
-            baseQ.filter(Restrictions.tag("regularTradingHours").equal(it.toString()))
-        } ?: baseQ
+        //val q = regularTradingHours?.let {
+        //    baseQ.filter(Restrictions.tag("regularTradingHours").equal(it.toString()))
+        //} ?: baseQ
 
-        return queryForTimestamp(q)
+        return queryForTimestamp(baseQ)
     }
 
     fun <T> save(entities: List<T>) =
@@ -115,7 +115,7 @@ class MarketDataRepository (
         .apply {
             start = since.toOffsetDateTime()
             stop = Instant.now().plusSeconds(1L).toOffsetDateTime()
-            predicate = "_measurement=\"${Measurement.SECURITY_RAW_SEMI_HOURLY.code}\" AND ticker=\"$ticker\""
+            predicate = "_measurement=\"${Measurement.SECURITIES_DAILY_BARS_RAW.code}\" AND ticker=\"$ticker\""
         }.let {
             influxDBClient.deleteApi.delete(it, influxDBConfig.bucket, influxDBConfig.organization)
         }
