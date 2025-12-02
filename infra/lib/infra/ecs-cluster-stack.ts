@@ -24,5 +24,7 @@ export class EcsClusterStack extends cdk.NestedStack {
         type: servicediscovery.NamespaceType.DNS_PRIVATE,
       },
     });
+
+    this.ecsCluster.enableFargateCapacityProviders();
   }
 }

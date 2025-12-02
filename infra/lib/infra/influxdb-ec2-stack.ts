@@ -66,7 +66,7 @@ export class InfluxDbHostStack extends cdk.NestedStack {
     }
 
     const influxDiscoveryService = new cloudmap.Service(this, 'InfluxDbDiscoveryService', {
-      name: 'influxdb', // ie. influxdb.stream-lines.local
+      name: 'influxdb',
       namespace,
       dnsRecordType: cloudmap.DnsRecordType.A,
       dnsTtl: cdk.Duration.seconds(30),
@@ -184,12 +184,12 @@ export class InfluxDbHostStack extends cdk.NestedStack {
     influxDbInstance.addUserData(
       `influx bucket create --org ${process.env.INFLUXDB_INIT_ORG} \
       --token ${process.env.INFLUXDB_INIT_ADMIN_TOKEN} \
-      --name stream-lines-market-data-realtime \
+      --name ${process.env.INFLUXDB_BUCKET_MARKET_DATA_REALTIME} \
       --retention 0`,
 
       `influx bucket create --org ${process.env.INFLUXDB_INIT_ORG} \
       --token ${process.env.INFLUXDB_INIT_ADMIN_TOKEN} \
-      --name stream-lines-market-data-historical \
+      --name ${process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL} \
       --retention 0`,
     )
 

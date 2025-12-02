@@ -6,7 +6,8 @@ import { BackendStack } from './backend-stack';
 import { DashboardStack } from './dashboard-stack';
 import { EcsClusterStack } from './ecs-cluster-stack';
 import { EcsTaskExecutionRole } from './ecs-task-exec-role';
-import { InfluxDbHostStack as InfluxDbStack } from './influxdb-stack';
+import { GatherStack } from './gather-stack';
+import { InfluxDbHostStack as InfluxDbStack } from './influxdb-ec2-stack';
 import { IngestStack } from './ingest-stack';
 import { KinesisStreamsStack } from './kinesis-stack';
 import { RipplesStack } from './ripples-stack';
@@ -60,6 +61,14 @@ export class AppInfraStack extends cdk.Stack {
         allowAllOutbound: true,
       });
 
+    const ingestSecurityGroup = new ec2.SecurityGroup(
+      this,
+      'IngestSecurityGroup',
+      {
+        vpc: vpcStack.vpc,
+        allowAllOutbound: true,
+      });
+
     const ripplesServiceSecurityGroup = new ec2.SecurityGroup(
       this,
       'RipplesSecurityGroup',
@@ -68,6 +77,15 @@ export class AppInfraStack extends cdk.Stack {
         allowAllOutbound: true
       }
     );
+
+    const gatherSecurityGroup = new ec2.SecurityGroup(
+      this,
+      'GatherSecurityGroup',
+      {
+        vpc: vpcStack.vpc,
+        allowAllOutbound: true,
+      });
+
 
     /*
     const backendSecurityGroup = new ec2.SecurityGroup(
@@ -88,6 +106,7 @@ export class AppInfraStack extends cdk.Stack {
       bastionSecurityGroup,
       [
         { key: 'ripples', sg: ripplesServiceSecurityGroup },
+        { key: 'gather', sg: gatherSecurityGroup },
         //{ key: 'backend', sg: backendSecurityGroup },
       ]
     );
@@ -104,6 +123,7 @@ export class AppInfraStack extends cdk.Stack {
       'IngestStack',
       ecsCluster.ecsCluster,
       taskExecRoleStack.role,
+      ingestSecurityGroup,
       kinesisStack.writeUpstreamPerms
     );
     ingestStack.addDependency(kinesisStack);
@@ -111,22 +131,35 @@ export class AppInfraStack extends cdk.Stack {
     const ripplesStack = new RipplesStack(
       this,
       'ripplesStack',
-      ripplesServiceSecurityGroup,
       ecsCluster.ecsCluster,
       taskExecRoleStack.role,
+      ripplesServiceSecurityGroup,
       kinesisStack.readUpstreamPerms,
       kinesisStack.writeDownstreamPerms
     );
     ripplesStack.addDependency(kinesisStack);
     ripplesStack.addDependency(influxDbStack);
 
+    const gatherStack = new GatherStack(
+      this,
+      'GatherStack',
+      ecsCluster.ecsCluster,
+      taskExecRoleStack.role,
+      gatherSecurityGroup,
+      [
+        { key: 'ingest', sg: ingestSecurityGroup },
+      ]
+    );
+    gatherStack.addDependency(influxDbStack);
+
     /*
     const backendStack = new BackendStack(
       this,
       'BackendStack',
-      backendSecurityGroup,
       ecsCluster.ecsCluster,
       taskExecRoleStack.role,
+      backendSecurityGroup,
+
       albStack.backendAlbListener
     );
     backendStack.addDependency(wsApigatewayStack);

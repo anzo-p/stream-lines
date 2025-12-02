@@ -1,0 +1,43 @@
+name: Gather CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "gather/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "gather/**"
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-24.04-arm
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup AWS and ECR
+        id: aws-ecr
+        uses: ./.github/actions/aws-ecr
+        with:
+          awsAccessKeyId: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          awsSecretAccessKey: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          awsRegion: ${{ secrets.AWS_REGION }}
+
+      - name: Build, tag, and push image to Amazon ECR
+        run: |
+          cd gather
+          docker buildx create --use
+          docker buildx build \
+            --platform linux/arm64 \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG . \
+            --push
+        env:
+          ECR_REGISTRY: ${{ steps.aws-ecr.outputs.registry }}
+          ECR_REPOSITORY: stream-lines-gather
+          IMAGE_TAG: latest

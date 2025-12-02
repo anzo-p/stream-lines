@@ -22,9 +22,9 @@ datajockey:
   company_count_per_run: 7
 
 influxdb:
-  bucket: ${INFLUXDB_DAILY_BARS_BUCKET}
+  bucket: ${INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL}
   organization: ${INFLUXDB_ORG}
-  token: ${INFLUXDB_DAILY_BARS_TOKEN}
+  token: ${INFLUXDB_TOKEN_HISTORICAL_WRITE}
   url: ${INFLUXDB_URL}
 
 spring:

@@ -10,7 +10,7 @@ COPY src ./src
 
 RUN ./gradlew bootJar --no-daemon
 
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 

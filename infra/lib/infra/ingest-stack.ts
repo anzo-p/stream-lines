@@ -11,17 +11,13 @@ export class IngestStack extends cdk.NestedStack {
     id: string,
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
+    securityGroup: ec2.SecurityGroup,
     writeKinesisUpstreamPerms: iam.PolicyStatement,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
 
-    const ingestSecurityGroup = new ec2.SecurityGroup(this, 'IngestSecurityGroup', {
-      vpc: ecsCluster.vpc,
-      allowAllOutbound: true,
-    });
-
-    ingestSecurityGroup.addEgressRule(
+    securityGroup.addEgressRule(
       ec2.Peer.anyIpv4(),
       ec2.Port.tcp(443),
       'Allow HTTPS only'
@@ -75,7 +71,7 @@ export class IngestStack extends cdk.NestedStack {
       cluster: ecsCluster,
       taskDefinition,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-      securityGroups: [ingestSecurityGroup],
+      securityGroups: [securityGroup],
       desiredCount: 1,
       assignPublicIp: true
     });

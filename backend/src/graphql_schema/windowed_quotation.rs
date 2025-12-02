@@ -40,7 +40,8 @@ pub struct WindowedQuotationRoot {
 impl WindowedQuotationRoot {
     pub fn new(client: &influxdb2::Client) -> Self {
         let influx_bucket =
-            env::var("INFLUXDB_BUCKET").map_err(|_| "INFLUXDB_BUCKET environment variable not found".to_string());
+            env::var("INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL")
+                .map_err(|_| "INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL environment variable not found".to_string());
 
         WindowedQuotationRoot {
             influx_client: client.clone(),

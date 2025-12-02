@@ -10,9 +10,9 @@ export class BackendStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,
-    securityGroup: ec2.SecurityGroup,
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
+    securityGroup: ec2.SecurityGroup,
     backendAlbListener: elbv2.ApplicationListener,
     props?: cdk.StackProps
   ) {
@@ -52,8 +52,8 @@ export class BackendStack extends cdk.NestedStack {
         GRAPHQL_SERVER_ADDRESS: `${process.env.BACKEND_SERVER_ADDRESS}`,
         GRAPHQL_SERVER_PORT: containerPort,
         INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
-        INFLUXDB_BUCKET: `${process.env.INFLUXDB_INIT_BUCKET}`,
-        INFLUXDB_READ_TOKEN: `${process.env.INFLUXDB_READ_TOKEN}`,
+        INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL}`,
+        INFLUXDB_TOKEN_HISTORICAL_READ: `${process.env.INFLUXDB_TOKEN_HISTORICAL_READ}`,
         INFLUXDB_URL: `${process.env.INFLUXDB_URL}`
       },
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'backend' })

@@ -9,9 +9,9 @@ export class RipplesStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,
-    securityGroup: ec2.SecurityGroup,
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
+    securityGroup: ec2.SecurityGroup,
     readKinesisUpstreamPerms: iam.PolicyStatement,
     writeKinesisDownStreamPerms: iam.PolicyStatement,
     props?: cdk.StackProps
@@ -69,9 +69,9 @@ export class RipplesStack extends cdk.NestedStack {
       cpu: 512,
       environment: {
         CHECKPOINT_PATH: `${process.env.FLINK_CHECKPOINTS_RIPPLES},`,
-        INFLUXDB_BUCKET: `${process.env.INFLUXDB_INIT_BUCKET}`,
+        INFLUXDB_BUCKET_MARKET_DATA_REALTIME: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_REALTIME}`,
         INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
-        INFLUXDB_WRITE_TOKEN: `${process.env.INFLUXDB_WRITE_TOKEN}`,
+        INFLUXDB_TOKEN_REALTIME_WRITE: `${process.env.INFLUXDB_TOKEN_REALTIME_WRITE}`,
         INFLUXDB_URL: `${process.env.INFLUXDB_URL}`,
         KINESIS_DOWNSTREAM_NAME: `${process.env.KINESIS_RESULTS_DOWNSTREAM}`,
         KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`,
@@ -92,6 +92,12 @@ export class RipplesStack extends cdk.NestedStack {
       securityGroups: [securityGroup],
       desiredCount: 1,
       assignPublicIp: false,
+      capacityProviderStrategies: [
+        {
+          capacityProvider: 'FARGATE_SPOT',
+          weight: 1,
+        },
+      ],
     });
   }
 }

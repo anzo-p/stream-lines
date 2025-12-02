@@ -17,7 +17,7 @@ object StreamConfig {
     cfg.set(CheckpointingOptions.CHECKPOINT_STORAGE, "filesystem")
     cfg.set(CheckpointingOptions.CHECKPOINTS_DIRECTORY, checkpointPath)
     env.configure(cfg)
-    env.getCheckpointConfig.setCheckpointInterval(5 * 60 * 1000L)
+    env.getCheckpointConfig.setCheckpointInterval(60 * 1000L)
     env.setParallelism(1)
   }
 

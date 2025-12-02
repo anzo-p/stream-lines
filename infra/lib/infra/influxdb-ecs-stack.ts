@@ -77,7 +77,7 @@ export class InfluxDbEcsStack extends cdk.NestedStack {
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       securityGroups: [influxDbSecurityGroup],
       cloudMapOptions: {
-        name: 'influxdb', // ie. influxdb.stream-lines.local
+        name: 'influxdb',
       },
     });
   }

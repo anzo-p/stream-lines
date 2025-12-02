@@ -10,8 +10,8 @@ pub async fn create_influxdb_client() -> Result<Client, String> {
     let organization =
         env::var("INFLUXDB_ORG").map_err(|_| "INFLUXDB_ORG environment variable not found".to_string())?;
 
-    let token = env::var("INFLUXDB_READ_TOKEN")
-        .map_err(|_| "INFLUXDB_READ_TOKEN environment variable not found".to_string())?
+    let token = env::var("INFLUXDB_TOKEN_HISTORICAL_READ")
+        .map_err(|_| "INFLUXDB_TOKEN_HISTORICAL_READ environment variable not found".to_string())?
         .trim_matches('"')
         .to_string();
 
