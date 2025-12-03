@@ -29,17 +29,17 @@ class IndexProcessor(
 ) {
     private val logger = LoggerFactory.getLogger(IndexProcessor::class.java)
 
-    private var asyncRecordsToInsert = mutableListOf<PriceChange>()
+    //private var asyncRecordsToInsert = mutableListOf<PriceChange>()
 
     fun run() =
         try {
             process(Measurement.INDEX_DAILY_CHANGE_REGULAR_HOURS)
-            marketDataFacade.saveAsync(asyncRecordsToInsert)
+            //marketDataFacade.saveAsync(asyncRecordsToInsert)
         } catch (e: Exception) {
             logger.error("IndexProcessor failed", e)
         } finally {
             indexStaleRepository.deleteIndexStaleFrom()
-            asyncRecordsToInsert.clear()
+            //asyncRecordsToInsert.clear()
         }
 
     private fun process(measurement: Measurement) {
@@ -160,7 +160,9 @@ class IndexProcessor(
             }
 
             val priceChanges = processBars(measurement, securities, bars, date)
-            asyncRecordsToInsert.addAll(priceChanges)
+
+            marketDataFacade.saveAsync(priceChanges)
+            //asyncRecordsToInsert.addAll(priceChanges)
 
             resolveIndexValue(measurement, priceChanges, currIndexValue)
         }
@@ -223,7 +225,8 @@ class IndexProcessor(
                 ticker = "INDEX"
             )
 
-        asyncRecordsToInsert.add(indexBar)
+        marketDataFacade.saveAsync(listOf(indexBar))
+        //asyncRecordsToInsert.add(indexBar)
 
         return indexBar
     }
