@@ -3,6 +3,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::env;
+use tokio::time::{timeout, Duration};
 use crate::config::{AppConfig, FeedType};
 use crate::errors::ProcessError;
 
@@ -46,14 +47,11 @@ pub(crate) async fn hydrate_symbols(mut cfg: AppConfig) -> Result<AppConfig, Pro
     if let Some(feed) = cfg.feeds
         .iter_mut()
         .find(|f| matches!(f.feed_type, FeedType::Stocks)) {
-
-        match fetch_top_symbols(&client, &endpoint, max_n).await {
-            Ok(syms) => {
-                feed.symbols = syms;
-            }
-            Err(e) => {
-                warn!("Could not refresh tickers from API, using default tickers from config: {e}.");
-            }
+        
+        match timeout(Duration::from_secs(15), fetch_top_symbols(&client, &endpoint, max_n)).await {
+            Ok(Ok(syms)) => feed.symbols = syms,
+            Ok(Err(e)) => warn!("Ticker fetch failed: {e}. Using config defaults."),
+            Err(_) => warn!("Ticker fetch timed out. Using config defaults."),
         }
     } else {
         warn!("No Stocks feed configured. Leaving feeds unchanged.");
