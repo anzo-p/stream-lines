@@ -47,7 +47,7 @@ pub(crate) async fn hydrate_symbols(mut cfg: AppConfig) -> Result<AppConfig, Pro
     if let Some(feed) = cfg.feeds
         .iter_mut()
         .find(|f| matches!(f.feed_type, FeedType::Stocks)) {
-        
+
         match timeout(Duration::from_secs(15), fetch_top_symbols(&client, &endpoint, max_n)).await {
             Ok(Ok(syms)) => feed.symbols = syms,
             Ok(Err(e)) => warn!("Ticker fetch failed: {e}. Using config defaults."),

@@ -1,9 +1,9 @@
 import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { Construct } from 'constructs';
-import { AlbStack } from './alb-stack';
-import { BackendStack } from './backend-stack';
-import { DashboardStack } from './dashboard-stack';
+// import { AlbStack } from './alb-stack';
+// import { BackendStack } from './backend-stack';
+// import { DashboardStack } from './dashboard-stack';
 import { EcsClusterStack } from './ecs-cluster-stack';
 import { EcsTaskExecutionRole } from './ecs-task-exec-role';
 import { GatherStack } from './gather-stack';
@@ -12,7 +12,7 @@ import { IngestStack } from './ingest-stack';
 import { KinesisStreamsStack } from './kinesis-stack';
 import { RipplesStack } from './ripples-stack';
 import { VpcStack } from './vpc-stack';
-import { WebSocketApiGatewayStack } from './api-gateway-stack';
+// import { WebSocketApiGatewayStack } from './api-gateway-stack';
 import { JumpBastionStack } from './jump-bastion-stack';
 
 export class AppInfraStack extends cdk.Stack {
@@ -97,6 +97,19 @@ export class AppInfraStack extends cdk.Stack {
       });
     */
 
+    // 1. appears best to deploy vpc and everythiung up to influx and its bastion first
+    // 2. then manage influxdb buckets and those tokens through web ui via bastion
+    // 3. then deploy gather, which then serves out the tickers for ingest
+    // 4. then ripples, ingest and currents, and now everything is up to influx dasboards
+    // 5. finally, optionally, backend and dashboard for ui
+
+    new JumpBastionStack(
+      this,
+      'JumpBastionStack',
+      vpcStack.vpc,
+      bastionSecurityGroup
+    );
+
     const influxDbStack = new InfluxDbStack(
       this,
       'InfluxDbHostStack',
@@ -111,22 +124,17 @@ export class AppInfraStack extends cdk.Stack {
       ]
     );
 
-    new JumpBastionStack(
+    const gatherStack = new GatherStack(
       this,
-      'JumpBastionStack',
-      vpcStack.vpc,
-      bastionSecurityGroup
-    );
-
-    const ingestStack = new IngestStack(
-      this,
-      'IngestStack',
+      'GatherStack',
       ecsCluster.ecsCluster,
       taskExecRoleStack.role,
-      ingestSecurityGroup,
-      kinesisStack.writeUpstreamPerms
+      gatherSecurityGroup,
+      [
+        { key: 'ingest', sg: ingestSecurityGroup },
+      ]
     );
-    ingestStack.addDependency(kinesisStack);
+    gatherStack.addDependency(influxDbStack);
 
     const ripplesStack = new RipplesStack(
       this,
@@ -140,17 +148,16 @@ export class AppInfraStack extends cdk.Stack {
     ripplesStack.addDependency(kinesisStack);
     ripplesStack.addDependency(influxDbStack);
 
-    const gatherStack = new GatherStack(
+    const ingestStack = new IngestStack(
       this,
-      'GatherStack',
+      'IngestStack',
       ecsCluster.ecsCluster,
       taskExecRoleStack.role,
-      gatherSecurityGroup,
-      [
-        { key: 'ingest', sg: ingestSecurityGroup },
-      ]
+      ingestSecurityGroup,
+      kinesisStack.writeUpstreamPerms
     );
-    gatherStack.addDependency(influxDbStack);
+    ingestStack.addDependency(kinesisStack);
+    ingestStack.addDependency(gatherStack);
 
     /*
     const backendStack = new BackendStack(

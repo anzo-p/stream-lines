@@ -4,6 +4,8 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as logs from 'aws-cdk-lib/aws-logs';
+import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export class BackendStack extends cdk.NestedStack {
@@ -39,6 +41,16 @@ export class BackendStack extends cdk.NestedStack {
       'stream-lines-backend'
     );
 
+    const logGroup = new logs.LogGroup(this, 'BackendLogGroup', {
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    const logging = ecs.LogDrivers.awsLogs({
+      streamPrefix: 'backend',
+      logGroup: logGroup
+    });
+
     const containerPort = process.env.BACKEND_SERVER_PORT!;
 
     taskDefinition.addContainer('BackendContainer', {
@@ -56,7 +68,7 @@ export class BackendStack extends cdk.NestedStack {
         INFLUXDB_TOKEN_HISTORICAL_READ: `${process.env.INFLUXDB_TOKEN_HISTORICAL_READ}`,
         INFLUXDB_URL: `${process.env.INFLUXDB_URL}`
       },
-      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'backend' })
+      logging
     });
 
     const backendService = new ecs.FargateService(this, 'BackendEcsService', {

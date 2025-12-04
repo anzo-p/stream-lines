@@ -3,6 +3,8 @@ import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as logs from 'aws-cdk-lib/aws-logs';
+import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export class IngestStack extends cdk.NestedStack {
@@ -23,7 +25,7 @@ export class IngestStack extends cdk.NestedStack {
       'Allow HTTPS only'
     );
 
-    const taskRole = new iam.Role(this, 'TaskRole', {
+    const taskRole = new iam.Role(this, 'IngestTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
     });
 
@@ -51,6 +53,16 @@ export class IngestStack extends cdk.NestedStack {
       'stream-lines-ingest'
     );
 
+    const logGroup = new logs.LogGroup(this, 'IngestLogGroup', {
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    const logging = ecs.LogDrivers.awsLogs({
+      streamPrefix: 'ingest',
+      logGroup: logGroup
+    });
+
     taskDefinition.addContainer('IngestContainer', {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       memoryLimitMiB: 512,
@@ -64,7 +76,7 @@ export class IngestStack extends cdk.NestedStack {
         TOP_TICKERS_API: `${process.env.INGEST_TOP_TICKERS_API}`,
         TOP_TICKERS_TOKEN: `${process.env.INGEST_TOP_TICKERS_TOKEN}`,
       },
-      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'ingest' })
+      logging
     });
 
     new ecs.FargateService(this, 'IngestEcsService', {

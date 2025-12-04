@@ -161,6 +161,9 @@ aws ec2 import-key-pair \
 
 Access Influx via SSH tunnel through Bastion
 ```
+INFLUX_PRIVATE_IP=<influx instance private IP>
+BASTION_PUBLIC_IP=<bastion instance public IP>
+
 ssh -i ~/.ssh/stream-lines-bastion \
-  -L 8086:<influx instance private IP>:8086 ec2-user@<bastion instance public IP>
+  -L 8086:$INFLUX_PRIVATE_IP:8086 ec2-user@$BASTION_PUBLIC_IP
 ```

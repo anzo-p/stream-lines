@@ -48,8 +48,13 @@ services:
 influx auth list
 influx auth create --org <organisation> --write-bucket <bucket-id>
 
-influx bucket list
-influx bucket create -o <organisation> -n <bucket>
+influx bucket create --org <org> --token '<token>' --name <name> --retention <number of days>d
+influx bucket list --org <org> --token '<token>'
+
 influx query -o <organisation> 'from(bucket: "<bucket>") |> range(start: -1h)'
-influx bucket delete -n <bucket>
+
+# delete data from a measurement - deleting over full range, max 1970-2100, removes entire measurement
+influx delete --org <org> --token <token> --bucket <bucket> \
+  --start YYYY-MM-DDTHH:MM:SSZ --stop YYYY-MM-DDTHH:MM:SSZ \
+  --predicate '_measurement="<measurement>" AND <tag>=<value>'
 ```

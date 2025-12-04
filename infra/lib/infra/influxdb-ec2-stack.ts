@@ -40,7 +40,7 @@ export class InfluxDbHostStack extends cdk.NestedStack {
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       availabilityZone: 'eu-north-1a', // same as EBS volume
-      instanceType: new ec2.InstanceType('t4g.small'),
+      instanceType: new ec2.InstanceType('t4g.medium'),
       machineImage: ec2.MachineImage.latestAmazonLinux2023({
         cpuType: ec2.AmazonLinuxCpuType.ARM_64,
       }),
@@ -180,18 +180,6 @@ export class InfluxDbHostStack extends cdk.NestedStack {
         -e DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${process.env.INFLUXDB_INIT_ADMIN_TOKEN} \
         ${process.env.AWS_ACCOUNT_ID}.dkr.ecr.${cdk.Stack.of(this).region}.amazonaws.com/stream-lines-influxdb:latest`
     );
-
-    influxDbInstance.addUserData(
-      `influx bucket create --org ${process.env.INFLUXDB_INIT_ORG} \
-      --token ${process.env.INFLUXDB_INIT_ADMIN_TOKEN} \
-      --name ${process.env.INFLUXDB_BUCKET_MARKET_DATA_REALTIME} \
-      --retention 0`,
-
-      `influx bucket create --org ${process.env.INFLUXDB_INIT_ORG} \
-      --token ${process.env.INFLUXDB_INIT_ADMIN_TOKEN} \
-      --name ${process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL} \
-      --retention 0`,
-    )
 
     // local watchdog
     influxDbInstance.addUserData(

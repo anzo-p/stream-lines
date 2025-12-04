@@ -1,9 +1,9 @@
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as kinesis from 'aws-cdk-lib/aws-kinesis';
-import { KinesisEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as s3 from 'aws-cdk-lib/aws-s3';
+//import { KinesisEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+//import * as lambda from 'aws-cdk-lib/aws-lambda';
+//import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 
 export class KinesisStreamsStack extends cdk.NestedStack {
@@ -54,7 +54,8 @@ export class KinesisStreamsStack extends cdk.NestedStack {
     new kinesis.Stream(this, 'MarketDataUpStream', {
       streamName: 'stream-lines-market-data-upstream',
       shardCount: 1,
-      retentionPeriod: cdk.Duration.hours(24)
+      retentionPeriod: cdk.Duration.hours(24),
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     /*

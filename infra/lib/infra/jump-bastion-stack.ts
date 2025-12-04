@@ -27,6 +27,6 @@ export class JumpBastionStack extends cdk.NestedStack {
       keyName: `${process.env.BASTION_KEY_NAME}`,
     });
 
-    cdk.Tags.of(bastionInstance).add('Name', 'influx-ssm-bastion');
+    cdk.Tags.of(bastionInstance).add('Name', 'influx-ssh-bastion');
   }
 }

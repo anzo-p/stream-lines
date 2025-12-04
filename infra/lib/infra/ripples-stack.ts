@@ -3,6 +3,8 @@ import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as logs from 'aws-cdk-lib/aws-logs';
+import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export class RipplesStack extends cdk.NestedStack {
@@ -63,6 +65,16 @@ export class RipplesStack extends cdk.NestedStack {
       'stream-lines-ripples'
     );
 
+    const logGroup = new logs.LogGroup(this, 'RipplesLogGroup', {
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    const logging = ecs.LogDrivers.awsLogs({
+      streamPrefix: 'ripples',
+      logGroup: logGroup
+    });
+
     taskDefinition.addContainer('RipplesContainer', {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       memoryLimitMiB: 1024,
@@ -82,7 +94,7 @@ export class RipplesStack extends cdk.NestedStack {
           '--add-opens=java.base/java.util=ALL-UNNAMED',
         ].join(' ')
       },
-      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'ripples' })
+      logging
     });
 
     new ecs.FargateService(this, 'RipplesEcsService', {
