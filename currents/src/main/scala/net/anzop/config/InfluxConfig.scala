@@ -21,13 +21,23 @@ object InfluxConfig {
     val org     = sys.env.getOrThrow("INFLUXDB_ORG", "INFLUXDB_ORG is not set")
 
     InfluxConfig(
-      sourceUrl       = new URL(baseUrl),
-      sinkUrl         = new URL(s"$baseUrl/api/v2/write?org=$org"),
-      org             = org,
-      readToken       = sys.env.getOrThrow("INFLUXDB_READ_TOKEN", "INFLUXDB_READ_TOKEN is not set").replace("\"", ""),
-      writeToken      = sys.env.getOrThrow("INFLUXDB_WRITE_TOKEN", "INFLUXDB_WRITE_TOKEN is not set").replace("\"", ""),
-      bucket          = sys.env.getOrThrow("INFLUXDB_BUCKET", "INFLUXDB_BUCKET is not set"),
-      consumedMeasure = sys.env.getOrThrow("INFLUXDB_CONSUME_MEASURE", "INFLUXDB_CONSUME_MEASURE is not set")
+      sourceUrl = new URL(baseUrl),
+      sinkUrl   = new URL(s"$baseUrl/api/v2/write?org=$org"),
+      org       = org,
+      readToken = sys
+        .env
+        .getOrThrow("INFLUXDB_TOKEN_HISTORICAL_READ", "INFLUXDB_TOKEN_HISTORICAL_READ is not set")
+        .replace("\"", ""),
+      writeToken = sys
+        .env
+        .getOrThrow("INFLUXDB_TOKEN_HISTORICAL_WRITE", "INFLUXDB_TOKEN_HISTORICAL_WRITE is not set")
+        .replace("\"", ""),
+      bucket = sys
+        .env
+        .getOrThrow("INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL", "INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL is not set"),
+      consumedMeasure = sys
+        .env
+        .getOrThrow("INFLUXDB_CONSUME_MEASURE", "INFLUXDB_CONSUME_MEASURE is not set")
     )
   }
 }

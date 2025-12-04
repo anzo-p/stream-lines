@@ -14,6 +14,7 @@ import { RipplesStack } from './ripples-stack';
 import { VpcStack } from './vpc-stack';
 // import { WebSocketApiGatewayStack } from './api-gateway-stack';
 import { JumpBastionStack } from './jump-bastion-stack';
+import { CurrentsStack } from './currents-stack';
 
 export class AppInfraStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -86,6 +87,13 @@ export class AppInfraStack extends cdk.Stack {
         allowAllOutbound: true,
       });
 
+    const currentsSecurityGroup = new ec2.SecurityGroup(
+      this,
+      'CurrentsSecurityGroup',
+      {
+        vpc: vpcStack.vpc,
+        allowAllOutbound: true,
+      });
 
     /*
     const backendSecurityGroup = new ec2.SecurityGroup(
@@ -120,6 +128,7 @@ export class AppInfraStack extends cdk.Stack {
       [
         { key: 'ripples', sg: ripplesServiceSecurityGroup },
         { key: 'gather', sg: gatherSecurityGroup },
+        { key: 'currents', sg: currentsSecurityGroup },
         //{ key: 'backend', sg: backendSecurityGroup },
       ]
     );
@@ -158,6 +167,15 @@ export class AppInfraStack extends cdk.Stack {
     );
     ingestStack.addDependency(kinesisStack);
     ingestStack.addDependency(gatherStack);
+
+    const currentsStack = new CurrentsStack(
+      this,
+      'CurrentsStack',
+      ecsCluster.ecsCluster,
+      taskExecRoleStack.role,
+      currentsSecurityGroup
+    );
+    currentsStack.addDependency(influxDbStack);
 
     /*
     const backendStack = new BackendStack(

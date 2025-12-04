@@ -23,9 +23,14 @@ export class VpcStack extends cdk.NestedStack {
       natGateways: 0
     });
 
-    new ec2.GatewayVpcEndpoint(this, 'S3Endpoint', {
-      vpc: this.vpc,
-      service: ec2.GatewayVpcEndpointAwsService.S3,
+    [
+      { id: 'S3Endpoint', service: ec2.GatewayVpcEndpointAwsService.S3 },
+      { id: 'DynamoDbGatewayEndpoint', service: ec2.GatewayVpcEndpointAwsService.DYNAMODB },
+    ].forEach(({ id, service }) => {
+      this.vpc.addGatewayEndpoint(id, {
+        service,
+        subnets: [{ subnetType: ec2.SubnetType.PRIVATE_ISOLATED }],
+      });
     });
 
     const vpnEndpointSg = new ec2.SecurityGroup(this, 'EcrEndpointSg', {
@@ -55,8 +60,8 @@ export class VpcStack extends cdk.NestedStack {
 
     [
       // Toggle on when deplopying and off after successful deployment
-      //...ec2EcrEndpints,
-      //...ssmEnpoints,
+      ...ec2EcrEndpints,
+      ...ssmEnpoints,
       { id: 'CloudWatchLogsEndpoint', service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS },
       { id: 'KinesisStreamsEndpoint', service: ec2.InterfaceVpcEndpointAwsService.KINESIS_STREAMS },
     ].forEach(({ id, service }) => {

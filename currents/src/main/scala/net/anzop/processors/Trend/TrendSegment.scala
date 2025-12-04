@@ -3,6 +3,8 @@ package net.anzop.processors.Trend
 import net.anzop.helpers.{DateAndTimeHelpers, LinearRegression}
 import net.anzop.sinks.influxdb.InfluxSerializable
 
+import java.time.{Duration, Instant}
+
 case class TrendSegment(
     timestamp: Long,
     begins: Long,
@@ -13,7 +15,7 @@ case class TrendSegment(
     regressionVariance: Double
   ) extends InfluxSerializable {
 
-  override val measurement = "trend"
+  override val measurement = "trends-by-statistical-regression"
 
   override def fields: Map[String, Any] =
     Map(
@@ -41,19 +43,22 @@ case class TrendSegment(
 
 object TrendSegment {
 
-  def make(
-      begins: Long,
-      ends: Long,
-      growth: Double,
-      linearRegression: LinearRegression
-    ): TrendSegment =
+  def make(begins: Long, ends: Long, linearRegression: LinearRegression): TrendSegment = {
+    val days = Duration
+      .between(
+        Instant.ofEpochMilli(begins),
+        Instant.ofEpochMilli(ends)
+      )
+      .toDays
+
     TrendSegment(
       timestamp           = ends, // a trend (segment) is established at its ending date as a new one begins
       begins              = begins,
       ends                = ends,
-      growth              = growth,
+      growth              = linearRegression.slope * days,
       regressionSlope     = linearRegression.slope,
       regressionIntercept = linearRegression.intercept,
       regressionVariance  = linearRegression.variance
     )
+  }
 }

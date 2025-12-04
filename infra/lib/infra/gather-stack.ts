@@ -41,16 +41,6 @@ export class GatherStack extends cdk.NestedStack {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
     });
 
-    taskRole.addToPolicy(
-      new iam.PolicyStatement({
-        actions: ['dynamodb:PutItem', 'dynamodb:DeleteItem', 'dynamodb:Query', 'dynamodb:GetItem', 'dynamodb:SaveItem'],
-        effect: iam.Effect.ALLOW,
-        resources: [
-          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:table/${process.env.GATHER_DYNAMODB_TABLE_NAME}`,
-        ]
-      })
-    );
-
     const table = dynamodb.Table.fromTableName(
       this,
       'gather-table',

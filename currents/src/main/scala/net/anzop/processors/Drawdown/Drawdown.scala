@@ -13,7 +13,7 @@ case class Drawdown(
     drawdownHigh: Double
   ) extends InfluxSerializable {
 
-  override val measurement: String = "drawdown"
+  override val measurement: String = "drawdown-analysis"
 
   override def fields: Map[String, Any] =
     Map(

@@ -10,7 +10,7 @@ object DynamoDbConfig {
 
   val client: DynamoDbClient = DynamoDbClient
     .builder()
-    .region(Region.EU_WEST_1)
+    .region(Region.EU_NORTH_1)
     .build()
 
   def close(): Unit = client.close()

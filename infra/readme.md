@@ -4,7 +4,7 @@ This module provides all cloud infrastructure required to run the App.
 
 ## 1. !NB
 
-On stack destroy some resources might fail to teardown completely. _AWS recommends to browse through your console and delete/remove all residual components manually_, lest they incur hourly based costs for mere existence. API Gateway, ECS, EC2, Kinesis, VPC..
+On stack destroy some resources might fail to teardown completely. _AWS recommends to browse through your console and delete/remove all residual components manually_, lest they incur hourly based costs for mere existence.
 
 ## 2. Foundational resources
 
@@ -20,7 +20,7 @@ lambdas/
 
 ### 2.2. Required ECR repositories
 
-These ar 'backend', 'dashboard', 'influxdb', 'ingest', 'ripples', and they need to be acuirable from CDK like so
+These are 'backend', 'currents', 'dashboard', 'gather', 'influxdb', 'ingest', 'ripples', and they need to be acuirable from CDK like so
 
 ```
 ecr.Repository.fromRepositoryName(this, 'EcrRepository', '<repo-name>')
@@ -38,18 +38,33 @@ ecr.Repository.fromRepositoryName(this, 'EcrRepository', '<repo-name>')
     <td>Table</td>
     <td>StreamLinesWebsocketConnectionTable</td>
     <td>connectionId: S</td>
+    <td>-</td>
   </tr>
   <tr>
     <td>GSI onto ..WebsocketConnectionTable</td>
     <td>StreamLinesWebsocketGetConnectionsBySymbolIndex</td>
     <td>symbol: S</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>Table</td>
+    <td>StreamLinesCurrentsTable</td>
+    <td>pk: S</td>
+    <td>sk: S</td>
+  </tr>
+  <tr>
+    <td>Table</td>
+    <td>StreamLinesGatherTable</td>
+    <td>pk: S</td>
+    <td>sk: S</td>
+  </tr>
 </table>
 
 ### 2.4. Add an EBS drive
 
-A drive is required to persist InfluxDB data through stack destroys and re-deploys. An EBS is much faster and guaranteed cheaper than EFS. This drive contains not only the important data of the app, but also all configuration data given to and required by the database management system.
+A drive is required to persist InfluxDB data through stack destroys and re-deploys. An EBS is much faster and guaranteed cheaper than EFS. Influx stores everything there, including your tokens and dashboards.
 
-Go to AWS Console > EC2 > Elastic Block Store > Volumes > Create Volume. `gp3` with defaults will do. Leave it unmounted. Note down the Volume ID.
+Go to AWS Console > EC2 > Elastic Block Store > Volumes > Create Volume. `gp3` with defaults will do. Leave it unmounted. Pass the volume id tot he database at influx-ec2-stack.
 
 ### 2.5. Deploy the AWS lambdas
 
@@ -112,28 +127,30 @@ influx auth create \
   --token <from DOCKER_INFLUXDB_INIT_ADMIN_TOKEN in cdk>
 ```
 
-5. Pass those tokens to the client services via ENVs, enable those services and redeploy CDK
+5. Pass those tokens to the client services via ENVs, enable those services and redeploy CDK.
+
+6. **Or if you have the bastion running**, just port-forward the influx port via `ssh` and navigate to `http://localhost:8086´. Then login with the credentials given as envs at influx stack and manage the buckets and tokens in the provided _Influx Data Explorer_ UI.
 
 #### 3.2.1. Troubleshooting InfluxDB host service
 
 Use SSM or SSH to connect into the EC2 instance hosting InfluxDB.
 
-See the results of SSM commands of Influx stack in cdk. In this setup ssm commands are those that can access the internet, update system, install packages etc.
+- See the results of SSM commands of Influx stack in cdk. In this setup ssm commands are those that can access the internet, update system, install packages etc.
 ```
-sudo tail -n 200 /var/log/amazon/ssm/amazon-ssm-agent.log
+sudo tail -n 300 /var/log/amazon/ssm/amazon-ssm-agent.log
 ```
-See the resuls of userdata commands of Influx stack in cdk. This is the normal shell and contains all the commands that do not require internet access.
+- See the resuls of userdata commands of Influx stack in cdk. This is the normal shell and contains all the commands that do not require internet access.
 ```
 sudo tail -n 300 /var/log/cloud-init-output.log
 ```
 
 ### 3.3. CloudFront stack
 
-The stack to inlude a Cloudfront is an experimental layer to this system which requires to deploy `Dashboard` (or at least the Client side of it) statically out of an S3 bucket. This is not currently activated but the required stack goes along with the repo for further experiments. Importantly CloudFront requires its ACM Certificate to be issued against `us-east-1` region.
+The stack to inlude a Cloudfront is an experimental layer to this system which requires to deploy `Dashboard` (or at least the Client side of it) statically out of an S3 bucket. This is not currently activated but the required stack goes along in the monorepo for further experiments. Importantly CloudFront requires its ACM Certificate to be issued against `us-east-1` region.
 
 ## 4. Alternatively provision the backend only
 
-A much sleeker and cost-effective version of the app would be to only provide read access for the InfluxDB to a [Grafana OSS](https://grafana.com/oss/grafana/?plcmt=oss-nav) instance. This would deploy everyhting up to InfluxDB so VPC, Kinesis upstream, Ingest, Ripples, InfluxDB and a means to access the data securely, eg. via an ALB or Bastion. (Only none of the API Gateway, Lambdas, Kinesis downstream, ALBs, Backend, Dashboard, CloudFront, ACM Certifications etc. are deployed.)
+A much sleeker and cost-effective version of the app would be to access the data unsing InfluxDB's embedded `Data Explorer UI`. (Alternatively use [Grafana OSS](https://grafana.com/oss/grafana/?plcmt=oss-nav) with a read tokens). This would deploy everyhting up to InfluxDB so VPC, Kinesis upstream, Ingest, Ripples, InfluxDB and a means to access the data securely, eg. via an ALB or Bastion. (Only none of the API Gateway, Lambdas, Kinesis downstream, ALBs, Backend, Dashboard, CloudFront, ACM Certifications etc. are deployed.)
 
 ### 4.1. Access InfluxDb form open internet
 

@@ -14,6 +14,8 @@ import org.slf4j.Logger
 import scala.collection.compat.toTraversableLikeExtensionMethods
 import scala.jdk.CollectionConverters.iterableAsScalaIterableConverter
 
+case class TrendDiscovery(discovered: List[TrendSegment], undecidedTail: DV[MarketData])
+
 class TrendProcessor(config: TrendConfig, trendDiscoverer: TrendDiscoverer)
     extends RichFlatMapFunction[List[MarketData], List[TrendSegment]]
     with AutoResettingProcessor {
@@ -78,9 +80,9 @@ class TrendProcessor(config: TrendConfig, trendDiscoverer: TrendDiscoverer)
         DenseVector(newChunk)
     }
 
-    val (segments, remains): (List[TrendSegment], DV[MarketData]) = trendDiscoverer.processChunk(data)
-    if (segments.nonEmpty) out.collect(segments)
+    val TrendDiscovery(discovered, tail) = trendDiscoverer.processChunk(data)
+    if (discovered.nonEmpty) out.collect(discovered)
 
-    updateState(remains)
+    updateState(tail)
   }
 }

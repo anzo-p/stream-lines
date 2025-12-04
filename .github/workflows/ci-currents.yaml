@@ -1,0 +1,51 @@
+name: Currents CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "currents/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "currents/**"
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: "temurin"
+          java-version: "11"
+          architecture: "x64"
+
+      - name: Setup sbt launcher
+        uses: sbt/setup-sbt@v1
+        
+      - name: Setup AWS and ECR
+        id: aws-ecr
+        uses: ./.github/actions/aws-ecr
+        with:
+          awsAccessKeyId: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          awsSecretAccessKey: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          awsRegion: ${{ secrets.AWS_REGION }}
+
+      - name: Build, tag, and push image to Amazon ECR
+        run: |
+          cd currents
+          sbt clean compile universal:packageBin
+          docker buildx create --use
+          docker buildx build --platform linux/arm64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG . --push
+        env:
+          ECR_REGISTRY: ${{ steps.aws-ecr.outputs.registry }}
+          ECR_REPOSITORY: stream-lines-currents
+          IMAGE_TAG: latest

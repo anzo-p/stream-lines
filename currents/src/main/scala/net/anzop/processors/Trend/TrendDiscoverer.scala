@@ -7,7 +7,6 @@ import net.anzop.helpers.StatisticsHelpers.{linearRegression, tippingPoint}
 import net.anzop.models.MarketData
 import net.anzop.models.Types.DV
 
-import java.time.{Duration, Instant}
 import scala.annotation.tailrec
 
 class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
@@ -29,24 +28,16 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
     ).map { case (_, time, index) => (time, index) }
       .getOrElse((window(window.length - tailSegment.length).timestamp, 0))
 
-    val days = Duration
-      .between(
-        Instant.ofEpochMilli(window(0).timestamp),
-        Instant.ofEpochMilli(tippingTime)
-      )
-      .toDays
-
     val trendSegment = TrendSegment.make(
       begins           = window(0).timestamp,
       ends             = tippingTime,
-      growth           = overallTrend.slope * days,
       linearRegression = overallTrend
     )
 
     TrendSegmentConfirmation(trendSegment, tippingIndex)
   }
 
-  private def discoverTrendSegment(
+  private def discover(
       window: DV[MarketData],
       tailSegment: DV[MarketData],
       remainingData: DV[MarketData]
@@ -77,9 +68,12 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
       currentWindow: DV[MarketData],
       remainingData: DV[MarketData],
       discoveredTrend: List[TrendSegment]
-    ): (List[TrendSegment], DV[MarketData]) =
+    ): TrendDiscovery =
     if (remainingData.length < minimumSegmentAndTail) {
-      (discoveredTrend, DenseVector.vertcat(currentWindow, remainingData))
+      TrendDiscovery(
+        discovered    = discoveredTrend,
+        undecidedTail = DenseVector.vertcat(currentWindow, remainingData)
+      )
     }
     else {
       val (decRemaining, incWindow) = appendFromHead(remainingData, currentWindow, 1)
@@ -87,7 +81,7 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
       val tailSegment               = incWindow(taiSegmentStart until incWindow.length)
 
       val (maybeTrendSegment, updatedWindow, updatedRemaining) =
-        discoverTrendSegment(incWindow, tailSegment, decRemaining)
+        discover(incWindow, tailSegment, decRemaining)
 
       val updatedTrend = maybeTrendSegment match {
         case Some(trendSegment) => discoveredTrend :+ trendSegment
@@ -97,9 +91,9 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
       processChunk(updatedWindow, updatedRemaining, updatedTrend)
     }
 
-  def processChunk(dataChunk: DV[MarketData]): (List[TrendSegment], DV[MarketData]) =
+  def processChunk(dataChunk: DV[MarketData]): TrendDiscovery =
     if (dataChunk.length < minimumSegmentAndTail) {
-      (List(), dataChunk)
+      TrendDiscovery(List(), dataChunk)
     }
     else {
       processChunk(
