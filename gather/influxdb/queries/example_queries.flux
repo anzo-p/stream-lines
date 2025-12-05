@@ -7,7 +7,7 @@
 //
 
 // linear index value development
-from(bucket: "stream-lines-daily-bars")
+from(bucket: "stream-lines-market-data-historical")
   |> range(start: time(v: "2016-01-01"), stop: now())
   |> filter(fn: (r) => r["_measurement"] == "index-daily-change-regular-hours")
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
@@ -26,7 +26,7 @@ backShift = (
 ) => 
   -duration(v: string(v: int(v: float(v: movingAvg) * multiplier)) + "d")
 
-base = from(bucket: "stream-lines-daily-bars")
+base = from(bucket: "stream-lines-market-data-historical")
   |> range(start: start, stop: now())
   |> filter(fn: (r) => r["_measurement"] == "index-daily-change-regular-hours")
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
@@ -57,7 +57,7 @@ import "math"
 fields = ["priceChangeAvg", "priceChangeHigh", "priceChangeLow"]
 start = -48mo // time(v: "2016-01-01"), -60mo
 
-baseQuery = from(bucket: "stream-lines-daily-bars")
+baseQuery = from(bucket: "stream-lines-market-data-historical")
   |> range(start: start, stop: now())
   |> filter(fn: (r) => r["_measurement"] == "index-daily-change-regular-hours")
 
@@ -84,7 +84,7 @@ base_filter = (r) =>
 
 priceChangePercentage = (r) => (r["priceChangeAvg"] - r["prevPriceChangeAvg"]) / r["prevPriceChangeAvg"] * 100.0
 
-base = from(bucket: "stream-lines-daily-bars")
+base = from(bucket: "stream-lines-market-data-historical")
   |> range(start: start, stop: now())
   |> filter(fn: base_filter)
   |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
@@ -120,7 +120,7 @@ getField = (
   measurement = "index-daily-change-regular-hours"
   field,
 ) => 
-  from(bucket: "stream-lines-daily-bars")
+  from(bucket: "stream-lines-market-data-historical")
     |> range(start: start, stop: stop)
     |> filter(fn: (r) => r._measurement == measurement)
     |> filter(fn: (r) => r._field == field)
@@ -168,7 +168,7 @@ base_filter = (r) =>
   r._measurement == "index-daily-change-regular-hours"
   and (r._field == "priceChangeAvg" or r._field == "prevPriceChangeAvg" or r._field == "totalTradingValue")
 
-from(bucket: "stream-lines-daily-bars")
+from(bucket: "stream-lines-market-data-historical")
   |> range(start: start, stop: stop)
   |> filter(fn: base_filter)
   |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
@@ -186,7 +186,7 @@ import "math"
 startValues = time(v: "2016-01-01")
 startResults = time(v: "2017-01-01")
 
-from(bucket: "stream-lines-daily-bars")
+from(bucket: "stream-lines-market-data-historical")
   |> range(start: startResults, stop: now())
   |> filter(fn: (r) => r["_measurement"] == "index-daily-change-regular-hours")
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
@@ -207,7 +207,7 @@ import "math"
 included = []
 excluded = []
 
-from(bucket: "stream-lines-daily-bars")
+from(bucket: "stream-lines-market-data-historical")
   |> range(start: time(v: "2016-01-01"), stop: now())
   |> filter(fn: (r) => r["_measurement"] == "securities-daily-change-regular-hours")
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg")
@@ -230,9 +230,9 @@ stop = now()
 
 priceChangePercentage = (r) => (r["priceChangeAvg"] - r["prevPriceChangeAvg"]) / r["prevPriceChangeAvg"] * 100.0
 
-from(bucket: "stream-lines-daily-bars")
+from(bucket: "stream-lines-market-data-historical")
   |> range(start: start, stop: stop)
-  |> filter(fn: (r) => r["_measurement"] == ""securities-daily-change-extended-hours")
+  |> filter(fn: (r) => r["_measurement"] == "securities-daily-change-extended-hours")
   |> filter(fn: (r) => r["_field"] == "priceChangeAvg" or  r["_field"] == "prevPriceChangeAvg")
   |> filter(fn: (r) => (length(arr: included) == 0 or contains(value: r.ticker, set: included))) // only when not empty
   |> filter(fn: (r) => (length(arr: excluded) == 0 or not contains(value: r.ticker, set: excluded))) // o/wise all except these 
@@ -257,7 +257,7 @@ import "math"
 
 excluded = []
 
-from(bucket: "stream-lines-daily-bars")
+from(bucket: "stream-lines-market-data-historical")
   |> range(start: time(v: "2016-01-01"), stop: now()) // time(v: "2016-01-01"), -60w
   |> filter(fn: (r) => r["_measurement"] == "securities-daily-change-regular-hours")
   |> filter(fn: (r) => r["_field"] == "totalTradingValue")
@@ -276,12 +276,12 @@ stop = now()
 isEmpty = (arr) => length(arr) == 0
 
 base_filter = (r) =>
-  r._measurement == ""securities-daily-change-extended-hours"
+  r._measurement == "securities-daily-change-regular-hours" // "securities-daily-change-extended-hours"
   and (r._field == "priceChangeAvg" or r._field == "prevPriceChangeAvg" or r._field == "totalTradingValue")
   and (length(arr: included) == 0 or contains(value: r.ticker, set: included)) // only when not empty
   and (length(arr: excluded) == 0 or not contains(value: r.ticker, set: excluded)) // o/wise all except these 
 
-from(bucket: "stream-lines-daily-bars")
+from(bucket: "stream-lines-market-data-historical")
   |> range(start: start, stop: stop)
   |> filter(fn: base_filter)
   |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
@@ -302,9 +302,9 @@ from(bucket: "stream-lines-daily-bars")
 start = -48mo // time(v: "2016-01-01"), -60mo
 stop = now()
 
-baseQuery = from(bucket: "stream-lines-daily-bars")
+baseQuery = from(bucket: "stream-lines-market-data-historical")
   |> range(start: start, stop: stop)
-  |> filter(fn: (r) => r._measurement == "drawdown")
+  |> filter(fn: (r) => r._measurement == "drawdown-analysis")
 
 aggregateField = (table, field, fn, alias) => table
   // experiment between, eg. 2d .. 1w
@@ -324,9 +324,9 @@ union(tables: [
 fields = ["regression_slope", "regression_variance", "growth"]
 start = time(v: "2016-01-01") // time(v: "2016-01-01"), -60mo
 
-from(bucket: "stream-lines-daily-bars")
+from(bucket: "stream-lines-market-data-historical")
   |> range(start: start, stop: now())
-  |> filter(fn: (r) => r["_measurement"] == "trend")
+  |> filter(fn: (r) => r["_measurement"] == "trends-by-statistical-regression")
   |> filter(fn: (r) => contains(value: r._field, set: fields))
   |> aggregateWindow(every: 1w, fn: mean, createEmpty: false)
   |> yield(name: "mean")
@@ -364,7 +364,7 @@ option plotPriceChange = (table=<-) =>
       }))
 
 base = (measurement) =>
-  from(bucket: "stream-lines-daily-bars")
+  from(bucket: "stream-lines-market-data-historical")
     |> range(start: start, stop: stop)
     |> filter(fn: (r) => r["_measurement"] == measurement)
     |> filter(fn: (r) => r["_field"] == "priceChangeAvg" or  r["_field"] == "prevPriceChangeAvg")
@@ -404,10 +404,3 @@ join(
       _value: attribution(index: r.index, member: r.member, indexRelevance: indexRelevance)
     }))
   |> cumulativeSum(columns: ["_value"])
-
-
-
-hi low bands näkymä hyötyisi siitä, että mikä on alin hinta viikon siihen astisen ylimmän jälkeen
-koska nykyisellään se näyttää laajaa nauhaa vaikkakin alin hinta tapahtuu useimmiten ajallisesti aikaisemmin
-
-yhdistä volyymit ja dollarimäärät. AMAA ei tarvinne
