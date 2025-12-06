@@ -44,6 +44,7 @@ services:
 
 ## Couple helpful commands to get you going
 
+#### Using InfluxDB CLI
 ```
 influx auth list
 influx auth create --org <organisation> --write-bucket <bucket-id>
@@ -58,3 +59,18 @@ influx delete --org <org> --token <token> --bucket <bucket> \
   --start YYYY-MM-DDTHH:MM:SSZ --stop YYYY-MM-DDTHH:MM:SSZ \
   --predicate '_measurement="<measurement>" AND <tag>=<value>'
 ```
+
+#### Using REST API
+InfluxDB can be controlled remotely via REST API as in this example that deletes data from a measurement.
+```
+curl -X POST \
+  "http://localhost:8086/api/v2/delete?org=<organization>&bucket=<bucket>" \
+  -H "Authorization: Token <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "start": "YYYY-MM-DDTHH:MM:SSZ",
+    "stop":  "YYYY-MM-DDTHH:MM:SSZ",
+    "predicate": "_measurement=\"<measurement>\""
+  }'
+```
+REST API Commands works also through SSH port forwarding, when connecting to InfluxDB through a Jump Bastion.  

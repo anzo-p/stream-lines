@@ -82,10 +82,10 @@ export class IngestStack extends cdk.NestedStack {
     new ecs.FargateService(this, 'IngestEcsService', {
       cluster: ecsCluster,
       taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       securityGroups: [securityGroup],
       desiredCount: 1,
-      assignPublicIp: true
+      assignPublicIp: false,
     });
   }
 }

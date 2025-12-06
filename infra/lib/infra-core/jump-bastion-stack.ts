@@ -21,8 +21,10 @@ export class JumpBastionStack extends cdk.NestedStack {
     const bastionInstance = new ec2.Instance(this, 'BastionHost', {
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-      instanceType: new ec2.InstanceType('t3.micro'),
-      machineImage: ec2.MachineImage.latestAmazonLinux(),
+      instanceType: new ec2.InstanceType('t4g.nano'),
+      machineImage: ec2.MachineImage.latestAmazonLinux2023({
+        cpuType: ec2.AmazonLinuxCpuType.ARM_64,
+      }),
       securityGroup: bastionSecurityGroup,
       keyName: `${process.env.BASTION_KEY_NAME}`,
     });

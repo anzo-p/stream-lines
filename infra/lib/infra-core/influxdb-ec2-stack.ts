@@ -8,20 +8,41 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
-export class InfluxDbHostStack extends cdk.NestedStack {
+export class InfluxDbStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,
     vpc: ec2.Vpc,
     ecsCluster: ecs.Cluster,
-    influxDbSecurityGroup: ec2.SecurityGroup,
     bastionSecurityGroup: ec2.SecurityGroup,
-    connectingServiceSGs: { key: string; sg: ec2.SecurityGroup }[],
+    connectingServiceSGs: { id: string; sg: ec2.SecurityGroup }[],
     props?: cdk.NestedStackProps
   ) {
     super(scope, id, props);
 
     const influxDbPort = Number(process.env.INFLUXDB_SERVER_PORT ?? '8086');
+
+    const securityGroup = new ec2.SecurityGroup(
+      this,
+      'InfluxDbSecurityGroup',
+      {
+        vpc,
+        allowAllOutbound: true,
+      });
+
+    securityGroup.addIngressRule(
+      bastionSecurityGroup,
+      ec2.Port.tcp(influxDbPort),
+      'Allow Jump Bastion access to InfluxDB'
+    );
+
+    connectingServiceSGs.forEach(({ id, sg }) => {
+      securityGroup.connections.allowFrom(
+        sg,
+        ec2.Port.tcp(influxDbPort),
+        `${id}-to-Influx`
+      );
+    });
 
     const ssmRole = new iam.Role(this, 'Ec2SsmRole', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
@@ -44,7 +65,7 @@ export class InfluxDbHostStack extends cdk.NestedStack {
       machineImage: ec2.MachineImage.latestAmazonLinux2023({
         cpuType: ec2.AmazonLinuxCpuType.ARM_64,
       }),
-      securityGroup: influxDbSecurityGroup,
+      securityGroup,
       role: ssmRole,
     });
 
@@ -76,20 +97,6 @@ export class InfluxDbHostStack extends cdk.NestedStack {
       service: influxDiscoveryService,
       ipv4: influxDbInstance.instancePrivateIp,
       port: influxDbPort,
-    });
-
-    influxDbSecurityGroup.addIngressRule(
-      bastionSecurityGroup,
-      ec2.Port.tcp(influxDbPort),
-      'Allow Jump Bastion access to InfluxDB'
-    );
-
-    connectingServiceSGs.forEach(({ key, sg }) => {
-      influxDbSecurityGroup.connections.allowFrom(
-        sg,
-        ec2.Port.tcp(influxDbPort),
-        `${key}-to-Influx`
-      );
     });
 
     // only SSM has internet acess, via Vpc Endpoint

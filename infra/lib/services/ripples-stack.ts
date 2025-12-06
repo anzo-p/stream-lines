@@ -1,5 +1,4 @@
 import * as cdk from 'aws-cdk-lib';
-import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
@@ -8,20 +7,25 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
-export class CurrentsStack extends cdk.NestedStack {
+export class RipplesStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
     securityGroup: ec2.SecurityGroup,
+    readKinesisUpstreamPerms: iam.PolicyStatement,
+    writeKinesisDownStreamPerms: iam.PolicyStatement,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
 
-    const taskRole = new iam.Role(this, 'CurrentsTaskRole', {
+    const taskRole = new iam.Role(this, 'TaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
     });
+
+    taskRole.addToPolicy(readKinesisUpstreamPerms);
+    taskRole.addToPolicy(writeKinesisDownStreamPerms);
 
     taskRole.addToPolicy(
       new iam.PolicyStatement({
@@ -39,19 +43,11 @@ export class CurrentsStack extends cdk.NestedStack {
       })
     );
 
-    const table = dynamodb.Table.fromTableName(
-      this,
-      'currents-table',
-      `${process.env.CURRENTS_DYNAMODB_TABLE_NAME}`
-    );
-
-    table.grantReadWriteData(taskRole);
-
     const taskDefinition = new ecs.FargateTaskDefinition(
       this,
-      'CurrentsTaskDefinition',
+      'RipplesTaskDefinition',
       {
-        family: 'CurrentsTaskDefinition',
+        family: 'RipplesTaskDefinition',
         executionRole,
         taskRole,
         runtimePlatform: {
@@ -66,32 +62,31 @@ export class CurrentsStack extends cdk.NestedStack {
     const ecrRepository = ecr.Repository.fromRepositoryName(
       this,
       'EcrRepository',
-      'stream-lines-currents'
+      'stream-lines-ripples'
     );
 
-    const logGroup = new logs.LogGroup(this, 'CurrentsLogGroup', {
+    const logGroup = new logs.LogGroup(this, 'RipplesLogGroup', {
       retention: logs.RetentionDays.ONE_WEEK,
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
     const logging = ecs.LogDrivers.awsLogs({
-      streamPrefix: 'currents',
+      streamPrefix: 'ripples',
       logGroup: logGroup
     });
 
-    taskDefinition.addContainer('CurrentsContainer', {
+    taskDefinition.addContainer('RipplesContainer', {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       memoryLimitMiB: 1024,
       cpu: 512,
       environment: {
-        CHECKPOINT_PATH: `${process.env.FLINK_CHECKPOINTS_CURRENTS},`,
-        CURRENTS_DYNAMODB_TABLE_NAME: `${process.env.CURRENTS_DYNAMODB_TABLE_NAME}`,
-        INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL}`,
-        INFLUXDB_TOKEN_HISTORICAL_READ: `${process.env.INFLUXDB_TOKEN_HISTORICAL_READ}`,
-        INFLUXDB_TOKEN_HISTORICAL_WRITE: `${process.env.INFLUXDB_TOKEN_HISTORICAL_WRITE}`,
-        INFLUXDB_CONSUME_MEASURE: `${process.env.CURRENTS_INFLUXDB_SOURCE_MEASURE}`,
+        CHECKPOINT_PATH: `${process.env.FLINK_CHECKPOINTS_RIPPLES},`,
+        INFLUXDB_BUCKET_MARKET_DATA_REALTIME: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_REALTIME}`,
         INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
+        INFLUXDB_TOKEN_REALTIME_WRITE: `${process.env.INFLUXDB_TOKEN_REALTIME_WRITE}`,
         INFLUXDB_URL: `${process.env.INFLUXDB_URL}`,
+        KINESIS_DOWNSTREAM_NAME: `${process.env.KINESIS_RESULTS_DOWNSTREAM}`,
+        KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`,
         JAVA_TOOL_OPTIONS: [
           '--add-opens=java.base/java.lang=ALL-UNNAMED',
           '--add-opens=java.base/java.math=ALL-UNNAMED',
@@ -102,10 +97,10 @@ export class CurrentsStack extends cdk.NestedStack {
       logging
     });
 
-    new ecs.FargateService(this, 'CCurrentsEcsService', {
+    new ecs.FargateService(this, 'RipplesEcsService', {
       cluster: ecsCluster,
       taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       securityGroups: [securityGroup],
       desiredCount: 1,
       assignPublicIp: false,

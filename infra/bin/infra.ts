@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { AppInfraStack } from '../lib/infra/main-stack';
+import { InfraCoreStack } from '../lib/infra-core/main-stack';
+import { ServicesStack } from '../lib/services/main-stack';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -13,4 +14,11 @@ const env = {
 
 const app = new cdk.App();
 
-new AppInfraStack(app, 'StreamLines', { env });
+const infra = new InfraCoreStack(app, 'StreamLines-Infra', { env });
+
+new ServicesStack(app, 'StreamLines-Services', {
+  env,
+  vpc: infra.vpc,
+  securityGroups: infra.serviceSecurityGroups,
+  ecsCluster: infra.ecsCluster,
+});

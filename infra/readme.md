@@ -64,7 +64,7 @@ ecr.Repository.fromRepositoryName(this, 'EcrRepository', '<repo-name>')
 
 A drive is required to persist InfluxDB data through stack destroys and re-deploys. An EBS is much faster and guaranteed cheaper than EFS. Influx stores everything there, including your tokens and dashboards.
 
-Go to AWS Console > EC2 > Elastic Block Store > Volumes > Create Volume. `gp3` with defaults will do. Leave it unmounted. Pass the volume id tot he database at influx-ec2-stack.
+Go to AWS Console > EC2 > Elastic Block Store > Volumes > Create Volume. `gp3` with defaults will do. Leave it unmounted. Pass the volume id to the database at influx-ec2-stack.
 
 ### 2.5. Deploy the AWS lambdas
 
@@ -80,14 +80,18 @@ Before hitting cdk dploy make sure to read section 2.2 below about InfluxDB toke
 ### 3.1. CDK deploy commands
 
 ```
+# once
 npm install -g aws-cdk
 npm install
-
-# once
 npx cdk bootstrap aws://<account>/<region>
 
-npx cdk synth
-npx cdk deploy
+# init provision requires SSM for services in private isolated to initialize
+cdk deploy StreamLines-Infra -c enableBootstrapSsm=true
+# on success remove SSM by omitting the flag
+cdk deploy StreamLines-Infra
+
+cdk deploy StreamLines-Services
+cdk destroy StreamLines-Services
 ```
 
 ### 3.2. InfluxDB tokens
@@ -150,7 +154,7 @@ The stack to inlude a Cloudfront is an experimental layer to this system which r
 
 ## 4. Alternatively provision the backend only
 
-A much sleeker and cost-effective version of the app would be to access the data unsing InfluxDB's embedded `Data Explorer UI`. (Alternatively use [Grafana OSS](https://grafana.com/oss/grafana/?plcmt=oss-nav) with a read tokens). This would deploy everyhting up to InfluxDB so VPC, Kinesis upstream, Ingest, Ripples, InfluxDB and a means to access the data securely, eg. via an ALB or Bastion. (Only none of the API Gateway, Lambdas, Kinesis downstream, ALBs, Backend, Dashboard, CloudFront, ACM Certifications etc. are deployed.)
+A much sleeker and cost-effective version of the app would be to access the data using InfluxDB's embedded `Data Explorer UI`. (Alternatively use [Grafana OSS](https://grafana.com/oss/grafana/?plcmt=oss-nav) with a read tokens). This would deploy everyhting up to InfluxDB so VPC, Kinesis upstream, Ingest, Ripples, InfluxDB and a means to access the data securely, eg. via an ALB or Bastion. (Only none of the API Gateway, Lambdas, Kinesis downstream, ALBs, Backend, Dashboard, CloudFront, ACM Certifications etc. are deployed.)
 
 ### 4.1. Access InfluxDb form open internet
 

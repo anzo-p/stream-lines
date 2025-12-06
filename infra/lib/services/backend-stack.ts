@@ -74,7 +74,7 @@ export class BackendStack extends cdk.NestedStack {
     const backendService = new ecs.FargateService(this, 'BackendEcsService', {
       cluster: ecsCluster,
       taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }, // PRIVATE_WITH_EGRESS
       securityGroups: [securityGroup],
       desiredCount: 1,
       assignPublicIp: false

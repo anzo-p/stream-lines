@@ -16,7 +16,7 @@ export class GatherStack extends cdk.NestedStack {
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
     securityGroup: ec2.SecurityGroup,
-    connectingServiceSGs: { key: string; sg: ec2.SecurityGroup }[],
+    connectingServiceSGs: { id: string; sg: ec2.SecurityGroup }[],
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
@@ -106,10 +106,10 @@ export class GatherStack extends cdk.NestedStack {
     new ecs.FargateService(this, 'GatherEcsService', {
       cluster: ecsCluster,
       taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       securityGroups: [securityGroup],
       desiredCount: 1,
-      assignPublicIp: true,
+      assignPublicIp: false,
       capacityProviderStrategies: [
         {
           capacityProvider: 'FARGATE_SPOT',
