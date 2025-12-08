@@ -28,7 +28,7 @@ impl AuthMessage {
 #[derive(Serialize)]
 pub struct SubMessage {
     action: String,
-    trades: Vec<String>,
+    //trades: Vec<String>,
     quotes: Vec<String>,
 }
 
@@ -36,7 +36,7 @@ impl SubMessage {
     pub fn new(trades: &Vec<String>) -> Result<Self, ProcessError> {
         Ok(SubMessage {
             action: "subscribe".to_string(),
-            trades: trades.clone(),
+            //trades: trades.clone(),
             quotes: trades.clone(),
         })
     }

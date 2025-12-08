@@ -16,15 +16,11 @@ use std::sync::Arc;
 use std::thread;
 use tokio::time::{sleep, Duration};
 
-use crate::config::{logger, AppConfig};
+use crate::config::{load_app_config, logger, AppConfig};
 use crate::errors::ProcessError;
 //use crate::http::launch_health_server;
 use crate::ws_connection::remove_active_connections;
 use crate::ws_feed_consumer::run_one_feed;
-
-fn load_app_config() -> Result<AppConfig, ProcessError> {
-    AppConfig::new().map_err(|e| ProcessError::ConfigError(e.to_string()))
-}
 
 fn setup_sigterm_handler(running: Arc<AtomicBool>) {
     thread::spawn(move || {
@@ -68,7 +64,7 @@ async fn main() -> Result<(), ProcessError> {
 
     //tokio::spawn(launch_health_server());
 
-    let app_config = config::ticker_hydrator::hydrate_symbols(load_app_config()?).await?;
+    let app_config = load_app_config().await?;
     info!("Configuration loaded: {:?}", app_config);
 
     while running.load(Ordering::SeqCst) {

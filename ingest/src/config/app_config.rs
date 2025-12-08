@@ -1,6 +1,8 @@
 use config::{Config, ConfigError, Environment};
 use serde::Deserialize;
 use std::fmt;
+use crate::config::ticker_hydrator;
+use crate::errors::ProcessError;
 
 #[derive(Clone, Debug, Deserialize)]
 pub enum FeedType {
@@ -38,4 +40,13 @@ impl AppConfig {
             .build()?
             .try_deserialize()
     }
+}
+
+pub async fn load_app_config() -> Result<AppConfig, ProcessError> {
+    let cfg = load_config()?;
+    ticker_hydrator::hydrate_symbols(cfg).await
+}
+
+fn load_config() -> Result<AppConfig, ProcessError> {
+    AppConfig::new().map_err(|e| ProcessError::ConfigError(e.to_string()))
 }

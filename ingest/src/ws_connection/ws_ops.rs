@@ -105,7 +105,7 @@ async fn connect_to_stream(url_str: &str) -> Result<(), ProcessError> {
 }
 
 async fn auth_and_sub_by_url(url_str: &str) -> Result<(), ProcessError> {
-    let app_config = load_app_config()?;
+    let app_config = load_app_config().await?;
     if let Some(feed) = app_config.feeds.iter().find(|f| f.url == url_str) {
         auth_and_sub_by_url_and_symbols(url_str, &feed.symbols).await
     } else {

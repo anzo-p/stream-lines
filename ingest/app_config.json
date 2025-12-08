@@ -5,12 +5,6 @@
             "symbols": ["AAPL", "AMD", "AMZN", "GOOG", "META", "MSFT", "TSLA"],
             "feed_type": "Stocks",
             "max_reads_per_sec": 20
-        },
-        {
-            "url": "wss://stream.data.alpaca.markets/v1beta3/crypto/us",
-            "symbols": ["BTC/USD", "ETH/USD"],
-            "feed_type": "Crypto",
-            "max_reads_per_sec": 20
         }
     ]
 }
