@@ -4,8 +4,9 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import { Construct } from 'constructs';
 import { EcsClusterStack } from './ecs-cluster-stack';
 import { InfluxDbStack } from './influxdb-ec2-stack';
-import { VpcStack } from './vpc-stack';
+import { InterfaceEndpointsStack } from './endpoints-stack';
 import { JumpBastionStack } from './jump-bastion-stack';
+import { VpcStack } from './vpc-stack';
 
 export class InfraCoreStack extends cdk.Stack {
   readonly vpc: ec2.Vpc;
@@ -16,6 +17,14 @@ export class InfraCoreStack extends cdk.Stack {
     super(scope, id, props);
 
     this.vpc = new VpcStack(this, 'VpcStack').vpc;
+
+    if (this.node.tryGetContext('enableIEndpoints') === 'true') {
+      new InterfaceEndpointsStack(
+        this,
+        'InterfaceEndpointsStack',
+        this.vpc
+      );
+    }
 
     this.ecsCluster = new EcsClusterStack(
       this,
