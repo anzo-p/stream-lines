@@ -4,6 +4,7 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
@@ -26,6 +27,15 @@ export class IngestStack extends cdk.NestedStack {
     });
 
     taskRole.addToPolicy(writeKinesisUpstreamPerms);
+
+    [
+      { id: 'AlpacaSecret', name: 'prod/alpaca/api' },
+      { id: 'DatajockeySecret', name: 'prod/datajockey/api' },
+      { id: 'GatherSharedSecret', name: 'prod/internal/shared-secret' }
+    ].forEach(({ id, name }) => {
+      const secret = secretsmanager.Secret.fromSecretNameV2(this, 'Ingest' + id, name);
+      secret.grantRead(taskRole);
+    });
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'IngestTaskDefinition', {
       family: 'IngestTaskDefinition',
@@ -56,13 +66,10 @@ export class IngestStack extends cdk.NestedStack {
       memoryLimitMiB: 512,
       cpu: 256,
       environment: {
-        ALPACA_API_KEY: `${process.env.INGEST_ALPACA_API_KEY}`,
-        ALPACA_API_SECRET: `${process.env.INGEST_ALPACA_API_SECRET}`,
         KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`,
         MAX_WS_READS_PER_SEC: `${process.env.INGEST_MAX_WS_READS_PER_SEC}`,
         MAX_TICKER_COUNT: `${process.env.INGEST_MAX_TICKER_COUNT}`,
-        TOP_TICKERS_API: `${process.env.INGEST_TOP_TICKERS_API}`,
-        TOP_TICKERS_TOKEN: `${process.env.INGEST_TOP_TICKERS_TOKEN}`
+        TOP_TICKERS_API: `${process.env.INGEST_TOP_TICKERS_API}`
       },
       logging
     });

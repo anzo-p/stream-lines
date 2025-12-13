@@ -19,6 +19,9 @@ pub fn handle_process_error(e: &ProcessError) {
             eprintln!("Environment variable error: {}", msg);
             process::exit(1)
         }
+        ProcessError::JsonDeOrSerializationError(msg) => {
+            eprintln!("JSON De- or Serialization error {}", msg)
+        }
         ProcessError::KinesisSendError(msg) => {
             eprintln!("Kinesis send error: {}", msg)
         }
@@ -27,9 +30,6 @@ pub fn handle_process_error(e: &ProcessError) {
         }
         ProcessError::ProtobufConversionError(msg) => {
             eprintln!("Protobuf conversion error: {}", msg)
-        }
-        ProcessError::JsonDeOrSerializationError(msg) => {
-            eprintln!("JSON De- or Serialization error {}", msg)
         }
         ProcessError::UrlParseError(msg) => {
             eprintln!("Url parse error: {}", msg)

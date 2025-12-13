@@ -14,6 +14,8 @@ repositories {
 }
 
 dependencies {
+    implementation(platform("io.awspring.cloud:spring-cloud-aws-dependencies:3.3.0"))
+    implementation("io.awspring.cloud:spring-cloud-aws-starter-secrets-manager")
     implementation("ch.qos.logback:logback-classic")
     implementation("com.influxdb:flux-dsl:7.1.0")
     implementation("com.influxdb:influxdb-client-java:7.1.0")

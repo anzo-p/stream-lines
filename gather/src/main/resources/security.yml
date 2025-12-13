@@ -1,4 +1,0 @@
-jwt:
-  secret-key: ${JWT_SECRET_KEY}
-  issuer: my-issuer
-  audience: my-audience

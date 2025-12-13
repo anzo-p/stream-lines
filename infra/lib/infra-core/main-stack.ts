@@ -24,6 +24,8 @@ export class InfraCoreStack extends cdk.Stack {
 
     this.ecsCluster = new EcsClusterStack(this, 'EcsClusterStack', this.vpc).ecsCluster;
 
+    const sgSpecsBastion = [{ id: 'bastion', name: 'BastionSecurityGroup' }];
+
     const sgSpecsDbConnServices = [
       { id: 'currents', name: 'CurrentsSecurityGroup' },
       { id: 'ripples', name: 'RipplesSecurityGroup' },
@@ -36,7 +38,7 @@ export class InfraCoreStack extends cdk.Stack {
     ];
 
     this.serviceSecurityGroups = Object.fromEntries(
-      [...sgSpecsDbConnServices, ...sgSpecsOtherServices].map(({ id, name }) => {
+      [...sgSpecsBastion, ...sgSpecsDbConnServices, ...sgSpecsOtherServices].map(({ id, name }) => {
         const sg = new ec2.SecurityGroup(this, name, {
           vpc: this.vpc,
           allowAllOutbound: true
@@ -45,19 +47,14 @@ export class InfraCoreStack extends cdk.Stack {
       })
     );
 
-    const bastionSecurityGroup = new ec2.SecurityGroup(this, 'BastionSecurityGroup', {
-      vpc: this.vpc,
-      allowAllOutbound: true
-    });
-
-    new JumpBastionStack(this, 'JumpBastionStack', this.vpc, bastionSecurityGroup);
+    new JumpBastionStack(this, 'JumpBastionStack', this.vpc, this.serviceSecurityGroups['bastion']);
 
     new InfluxDbStack(
       this,
       'InfluxDbStack',
       this.vpc,
       this.ecsCluster,
-      bastionSecurityGroup,
+      this.serviceSecurityGroups['bastion'],
       sgSpecsDbConnServices.map(({ id }) => ({ id, sg: this.serviceSecurityGroups[id] }))
     );
   }

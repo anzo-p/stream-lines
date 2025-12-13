@@ -1,25 +1,20 @@
+use crate::config::secrets_manager::get_internal_shared_secret;
+use crate::config::{AppConfig, FeedType};
+use crate::errors::ProcessError;
 use log::warn;
 use reqwest::Client;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::env;
 use tokio::time::{timeout, Duration};
-use crate::config::{AppConfig, FeedType};
-use crate::errors::ProcessError;
 
 #[derive(Debug, Deserialize)]
-pub struct TopTradedTickers(
-    pub HashMap<String, HashMap<String, f64>>
-);
+pub struct TopTradedTickers(pub HashMap<String, HashMap<String, f64>>);
 
-async fn fetch_top_symbols(
-    client: &Client,
-    endpoint: &str,
-    n: usize,
-) -> anyhow::Result<Vec<String>> {
+async fn fetch_top_symbols(client: &Client, endpoint: &str, api_key: &str, n: usize) -> anyhow::Result<Vec<String>> {
     let data = client
         .get(endpoint)
-        .bearer_auth(env::var("TOP_TICKERS_TOKEN").unwrap_or_default())
+        .header("X-Api-Key", api_key)
         .send()
         .await?
         .error_for_status()?
@@ -34,8 +29,8 @@ async fn fetch_top_symbols(
 }
 
 pub(crate) async fn hydrate_symbols(mut cfg: AppConfig) -> Result<AppConfig, ProcessError> {
-    let endpoint = env::var("TOP_TICKERS_API")
-        .map_err(|_| ProcessError::ConfigError("TOP_TICKERS_API not set".into()))?;
+    let endpoint =
+        env::var("TOP_TICKERS_API").map_err(|_| ProcessError::ConfigError("TOP_TICKERS_API not set".into()))?;
 
     let max_n: usize = env::var("MAX_TICKER_COUNT")
         .ok()
@@ -44,11 +39,13 @@ pub(crate) async fn hydrate_symbols(mut cfg: AppConfig) -> Result<AppConfig, Pro
 
     let client = Client::new();
 
-    if let Some(feed) = cfg.feeds
-        .iter_mut()
-        .find(|f| matches!(f.feed_type, FeedType::Stocks)) {
-
-        match timeout(Duration::from_secs(15), fetch_top_symbols(&client, &endpoint, max_n)).await {
+    if let Some(feed) = cfg.feeds.iter_mut().find(|f| matches!(f.feed_type, FeedType::Stocks)) {
+        match timeout(Duration::from_secs(15), async {
+            let api_key = get_internal_shared_secret().await?;
+            fetch_top_symbols(&client, &endpoint, api_key, max_n).await
+        })
+        .await
+        {
             Ok(Ok(syms)) => feed.symbols = syms,
             Ok(Err(e)) => warn!("Ticker fetch failed: {e}. Using config defaults."),
             Err(_) => warn!("Ticker fetch timed out. Using config defaults."),

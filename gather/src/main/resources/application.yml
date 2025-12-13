@@ -1,7 +1,4 @@
 alpaca:
-  authentication:
-    api_key: ${ALPACA_API_KEY}
-    api_secret: ${ALPACA_API_SECRET}
   bar_data_time_frame: 1day
   daily_bars_url: "https://data.alpaca.markets/v2/stocks/bars"
   data_source: sip
@@ -15,8 +12,6 @@ aws:
     table_name: ${GATHER_DYNAMODB_TABLE_NAME}
 
 datajockey:
-  authentication:
-    api_key: ${DATA_JOCKEY_API_KEY}
   financials_url: "https://api.datajockey.io/v0/company/financials"
   max_calls_per_minute: 5
   company_count_per_run: 7
@@ -30,8 +25,10 @@ influxdb:
 spring:
   config:
     import:
-      - "security.yml"
       - "source-data-params.yml"
+      - aws-secretsmanager:prod/alpaca/api
+      - aws-secretsmanager:prod/datajockey/api
+      - aws-secretsmanager:prod/internal/shared-secret
   web:
     resources:
       add-mappings: false

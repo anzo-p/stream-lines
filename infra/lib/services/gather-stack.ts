@@ -5,6 +5,7 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
@@ -16,25 +17,33 @@ export class GatherStack extends cdk.NestedStack {
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
     securityGroup: ec2.SecurityGroup,
+    bastionSecurityGroup: ec2.SecurityGroup,
     connectingServiceSGs: { id: string; sg: ec2.SecurityGroup }[],
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
 
-    const containerPort = process.env.GATHER_SERVER_PORT ?? '8080';
+    const gatherPort = Number(process.env.GATHER_SERVER_PORT ?? '8080');
+
+    securityGroup.addIngressRule(bastionSecurityGroup, ec2.Port.tcp(gatherPort), 'Allow Jump Bastion access to Gather');
 
     connectingServiceSGs.forEach(({ sg }) => {
-      securityGroup.addIngressRule(
-        sg,
-        ec2.Port.tcp(Number(containerPort)),
-        'Allow services to call Gather on its REST API'
-      );
+      securityGroup.addIngressRule(sg, ec2.Port.tcp(gatherPort), 'Allow services to call Gather on its REST API');
     });
 
     securityGroup.addEgressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), 'Allow HTTPS only');
 
     const taskRole = new iam.Role(this, 'GatherTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
+    });
+
+    [
+      { id: 'AlpacaSecret', name: 'prod/alpaca/api' },
+      { id: 'DatajockeySecret', name: 'prod/datajockey/api' },
+      { id: 'GatherSharedSecret', name: 'prod/internal/shared-secret' }
+    ].forEach(({ id, name }) => {
+      const secret = secretsmanager.Secret.fromSecretNameV2(this, 'Gather' + id, name);
+      secret.grantRead(taskRole);
     });
 
     const table = dynamodb.Table.fromTableName(this, 'gather-table', `${process.env.GATHER_DYNAMODB_TABLE_NAME}`);
@@ -67,24 +76,19 @@ export class GatherStack extends cdk.NestedStack {
 
     taskDefinition.addContainer('GatherContainer', {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: parseInt(containerPort) }],
+      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: gatherPort }],
       memoryLimitMiB: 1024,
       cpu: 512,
       environment: {
-        ALPACA_API_KEY: `${process.env.GATHER_ALPACA_API_KEY}`,
-        ALPACA_API_SECRET: `${process.env.GATHER_ALPACA_API_SECRET}`,
-        DATA_JOCKEY_API_KEY: `${process.env.GATHER_DATA_JOCKEY_API_KEY}`,
         GATHER_DYNAMODB_TABLE_NAME: `${process.env.GATHER_DYNAMODB_TABLE_NAME}`,
         INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
         INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL}`,
         INFLUXDB_TOKEN_HISTORICAL_WRITE: `${process.env.INFLUXDB_TOKEN_HISTORICAL_READ_WRITE}`,
         INFLUXDB_URL: `${process.env.INFLUXDB_URL}`,
-        JWT_SECRET_KEY: `${process.env.GATHER_JWT_SECRET_KEY}`,
         SPRING_PROFILES_ACTIVE: `${process.env.GATHER_SPRING_PROFILES_ACTIVE}`
       },
       logging
     });
-
     new ecs.FargateService(this, 'GatherEcsService', {
       cluster: ecsCluster,
       taskDefinition,

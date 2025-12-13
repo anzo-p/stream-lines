@@ -52,6 +52,7 @@ export class ServicesStack extends cdk.Stack {
       ecsCluster,
       taskExecRoleStack.role,
       securityGroups['gather'],
+      securityGroups['bastion'],
       ['ingest'].map((id) => ({ id, sg: securityGroups[id] }))
     );
 

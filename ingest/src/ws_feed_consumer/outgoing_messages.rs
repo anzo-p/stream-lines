@@ -1,7 +1,24 @@
-use serde::{Deserialize, Serialize};
-use std::env;
-
 use crate::errors::ProcessError;
+use aws_config::BehaviorVersion;
+use aws_sdk_secretsmanager as sm;
+use serde::{Deserialize, Serialize};
+use tokio::sync::OnceCell;
+
+static CREDS: OnceCell<AlpacaCreds> = OnceCell::const_new();
+
+#[derive(Debug, Clone, Deserialize)]
+struct AlpacaCreds {
+    #[serde(rename = "alpaca.authentication.api-key")]
+    key: String,
+    #[serde(rename = "alpaca.authentication.api-secret")]
+    secret: String,
+}
+
+async fn get_creds() -> Result<&'static AlpacaCreds, ProcessError> {
+    CREDS
+        .get_or_try_init(|| async { load_alpaca_creds("prod/alpaca/api").await })
+        .await
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct AuthMessage {
@@ -11,16 +28,12 @@ pub struct AuthMessage {
 }
 
 impl AuthMessage {
-    pub fn new() -> Result<Self, ProcessError> {
-        let key = env::var("ALPACA_API_KEY")
-            .map_err(|_| ProcessError::EnvVarError(String::from("ALPACA_API_KEY not found in environment")))?;
-        let secret = env::var("ALPACA_API_SECRET")
-            .map_err(|_| ProcessError::EnvVarError(String::from("ALPACA_API_SECRET not found in environment")))?;
-
-        Ok(AuthMessage {
+    pub async fn new() -> Result<Self, ProcessError> {
+        let creds = get_creds().await?;
+        Ok(Self {
             action: "auth".to_string(),
-            key,
-            secret,
+            key: creds.key.clone(),
+            secret: creds.secret.clone(),
         })
     }
 }
@@ -40,4 +53,23 @@ impl SubMessage {
             quotes: trades.clone(),
         })
     }
+}
+
+async fn load_alpaca_creds(secret_id: &str) -> Result<AlpacaCreds, ProcessError> {
+    let config = aws_config::load_defaults(BehaviorVersion::latest()).await;
+    let client = sm::Client::new(&config);
+
+    let out = client
+        .get_secret_value()
+        .secret_id(secret_id)
+        .send()
+        .await
+        .map_err(|e| ProcessError::AwsSdkError(format!("get_secret_value failed for {secret_id}: {e:?}")))?;
+
+    let s = out
+        .secret_string()
+        .ok_or_else(|| ProcessError::AwsSdkError(format!("secret {secret_id} was binary or empty")))?;
+
+    serde_json::from_str::<AlpacaCreds>(s)
+        .map_err(|e| ProcessError::AwsSdkError(format!("secret JSON parse failed for {secret_id}: {e}")))
 }

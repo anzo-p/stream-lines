@@ -18,14 +18,11 @@ import org.springframework.web.reactive.function.client.WebClient
 @Validated
 class AlpacaProps {
     class Authentication {
-        @NotBlank
-        lateinit var apiKey: String
-
-        @NotBlank
-        lateinit var apiSecret: String
+        var apiKey: String = ""
+        var apiSecret: String = ""
     }
 
-    lateinit var authentication: Authentication
+    var authentication: Authentication = Authentication()
 
     @NotBlank
     lateinit var barDataTimeframe: String

@@ -1,34 +1,27 @@
 package net.anzop.gather.http.server.security
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.web.SecurityFilterChain
 
 @Configuration
-class SecurityConfig {
+class SecurityConfig(
+    @param:Value("\${internal.shared-secret}") private val sharedSecret: String
+) {
 
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain =
         http
-            .authorizeHttpRequests { auth ->
-                auth
-                    .requestMatchers(*PUBLIC_PATHS).permitAll()
-                    .requestMatchers("/api/admin/maintenance/**").hasAuthority("ROLE_ADMIN")
+            .csrf { it.disable() }
+            .addFilterBefore(SharedSecretAuthFilter(sharedSecret),
+                org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter::class.java
+            )
+            .authorizeHttpRequests {
+                it
+                    .requestMatchers("/", "/health", "/actuator/health").permitAll()
                     .anyRequest().authenticated()
             }
-            .oauth2ResourceServer { oauth2 ->
-                oauth2.jwt { jwt ->
-                    jwt.jwtAuthenticationConverter(JwtAuthConverter())
-                }
-            }
             .build()
-
-    companion object {
-        val PUBLIC_PATHS = arrayOf(
-            "/",
-            "/health",
-            "/actuator/health",
-        )
-    }
 }

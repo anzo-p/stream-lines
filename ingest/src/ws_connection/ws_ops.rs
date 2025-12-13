@@ -134,7 +134,10 @@ async fn send_sub_message(url_str: &str, trading_symbols: &[String]) -> Result<(
 }
 
 async fn send_auth_message(url_str: &str) -> Result<(), ProcessError> {
-    let payload = AuthMessage::new()?;
+    let payload = AuthMessage::new().await.map_err(|e| {
+        eprintln!("AuthMessage::new failed: {e:?}");
+        e
+    })?;
     send_message(url_str, &payload).await
 }
 

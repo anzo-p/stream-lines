@@ -10,6 +10,7 @@ prost-build = "0.12.3"
 anyhow = "1.0.77"
 aws-config = "1.1.1"
 aws-sdk-kinesis = "1.9.0"
+aws-sdk-secretsmanager = "1"
 chrono = { version = "0.4.31", features = ["serde"] }
 config = "0.13.4"
 env_logger = "0.9.0"
@@ -25,7 +26,7 @@ rust_decimal = "1.17.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 signal-hook = "0.3.9"
-tokio = { version = "1.35.1", features = ["full"] }
+tokio = { version = "1.35.1", features = ["full", "macros", "rt-multi-thread"] }
 tokio-tungstenite = { version = "*", features = ["tls"] }
 tungstenite = "0.21.0"
 url = "2.5.0"

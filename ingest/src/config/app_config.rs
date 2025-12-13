@@ -1,8 +1,8 @@
+use crate::config::ticker_hydrator;
+use crate::errors::ProcessError;
 use config::{Config, ConfigError, Environment};
 use serde::Deserialize;
 use std::fmt;
-use crate::config::ticker_hydrator;
-use crate::errors::ProcessError;
 
 #[derive(Clone, Debug, Deserialize)]
 pub enum FeedType {

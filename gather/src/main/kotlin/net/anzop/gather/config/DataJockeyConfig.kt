@@ -15,11 +15,10 @@ import org.springframework.web.reactive.function.client.WebClient
 @Validated
 class DataJockeyProps {
     class Authentication {
-        @NotBlank
-        lateinit var apiKey: String
+        var apiKey: String = ""
     }
 
-    lateinit var authentication: Authentication
+    var authentication: Authentication = Authentication()
 
     @NotBlank
     lateinit var financialsUrl: String
