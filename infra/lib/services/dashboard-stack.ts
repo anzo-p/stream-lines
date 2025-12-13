@@ -17,26 +17,18 @@ export class DashboardStack extends cdk.NestedStack {
   ) {
     super(scope, id, props);
 
-    const taskDefinition = new ecs.FargateTaskDefinition(
-      this,
-      'DashboardTaskDefinition',
-      {
-        family: 'DashboardTaskDefinition',
-        executionRole,
-        runtimePlatform: {
-          operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
-          cpuArchitecture: ecs.CpuArchitecture.ARM64
-        },
-        memoryLimitMiB: 512,
-        cpu: 256
-      }
-    );
+    const taskDefinition = new ecs.FargateTaskDefinition(this, 'DashboardTaskDefinition', {
+      family: 'DashboardTaskDefinition',
+      executionRole,
+      runtimePlatform: {
+        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+        cpuArchitecture: ecs.CpuArchitecture.ARM64
+      },
+      memoryLimitMiB: 512,
+      cpu: 256
+    });
 
-    const ecrRepository = ecr.Repository.fromRepositoryName(
-      this,
-      'EcrRepository',
-      'stream-lines-dashboard'
-    );
+    const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-dashboard');
 
     const containerPort = parseInt(process.env.DASHBOARD_SERVER_PORT!);
 
@@ -48,17 +40,13 @@ export class DashboardStack extends cdk.NestedStack {
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'dashboard' })
     });
 
-    const dashboardService = new ecs.FargateService(
-      this,
-      'DashboardEcsService',
-      {
-        cluster: ecsCluster,
-        taskDefinition,
-        vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-        desiredCount: 1,
-        assignPublicIp: true
-      }
-    );
+    const dashboardService = new ecs.FargateService(this, 'DashboardEcsService', {
+      cluster: ecsCluster,
+      taskDefinition,
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      desiredCount: 1,
+      assignPublicIp: true
+    });
 
     dashboardService.registerLoadBalancerTargets({
       containerName: 'DashboardContainer',

@@ -31,49 +31,33 @@ export class GatherStack extends cdk.NestedStack {
       );
     });
 
-    securityGroup.addEgressRule(
-      ec2.Peer.anyIpv4(),
-      ec2.Port.tcp(443),
-      'Allow HTTPS only'
-    );
+    securityGroup.addEgressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), 'Allow HTTPS only');
 
     const taskRole = new iam.Role(this, 'GatherTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
     });
 
-    const table = dynamodb.Table.fromTableName(
-      this,
-      'gather-table',
-      `${process.env.GATHER_DYNAMODB_TABLE_NAME}`
-    );
+    const table = dynamodb.Table.fromTableName(this, 'gather-table', `${process.env.GATHER_DYNAMODB_TABLE_NAME}`);
 
     table.grantReadWriteData(taskRole);
 
-    const taskDefinition = new ecs.FargateTaskDefinition(
-      this,
-      'GatherTaskDefinition',
-      {
-        family: 'GatherTaskDefinition',
-        executionRole,
-        taskRole,
-        runtimePlatform: {
-          operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
-          cpuArchitecture: ecs.CpuArchitecture.ARM64
-        },
-        memoryLimitMiB: 1024,
-        cpu: 512
-      }
-    );
+    const taskDefinition = new ecs.FargateTaskDefinition(this, 'GatherTaskDefinition', {
+      family: 'GatherTaskDefinition',
+      executionRole,
+      taskRole,
+      runtimePlatform: {
+        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+        cpuArchitecture: ecs.CpuArchitecture.ARM64
+      },
+      memoryLimitMiB: 1024,
+      cpu: 512
+    });
 
-    const ecrRepository = ecr.Repository.fromRepositoryName(
-      this,
-      'EcrRepository',
-      'stream-lines-gather'
-    );
+    const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-gather');
 
     const logGroup = new logs.LogGroup(this, 'GatherLogGroup', {
       retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY
     });
 
     const logging = ecs.LogDrivers.awsLogs({
@@ -83,9 +67,7 @@ export class GatherStack extends cdk.NestedStack {
 
     taskDefinition.addContainer('GatherContainer', {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      portMappings: [
-        { protocol: ecs.Protocol.TCP, containerPort: parseInt(containerPort) }
-      ],
+      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: parseInt(containerPort) }],
       memoryLimitMiB: 1024,
       cpu: 512,
       environment: {
@@ -113,14 +95,14 @@ export class GatherStack extends cdk.NestedStack {
       capacityProviderStrategies: [
         {
           capacityProvider: 'FARGATE_SPOT',
-          weight: 1,
-        },
+          weight: 1
+        }
       ],
       cloudMapOptions: {
         name: 'gather',
         dnsTtl: cdk.Duration.seconds(30),
-        dnsRecordType: servicediscovery.DnsRecordType.A,
-      },
+        dnsRecordType: servicediscovery.DnsRecordType.A
+      }
     });
   }
 }

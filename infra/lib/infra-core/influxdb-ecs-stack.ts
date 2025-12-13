@@ -19,30 +19,22 @@ export class InfluxDbEcsStack extends cdk.NestedStack {
     if (!influxDbPort) throw new Error('Invalid INFLUXDB_SERVER_PORT');
 
     connectingServiceSGs.forEach(({ key, sg }) => {
-      influxDbSecurityGroup.connections.allowFrom(
-        sg,
-        ec2.Port.tcp(influxDbPort),
-        `${key}-to-Influx`
-      );
+      influxDbSecurityGroup.connections.allowFrom(sg, ec2.Port.tcp(influxDbPort), `${key}-to-Influx`);
     });
 
     const taskDefinition = new ecs.Ec2TaskDefinition(this, 'InfluxDbTaskDefinition', {
       networkMode: ecs.NetworkMode.AWS_VPC,
-      family: 'InfluxDbTaskDefinition',
+      family: 'InfluxDbTaskDefinition'
     });
 
     taskDefinition.addVolume({
       name: 'InfluxDbDataVolume',
       host: {
-        sourcePath: '/mnt/influxdb-data',
-      },
+        sourcePath: '/mnt/influxdb-data'
+      }
     });
 
-    const ecrRepository = ecr.Repository.fromRepositoryName(
-      this,
-      'StreamLinesEcrRepository',
-      'stream-lines-influxdb'
-    );
+    const ecrRepository = ecr.Repository.fromRepositoryName(this, 'StreamLinesEcrRepository', 'stream-lines-influxdb');
 
     const containerPort = parseInt(process.env.INFLUXDB_SERVER_PORT!);
 
@@ -59,13 +51,13 @@ export class InfluxDbEcsStack extends cdk.NestedStack {
         DOCKER_INFLUXDB_INIT_RETENTION: `${process.env.INFLUXDB_INIT_RETENTION}`,
         DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: `${process.env.INFLUXDB_INIT_ADMIN_TOKEN}`
       },
-      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'influxdb' }),
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'influxdb' })
     });
 
     influxDbContainer.addMountPoints({
       containerPath: '/var/lib/influxdb2',
       readOnly: false,
-      sourceVolume: 'InfluxDbDataVolume',
+      sourceVolume: 'InfluxDbDataVolume'
     });
 
     new ecs.Ec2Service(this, 'InfluxDbEcsService', {
@@ -77,8 +69,8 @@ export class InfluxDbEcsStack extends cdk.NestedStack {
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       securityGroups: [influxDbSecurityGroup],
       cloudMapOptions: {
-        name: 'influxdb',
-      },
+        name: 'influxdb'
+      }
     });
   }
 }

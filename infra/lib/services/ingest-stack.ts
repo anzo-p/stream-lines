@@ -19,11 +19,7 @@ export class IngestStack extends cdk.NestedStack {
   ) {
     super(scope, id, props);
 
-    securityGroup.addEgressRule(
-      ec2.Peer.anyIpv4(),
-      ec2.Port.tcp(443),
-      'Allow HTTPS only'
-    );
+    securityGroup.addEgressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), 'Allow HTTPS only');
 
     const taskRole = new iam.Role(this, 'IngestTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
@@ -31,31 +27,23 @@ export class IngestStack extends cdk.NestedStack {
 
     taskRole.addToPolicy(writeKinesisUpstreamPerms);
 
-    const taskDefinition = new ecs.FargateTaskDefinition(
-      this,
-      'IngestTaskDefinition',
-      {
-        family: 'IngestTaskDefinition',
-        executionRole,
-        taskRole,
-        runtimePlatform: {
-          operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
-          cpuArchitecture: ecs.CpuArchitecture.X86_64
-        },
-        memoryLimitMiB: 512,
-        cpu: 256
-      }
-    );
+    const taskDefinition = new ecs.FargateTaskDefinition(this, 'IngestTaskDefinition', {
+      family: 'IngestTaskDefinition',
+      executionRole,
+      taskRole,
+      runtimePlatform: {
+        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+        cpuArchitecture: ecs.CpuArchitecture.X86_64
+      },
+      memoryLimitMiB: 512,
+      cpu: 256
+    });
 
-    const ecrRepository = ecr.Repository.fromRepositoryName(
-      this,
-      'EcrRepository',
-      'stream-lines-ingest'
-    );
+    const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-ingest');
 
     const logGroup = new logs.LogGroup(this, 'IngestLogGroup', {
       retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY
     });
 
     const logging = ecs.LogDrivers.awsLogs({
@@ -74,7 +62,7 @@ export class IngestStack extends cdk.NestedStack {
         MAX_WS_READS_PER_SEC: `${process.env.INGEST_MAX_WS_READS_PER_SEC}`,
         MAX_TICKER_COUNT: `${process.env.INGEST_MAX_TICKER_COUNT}`,
         TOP_TICKERS_API: `${process.env.INGEST_TOP_TICKERS_API}`,
-        TOP_TICKERS_TOKEN: `${process.env.INGEST_TOP_TICKERS_TOKEN}`,
+        TOP_TICKERS_TOKEN: `${process.env.INGEST_TOP_TICKERS_TOKEN}`
       },
       logging
     });
@@ -85,7 +73,7 @@ export class IngestStack extends cdk.NestedStack {
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       securityGroups: [securityGroup],
       desiredCount: 1,
-      assignPublicIp: false,
+      assignPublicIp: false
     });
   }
 }

@@ -35,17 +35,14 @@ export class ServicesStack extends cdk.Stack {
 
     const kinesisStack = new KinesisStreamsStack(
       this,
-      'KinesisStack',
+      'KinesisStack'
       //wsApigatewayStack.wsApiGatewayStageProdArn,
       //wsApigatewayStack.wsApiGatewayConnectionsUrl
     );
 
     // const albStack = new AlbStack(this, 'AlbStack', vpc);
 
-    const taskExecRoleStack = new EcsTaskExecutionRole(
-      this,
-      'StreamLinesEcsTaskExecRole'
-    );
+    const taskExecRoleStack = new EcsTaskExecutionRole(this, 'StreamLinesEcsTaskExecRole');
 
     new NatGatewayStack(this, 'NatGatewayStack', vpc);
 
@@ -55,7 +52,7 @@ export class ServicesStack extends cdk.Stack {
       ecsCluster,
       taskExecRoleStack.role,
       securityGroups['gather'],
-      ['ingest'].map(id => ({ id, sg: securityGroups[id] })),
+      ['ingest'].map((id) => ({ id, sg: securityGroups[id] }))
     );
 
     const ripplesStack = new RipplesStack(
@@ -80,13 +77,7 @@ export class ServicesStack extends cdk.Stack {
     ingestStack.addDependency(kinesisStack);
     ingestStack.addDependency(gatherStack);
 
-    new CurrentsStack(
-      this,
-      'CurrentsStack',
-      ecsCluster,
-      taskExecRoleStack.role,
-      securityGroups['currents']
-    );
+    new CurrentsStack(this, 'CurrentsStack', ecsCluster, taskExecRoleStack.role, securityGroups['currents']);
 
     /*
     const backendStack = new BackendStack(

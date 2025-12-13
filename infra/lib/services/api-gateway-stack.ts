@@ -16,26 +16,14 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const roleWebSocketHandlerLambda = new iam.Role(
-      this,
-      'WebSocketHandlerLambdaRole',
-      {
-        assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
-        managedPolicies: [
-          iam.ManagedPolicy.fromAwsManagedPolicyName(
-            'service-role/AWSLambdaBasicExecutionRole'
-          )
-        ]
-      }
-    );
+    const roleWebSocketHandlerLambda = new iam.Role(this, 'WebSocketHandlerLambdaRole', {
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')]
+    });
 
     roleWebSocketHandlerLambda.addToPolicy(
       new iam.PolicyStatement({
-        actions: [
-          'logs:CreateLogGroup',
-          'logs:CreateLogStream',
-          'logs:PutLogEvents'
-        ],
+        actions: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents'],
         effect: iam.Effect.ALLOW,
         resources: ['arn:aws:logs:*:*:*']
       })
@@ -58,48 +46,28 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
       `${process.env.S3_APP_BUCKET}`
     );
 
-    const webSocketHandlerLambda = new lambda.Function(
-      this,
-      'WebSocketHandlerLambda',
-      {
-        functionName: 'ApiGatewayWebSocketHandler',
-        runtime: lambda.Runtime.NODEJS_20_X,
-        handler: 'index.handler',
-        code: lambda.Code.fromBucket(
-          bucketWebSocketHandlerLambda,
-          `${process.env.S3_KEY_WS_CONN_HANDLER}`
-        ),
-        role: roleWebSocketHandlerLambda,
-        environment: {
-          WS_CONNS_TABLE_NAME: `${process.env.WS_CONNS_TABLE_NAME}`
-        }
+    const webSocketHandlerLambda = new lambda.Function(this, 'WebSocketHandlerLambda', {
+      functionName: 'ApiGatewayWebSocketHandler',
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromBucket(bucketWebSocketHandlerLambda, `${process.env.S3_KEY_WS_CONN_HANDLER}`),
+      role: roleWebSocketHandlerLambda,
+      environment: {
+        WS_CONNS_TABLE_NAME: `${process.env.WS_CONNS_TABLE_NAME}`
       }
-    );
+    });
 
-    const webSocketApiGateway = new apigw2.WebSocketApi(
-      this,
-      'WebSocketApiGateway',
-      {
-        connectRouteOptions: {
-          integration: new apigw2_integr.WebSocketLambdaIntegration(
-            'ConnectionRoute',
-            webSocketHandlerLambda
-          )
-        },
-        disconnectRouteOptions: {
-          integration: new apigw2_integr.WebSocketLambdaIntegration(
-            'DisconnectionRoute',
-            webSocketHandlerLambda
-          )
-        },
-        defaultRouteOptions: {
-          integration: new apigw2_integr.WebSocketLambdaIntegration(
-            'DefaultRoute',
-            webSocketHandlerLambda
-          )
-        }
+    const webSocketApiGateway = new apigw2.WebSocketApi(this, 'WebSocketApiGateway', {
+      connectRouteOptions: {
+        integration: new apigw2_integr.WebSocketLambdaIntegration('ConnectionRoute', webSocketHandlerLambda)
+      },
+      disconnectRouteOptions: {
+        integration: new apigw2_integr.WebSocketLambdaIntegration('DisconnectionRoute', webSocketHandlerLambda)
+      },
+      defaultRouteOptions: {
+        integration: new apigw2_integr.WebSocketLambdaIntegration('DefaultRoute', webSocketHandlerLambda)
       }
-    );
+    });
 
     const stageProd = new apigw2.WebSocketStage(this, 'StageProd', {
       webSocketApi: webSocketApiGateway,
@@ -131,10 +99,7 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
       The event.requestContext, that the lambda will receive, cannot be used
       because it is now overridden with a custom domain over secured wss protocol.
     */
-    webSocketHandlerLambda.addEnvironment(
-      'API_GW_CONNECTIONS_URL',
-      `${this.wsApiGatewayConnectionsUrl}`
-    );
+    webSocketHandlerLambda.addEnvironment('API_GW_CONNECTIONS_URL', `${this.wsApiGatewayConnectionsUrl}`);
 
     const apigwCustomDomain = new apigw2.DomainName(this, 'CustomDomainName', {
       domainName: `${process.env.WS_API_DOMAIN_NAME}`,

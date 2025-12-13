@@ -30,44 +30,28 @@ export class RipplesStack extends cdk.NestedStack {
     taskRole.addToPolicy(
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
-        actions: [
-          's3:DeleteObject',
-          's3:GetObject',
-          's3:ListBucket',
-          's3:PutObject'
-        ],
-        resources: [
-          `arn:aws:s3:::${process.env.S3_APP_BUCKET}`,
-          `arn:aws:s3:::${process.env.S3_APP_BUCKET}/*`
-        ]
+        actions: ['s3:DeleteObject', 's3:GetObject', 's3:ListBucket', 's3:PutObject'],
+        resources: [`arn:aws:s3:::${process.env.S3_APP_BUCKET}`, `arn:aws:s3:::${process.env.S3_APP_BUCKET}/*`]
       })
     );
 
-    const taskDefinition = new ecs.FargateTaskDefinition(
-      this,
-      'RipplesTaskDefinition',
-      {
-        family: 'RipplesTaskDefinition',
-        executionRole,
-        taskRole,
-        runtimePlatform: {
-          operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
-          cpuArchitecture: ecs.CpuArchitecture.ARM64
-        },
-        memoryLimitMiB: 1024,
-        cpu: 512
-      }
-    );
+    const taskDefinition = new ecs.FargateTaskDefinition(this, 'RipplesTaskDefinition', {
+      family: 'RipplesTaskDefinition',
+      executionRole,
+      taskRole,
+      runtimePlatform: {
+        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+        cpuArchitecture: ecs.CpuArchitecture.ARM64
+      },
+      memoryLimitMiB: 1024,
+      cpu: 512
+    });
 
-    const ecrRepository = ecr.Repository.fromRepositoryName(
-      this,
-      'EcrRepository',
-      'stream-lines-ripples'
-    );
+    const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-ripples');
 
     const logGroup = new logs.LogGroup(this, 'RipplesLogGroup', {
       retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY
     });
 
     const logging = ecs.LogDrivers.awsLogs({
@@ -91,7 +75,7 @@ export class RipplesStack extends cdk.NestedStack {
           '--add-opens=java.base/java.lang=ALL-UNNAMED',
           '--add-opens=java.base/java.math=ALL-UNNAMED',
           '--add-opens=java.base/java.time=ALL-UNNAMED',
-          '--add-opens=java.base/java.util=ALL-UNNAMED',
+          '--add-opens=java.base/java.util=ALL-UNNAMED'
         ].join(' ')
       },
       logging
@@ -107,9 +91,9 @@ export class RipplesStack extends cdk.NestedStack {
       capacityProviderStrategies: [
         {
           capacityProvider: 'FARGATE_SPOT',
-          weight: 1,
-        },
-      ],
+          weight: 1
+        }
+      ]
     });
   }
 }

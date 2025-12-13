@@ -9,20 +9,15 @@ export class EcsClusterStack extends cdk.NestedStack {
   readonly influxDbRepositoryName: string = 'stream-lines-influxdb';
   readonly ingestRepositoryName: string = 'stream-lines-ingest';
 
-  constructor(
-    scope: Construct,
-    id: string,
-    vpc: ec2.Vpc,
-    props?: cdk.NestedStackProps
-  ) {
+  constructor(scope: Construct, id: string, vpc: ec2.Vpc, props?: cdk.NestedStackProps) {
     super(scope, id, props);
 
     this.ecsCluster = new ecs.Cluster(this, 'StreamLinesEcsCluster', {
       vpc,
       defaultCloudMapNamespace: {
         name: `${process.env.PRIVATE_NAMESPACE}`,
-        type: servicediscovery.NamespaceType.DNS_PRIVATE,
-      },
+        type: servicediscovery.NamespaceType.DNS_PRIVATE
+      }
     });
 
     this.ecsCluster.enableFargateCapacityProviders();

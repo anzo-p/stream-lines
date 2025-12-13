@@ -19,52 +19,38 @@ export class InfraCoreStack extends cdk.Stack {
     this.vpc = new VpcStack(this, 'VpcStack').vpc;
 
     if (this.node.tryGetContext('enableIEndpoints') === 'true') {
-      new InterfaceEndpointsStack(
-        this,
-        'InterfaceEndpointsStack',
-        this.vpc
-      );
+      new InterfaceEndpointsStack(this, 'InterfaceEndpointsStack', this.vpc);
     }
 
-    this.ecsCluster = new EcsClusterStack(
-      this,
-      'EcsClusterStack',
-      this.vpc,
-    ).ecsCluster;
+    this.ecsCluster = new EcsClusterStack(this, 'EcsClusterStack', this.vpc).ecsCluster;
 
     const sgSpecsDbConnServices = [
       { id: 'currents', name: 'CurrentsSecurityGroup' },
       { id: 'ripples', name: 'RipplesSecurityGroup' },
-      { id: 'gather', name: 'GatherSecurityGroup' },
+      { id: 'gather', name: 'GatherSecurityGroup' }
     ];
 
     const sgSpecsOtherServices = [
       //{ id: 'backend', name: 'BackendSecurityGroup' },
-      { id: 'ingest', name: 'IngestSecurityGroup' },
+      { id: 'ingest', name: 'IngestSecurityGroup' }
     ];
 
     this.serviceSecurityGroups = Object.fromEntries(
-      [...sgSpecsDbConnServices, ...sgSpecsOtherServices]
-        .map(({ id, name }) => {
-          const sg = new ec2.SecurityGroup(this, name, {
-            vpc: this.vpc,
-            allowAllOutbound: true,
-          });
-          return [id, sg];
-        })
+      [...sgSpecsDbConnServices, ...sgSpecsOtherServices].map(({ id, name }) => {
+        const sg = new ec2.SecurityGroup(this, name, {
+          vpc: this.vpc,
+          allowAllOutbound: true
+        });
+        return [id, sg];
+      })
     );
 
     const bastionSecurityGroup = new ec2.SecurityGroup(this, 'BastionSecurityGroup', {
       vpc: this.vpc,
-      allowAllOutbound: true,
+      allowAllOutbound: true
     });
 
-    new JumpBastionStack(
-      this,
-      'JumpBastionStack',
-      this.vpc,
-      bastionSecurityGroup,
-    );
+    new JumpBastionStack(this, 'JumpBastionStack', this.vpc, bastionSecurityGroup);
 
     new InfluxDbStack(
       this,

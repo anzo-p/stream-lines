@@ -5,20 +5,24 @@
     "infra": "bin/infra.js"
   },
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc -w",
-    "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "format": "prettier --write .",
+    "lint": "eslint . && echo \"lint OK\"",
+    "lint:fix": "eslint . --fix"
   },
   "devDependencies": {
     "@types/node": "20.11.5",
-    "aws-cdk": "2.122.0",
+    "@typescript-eslint/eslint-plugin": "^8.49.0",
+    "@typescript-eslint/parser": "^8.49.0",
+    "aws-cdk": "^2.122.0",
+    "eslint": "^9.39.2",
+    "prettier": "^3.7.4",
     "ts-node": "^10.9.2",
     "typescript": "~5.3.3"
   },
   "dependencies": {
-    "aws-cdk-lib": "^2.224.0",
-    "constructs": "^10.0.0",
+    "aws-cdk-lib": "^2.232.2",
+    "constructs": "^10.4.4",
     "dotenv": "^16.3.2",
     "source-map-support": "^0.5.21"
   }

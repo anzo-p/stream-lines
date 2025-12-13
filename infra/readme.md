@@ -86,12 +86,12 @@ npm install
 npx cdk bootstrap aws://<account>/<region>
 
 # init provision requires SSM for services in private isolated to initialize
-cdk deploy StreamLines-Infra -c enableBootstrapSsm=true
+npm run cdk deploy StreamLines-Infra -c enableBootstrapSsm=true
 # on success remove SSM by omitting the flag
-cdk deploy StreamLines-Infra
+npm run cdk deploy StreamLines-Infra
 
-cdk deploy StreamLines-Services
-cdk destroy StreamLines-Services
+npm run cdk deploy StreamLines-Services
+npm run cdk destroy StreamLines-Services
 ```
 
 ### 3.2. InfluxDB tokens

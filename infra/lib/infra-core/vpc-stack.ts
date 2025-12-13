@@ -13,15 +13,15 @@ export class VpcStack extends cdk.NestedStack {
       subnetConfiguration: [
         {
           name: 'public',
-          subnetType: ec2.SubnetType.PUBLIC,
+          subnetType: ec2.SubnetType.PUBLIC
         },
         {
           name: 'private',
-          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS
         },
         {
           name: 'isolated',
-          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED
         }
       ],
       natGateways: 0 // only provision upon need in services stack
@@ -29,11 +29,11 @@ export class VpcStack extends cdk.NestedStack {
 
     [
       { id: 'S3Endpoint', service: ec2.GatewayVpcEndpointAwsService.S3 },
-      { id: 'DynamoDbGatewayEndpoint', service: ec2.GatewayVpcEndpointAwsService.DYNAMODB },
+      { id: 'DynamoDbGatewayEndpoint', service: ec2.GatewayVpcEndpointAwsService.DYNAMODB }
     ].forEach(({ id, service }) => {
       this.vpc.addGatewayEndpoint(id, {
         service,
-        subnets: [{ subnetType: ec2.SubnetType.PRIVATE_ISOLATED }],
+        subnets: [{ subnetType: ec2.SubnetType.PRIVATE_ISOLATED }]
       });
     });
   }

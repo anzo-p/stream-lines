@@ -1,12 +1,9 @@
 .DS_Store
+cdk.out
 node_modules
-/build
-/package
-.env
-.env.*
-!.env.example
+.env*
+readme.md
 
-# Ignore files for PNPM, NPM and YARN
-pnpm-lock.yaml
 package-lock.json
+pnpm-lock.yaml
 yarn.lock

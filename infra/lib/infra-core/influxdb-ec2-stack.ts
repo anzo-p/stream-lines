@@ -22,13 +22,10 @@ export class InfluxDbStack extends cdk.NestedStack {
 
     const influxDbPort = Number(process.env.INFLUXDB_SERVER_PORT ?? '8086');
 
-    const securityGroup = new ec2.SecurityGroup(
-      this,
-      'InfluxDbSecurityGroup',
-      {
-        vpc,
-        allowAllOutbound: true,
-      });
+    const securityGroup = new ec2.SecurityGroup(this, 'InfluxDbSecurityGroup', {
+      vpc,
+      allowAllOutbound: true
+    });
 
     securityGroup.addIngressRule(
       bastionSecurityGroup,
@@ -37,25 +34,18 @@ export class InfluxDbStack extends cdk.NestedStack {
     );
 
     connectingServiceSGs.forEach(({ id, sg }) => {
-      securityGroup.connections.allowFrom(
-        sg,
-        ec2.Port.tcp(influxDbPort),
-        `${id}-to-Influx`
-      );
+      securityGroup.connections.allowFrom(sg, ec2.Port.tcp(influxDbPort), `${id}-to-Influx`);
     });
 
     const ssmRole = new iam.Role(this, 'Ec2SsmRole', {
-      assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
+      assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com')
     });
 
-    ['AmazonEC2ContainerRegistryReadOnly', 'AmazonSSMManagedInstanceCore', 'CloudWatchAgentServerPolicy']
-      .forEach(
-        (policyName) => {
-          ssmRole.addManagedPolicy(
-            iam.ManagedPolicy.fromAwsManagedPolicyName(policyName),
-          );
-        }
-      );
+    ['AmazonEC2ContainerRegistryReadOnly', 'AmazonSSMManagedInstanceCore', 'CloudWatchAgentServerPolicy'].forEach(
+      (policyName) => {
+        ssmRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName(policyName));
+      }
+    );
 
     const influxDbInstance = new ec2.Instance(this, 'InfluxDbEc2Instance', {
       vpc,
@@ -63,22 +53,22 @@ export class InfluxDbStack extends cdk.NestedStack {
       availabilityZone: 'eu-north-1a', // same as EBS volume
       instanceType: new ec2.InstanceType('t4g.medium'),
       machineImage: ec2.MachineImage.latestAmazonLinux2023({
-        cpuType: ec2.AmazonLinuxCpuType.ARM_64,
+        cpuType: ec2.AmazonLinuxCpuType.ARM_64
       }),
       securityGroup,
-      role: ssmRole,
+      role: ssmRole
     });
 
     new logs.LogGroup(this, 'InfluxEc2LogGroup', {
       logGroupName: '/ec2/influxdb',
       retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY
     });
 
     new ec2.CfnVolumeAttachment(this, 'InfluxDataAttachment', {
       instanceId: influxDbInstance.instanceId,
       volumeId: `${process.env.INFLUXDB_FILE_SYSTEM_ID}`,
-      device: '/dev/xvdf',
+      device: '/dev/xvdf'
     });
 
     const namespace = ecsCluster.defaultCloudMapNamespace;
@@ -90,13 +80,13 @@ export class InfluxDbStack extends cdk.NestedStack {
       name: 'influxdb',
       namespace,
       dnsRecordType: cloudmap.DnsRecordType.A,
-      dnsTtl: cdk.Duration.seconds(30),
+      dnsTtl: cdk.Duration.seconds(30)
     });
 
     new cloudmap.IpInstance(this, 'InfluxDbInstance', {
       service: influxDiscoveryService,
       ipv4: influxDbInstance.instancePrivateIp,
-      port: influxDbPort,
+      port: influxDbPort
     });
 
     // only SSM has internet acess, via Vpc Endpoint
@@ -105,8 +95,8 @@ export class InfluxDbStack extends cdk.NestedStack {
       targets: [
         {
           key: 'InstanceIds',
-          values: [influxDbInstance.instanceId],
-        },
+          values: [influxDbInstance.instanceId]
+        }
       ],
       parameters: {
         commands: [
@@ -117,10 +107,10 @@ export class InfluxDbStack extends cdk.NestedStack {
             'sudo systemctl start docker',
             'sudo usermod -aG docker ec2-user',
             'sudo systemctl enable amazon-ssm-agent',
-            'sudo systemctl start amazon-ssm-agent',
-          ].join(' && '),
-        ],
-      },
+            'sudo systemctl start amazon-ssm-agent'
+          ].join(' && ')
+        ]
+      }
     });
 
     influxDbInstance.addUserData(
@@ -154,7 +144,7 @@ export class InfluxDbStack extends cdk.NestedStack {
       'mkdir -p "$MOUNT_POINT"',
       'mount "$DEVICE" "$MOUNT_POINT"',
       'UUID=$(blkid -s UUID -o value "$DEVICE")',
-      'grep -q "$MOUNT_POINT" /etc/fstab || echo "UUID=${UUID} ${MOUNT_POINT} xfs defaults,nofail 0 2" >> /etc/fstab',
+      'grep -q "$MOUNT_POINT" /etc/fstab || echo "UUID=${UUID} ${MOUNT_POINT} xfs defaults,nofail 0 2" >> /etc/fstab'
     );
 
     influxDbInstance.addUserData(

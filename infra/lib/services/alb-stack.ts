@@ -11,12 +11,7 @@ export class AlbStack extends cdk.NestedStack {
   readonly dashboardAlbListener: elbv2.ApplicationListener;
   readonly influxDbAlbListener: elbv2.ApplicationListener;
 
-  constructor(
-    scope: Construct,
-    id: string,
-    vpc: ec2.Vpc,
-    props?: cdk.NestedStackProps
-  ) {
+  constructor(scope: Construct, id: string, vpc: ec2.Vpc, props?: cdk.NestedStackProps) {
     super(scope, id, props);
 
     const zone = route53.HostedZone.fromLookup(this, 'HostedZone', {
@@ -36,17 +31,13 @@ export class AlbStack extends cdk.NestedStack {
     new route53.ARecord(this, 'BackendAlbAliasRecord', {
       zone,
       recordName: `${process.env.BACKEND_SUBDOMAIN}`,
-      target: route53.RecordTarget.fromAlias(
-        new targets.LoadBalancerTarget(backendAlb)
-      )
+      target: route53.RecordTarget.fromAlias(new targets.LoadBalancerTarget(backendAlb))
     });
 
     new route53.ARecord(this, 'DashboardAlbAliasRecord', {
       zone,
       recordName: `${process.env.DASHBOARD_SUBDOMAIN}`,
-      target: route53.RecordTarget.fromAlias(
-        new targets.LoadBalancerTarget(dashboardAlb)
-      )
+      target: route53.RecordTarget.fromAlias(new targets.LoadBalancerTarget(dashboardAlb))
     });
 
     const backendAlbCertificate = acm.Certificate.fromCertificateArn(
@@ -71,8 +62,7 @@ export class AlbStack extends cdk.NestedStack {
       port: 443,
       protocol: elbv2.ApplicationProtocol.HTTPS,
       certificates: [webappAlbCertificate]
-    }
-    );
+    });
 
     dashboardAlb.addListener('DashboardAlbListenerRedirectToHttps', {
       port: 80,

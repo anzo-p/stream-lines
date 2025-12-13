@@ -13,15 +13,9 @@ export class KinesisStreamsStack extends cdk.NestedStack {
 
   makeWriteAccessPolicy(streamName: string): iam.PolicyStatement {
     return new iam.PolicyStatement({
-      actions: [
-        'kinesis:PutRecord',
-        'kinesis:PutRecords',
-        'kinesis:DescribeStream'
-      ],
+      actions: ['kinesis:PutRecord', 'kinesis:PutRecords', 'kinesis:DescribeStream'],
       effect: iam.Effect.ALLOW,
-      resources: [
-        `arn:aws:kinesis:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:stream/${streamName}`
-      ]
+      resources: [`arn:aws:kinesis:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:stream/${streamName}`]
     });
   }
 
@@ -36,9 +30,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
         'kinesis:SubscribeToShard'
       ],
       effect: iam.Effect.ALLOW,
-      resources: [
-        `arn:aws:kinesis:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:stream/${streamName}`
-      ]
+      resources: [`arn:aws:kinesis:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:stream/${streamName}`]
     });
   }
 
@@ -55,7 +47,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
       streamName: 'stream-lines-market-data-upstream',
       shardCount: 1,
       retentionPeriod: cdk.Duration.hours(24),
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      removalPolicy: cdk.RemovalPolicy.DESTROY
     });
 
     /*
@@ -149,14 +141,8 @@ export class KinesisStreamsStack extends cdk.NestedStack {
     );
       */
 
-    this.writeUpstreamPerms = this.makeWriteAccessPolicy(
-      'stream-lines-market-data-upstream'
-    );
-    this.readUpstreamPerms = this.makeReadAccessPolicy(
-      'stream-lines-market-data-upstream'
-    );
-    this.writeDownstreamPerms = this.makeWriteAccessPolicy(
-      'stream-lines-results-downstream'
-    );
+    this.writeUpstreamPerms = this.makeWriteAccessPolicy('stream-lines-market-data-upstream');
+    this.readUpstreamPerms = this.makeReadAccessPolicy('stream-lines-market-data-upstream');
+    this.writeDownstreamPerms = this.makeWriteAccessPolicy('stream-lines-results-downstream');
   }
 }

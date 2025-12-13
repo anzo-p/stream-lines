@@ -13,7 +13,7 @@ export class FrontendStack extends cdk.NestedStack {
 
     const domainName = `${process.env.WEBAPP_ADDRESS}`;
     const zone = route53.HostedZone.fromLookup(this, 'HostedZone', {
-      domainName: `${process.env.WEBAPP_DOMAIN}`,
+      domainName: `${process.env.WEBAPP_DOMAIN}`
     });
 
     const certificate = acm.Certificate.fromCertificateArn(
@@ -22,28 +22,22 @@ export class FrontendStack extends cdk.NestedStack {
       `arn:aws:acm:us-east-1:${process.env.AWS_ACCOUNT_ID}:certificate/${process.env.ACM_CLOUDFRONT_CERT}`
     );
 
-    const bucket = s3.Bucket.fromBucketName(
-      this,
-      'FrontendBucket',
-      `${process.env.S3_WEBAPP_BUCKET}`,
-    );
+    const bucket = s3.Bucket.fromBucketName(this, 'FrontendBucket', `${process.env.S3_WEBAPP_BUCKET}`);
 
     const distribution = new cloudfront.Distribution(this, 'FrontendDist', {
       defaultBehavior: {
         origin: new origins.S3Origin(bucket),
-        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS
       },
       defaultRootObject: 'index.html',
       domainNames: [domainName],
-      certificate,
+      certificate
     });
 
     new route53.ARecord(this, 'FrontendAlias', {
       zone,
       recordName: domainName,
-      target: route53.RecordTarget.fromAlias(
-        new targets.CloudFrontTarget(distribution)
-      ),
+      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution))
     });
 
     new cdk.CfnOutput(this, 'BucketName', { value: bucket.bucketName });

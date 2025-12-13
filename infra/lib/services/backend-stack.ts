@@ -20,30 +20,22 @@ export class BackendStack extends cdk.NestedStack {
   ) {
     super(scope, id, props);
 
-    const taskDefinition = new ecs.FargateTaskDefinition(
-      this,
-      'BackendTaskDefinition',
-      {
-        family: 'BackendTaskDefinition',
-        executionRole,
-        runtimePlatform: {
-          operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
-          cpuArchitecture: ecs.CpuArchitecture.X86_64
-        },
-        memoryLimitMiB: 512,
-        cpu: 256
-      }
-    );
+    const taskDefinition = new ecs.FargateTaskDefinition(this, 'BackendTaskDefinition', {
+      family: 'BackendTaskDefinition',
+      executionRole,
+      runtimePlatform: {
+        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+        cpuArchitecture: ecs.CpuArchitecture.X86_64
+      },
+      memoryLimitMiB: 512,
+      cpu: 256
+    });
 
-    const ecrRepository = ecr.Repository.fromRepositoryName(
-      this,
-      'EcrRepository',
-      'stream-lines-backend'
-    );
+    const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-backend');
 
     const logGroup = new logs.LogGroup(this, 'BackendLogGroup', {
       retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY
     });
 
     const logging = ecs.LogDrivers.awsLogs({
@@ -55,9 +47,7 @@ export class BackendStack extends cdk.NestedStack {
 
     taskDefinition.addContainer('BackendContainer', {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      portMappings: [
-        { protocol: ecs.Protocol.TCP, containerPort: parseInt(containerPort) }
-      ],
+      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: parseInt(containerPort) }],
       memoryLimitMiB: 512,
       cpu: 256,
       environment: {
