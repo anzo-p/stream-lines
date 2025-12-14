@@ -47,7 +47,9 @@ class ResultSink[T](val influxDetails: InfluxDetails, val serializer: DataSerial
 
         case _ =>
           logger.warn(
-            s"Unexpected response from influx - code: ${response.getStatusLine.getStatusCode}, message: ${response.getStatusLine.getReasonPhrase}")
+            s"Unexpected response from influx - code: ${response.getStatusLine.getStatusCode}," +
+              s"message: ${response.getStatusLine.getReasonPhrase}"
+          )
       }
     }.recover {
       case e: Exception => {

@@ -1,6 +1,6 @@
 package net.anzop.processors
 
-import net.anzop.results.WindowedQuotationVolumes
+import net.anzop.results.WindowedQuotes
 import net.anzop.types.{Money, StockQuotation, StockTradeUnit}
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
@@ -32,15 +32,15 @@ class QuotationWindowSpec extends AnyFlatSpec with Matchers with BeforeAndAfterA
   "QuotationWindow" should "calculate stock quotation window" in {
     val stockQuotation1 = StockQuotation(
       symbol = "AAPL",
-      bid = StockTradeUnit(
-        exchange = "X",
-        price    = Money(90.0, "USD"),
-        lotSize  = 10L
-      ),
       ask = StockTradeUnit(
         exchange = "X",
         price    = Money(100.0, "USD"),
         lotSize  = 15L
+      ),
+      bid = StockTradeUnit(
+        exchange = "X",
+        price    = Money(90.0, "USD"),
+        lotSize  = 10L
       ),
       marketTimestamp = earlier,
       ingestTimestamp = earlier,
@@ -50,15 +50,15 @@ class QuotationWindowSpec extends AnyFlatSpec with Matchers with BeforeAndAfterA
 
     val stockQuotation2 = StockQuotation(
       symbol = "AAPL",
-      bid = StockTradeUnit(
-        exchange = "X",
-        price    = Money(95.0, "USD"),
-        lotSize  = 10L
-      ),
       ask = StockTradeUnit(
         exchange = "X",
         price    = Money(99.0, "USD"),
         lotSize  = 15L
+      ),
+      bid = StockTradeUnit(
+        exchange = "X",
+        price    = Money(95.0, "USD"),
+        lotSize  = 10L
       ),
       marketTimestamp = later,
       ingestTimestamp = later,
@@ -67,20 +67,27 @@ class QuotationWindowSpec extends AnyFlatSpec with Matchers with BeforeAndAfterA
     )
 
     val window    = new TimeWindow(0, 1000)
-    val collector = new ListCollector[WindowedQuotationVolumes]
+    val collector = new ListCollector[WindowedQuotes]
 
     stockQuotationWindow.apply("AAPL", window, List(stockQuotation1, stockQuotation2), collector)
 
-    val result: List[WindowedQuotationVolumes] = collector.getResults
+    val result: List[WindowedQuotes] = collector.getResults
 
     result.size should be(1)
     result.head.symbol should be("AAPL")
-    result.head.sumBidVolume should be(1850.0)
-    result.head.sumAskVolume should be(2985.0)
-    result.head.recordCount should be(2)
-    result.head.averageBidPrice should be(92.5)
-    result.head.averageAskPrice should be(99.5)
-    result.head.bidPriceAtWindowEnd should be(95.0)
+    result.head.askPriceAtWindowStart should be(100.0)
+    result.head.bidPriceAtWindowStart should be(90.0)
+    result.head.minAskPrice should be(99.0)
+    result.head.maxAskPrice should be(100.0)
+    result.head.minBidPrice should be(90.0)
+    result.head.maxBidPrice should be(95.0)
     result.head.askPriceAtWindowEnd should be(99.0)
+    result.head.bidPriceAtWindowEnd should be(95.0)
+    result.head.sumAskQuantity should be(30.0)
+    result.head.sumBidQuantity should be(20.0)
+    result.head.sumAskNotional should be(2985.0)
+    result.head.sumBidNotional should be(1850.0)
+    result.head.volumeWeightedAgAskPrice should be(99.5)
+    result.head.volumeWeightedAvgBidPrice should be(92.5)
   }
 }

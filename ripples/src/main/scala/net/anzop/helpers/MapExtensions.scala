@@ -1,6 +1,6 @@
 package net.anzop.helpers
 
-object Extensions {
+object MapExtensions {
   implicit class EnvOps(env: Map[String, String]) {
 
     def getOrThrow(key: String, errMsg: String): String = {

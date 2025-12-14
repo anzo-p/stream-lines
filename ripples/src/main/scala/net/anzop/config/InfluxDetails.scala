@@ -1,6 +1,6 @@
 package net.anzop.config
 
-import net.anzop.helpers.Extensions.EnvOps
+import net.anzop.helpers.MapExtensions.EnvOps
 
 import java.net.URL
 

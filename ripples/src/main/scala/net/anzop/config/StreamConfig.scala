@@ -1,6 +1,6 @@
 package net.anzop.config
 
-import net.anzop.helpers.Extensions.EnvOps
+import net.anzop.helpers.MapExtensions.EnvOps
 import net.anzop.types.{MarketDataDeserializer, MarketDataMessage}
 import org.apache.flink.configuration._
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment

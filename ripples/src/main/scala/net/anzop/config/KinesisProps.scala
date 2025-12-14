@@ -1,6 +1,6 @@
 package net.anzop.config
 
-import net.anzop.helpers.Extensions.EnvOps
+import net.anzop.helpers.MapExtensions.EnvOps
 import org.apache.flink.kinesis.shaded.org.apache.flink.connector.aws.config.AWSConfigConstants
 
 import java.util.Properties

@@ -1,6 +1,6 @@
 package net.anzop.helpers
 
-import Extensions.EnvOps
+import MapExtensions.EnvOps
 import net.anzop.types.{MarketDataContent, MarketDataMessage}
 import org.apache.flink.api.common.eventtime.{SerializableTimestampAssigner, WatermarkStrategy}
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -48,7 +48,7 @@ object StreamHelpers {
     val clazz = implicitly[ClassTag[T]].runtimeClass
     stream
       .filter(_.messageType.getClass.isAssignableFrom(clazz))
-      .map(_.messageType.asInstanceOf[T])(implicitly[TypeInformation[T]])
+      .map[MarketDataMessage]((a: MarketDataMessage) => a.messageType.asInstanceOf[T])(implicitly[TypeInformation[T]])
   }
 
   def watermarkForBound[T <: MarketDataContent](stream: DataStream[T], dueTime: Duration, idlePatience: Duration): DataStream[T] =

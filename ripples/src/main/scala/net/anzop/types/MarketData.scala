@@ -14,7 +14,7 @@ final case class Money(amount: BigDecimal, currency: String)
 
 trait TradeUnit {
   val price: Money
-  val lotSize: Double
+  val lotSize: Double // crypto trades in fractions
 }
 
 final case class CryptoTradeUnit(price: Money, lotSize: Double) extends TradeUnit

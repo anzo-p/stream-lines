@@ -2,16 +2,24 @@ package net.anzop.processors
 
 import com.fasterxml.jackson.annotation.JsonValue
 
-sealed trait WindowedVolumesMeasurement {
+sealed trait WindowedMeasurement {
 
   @JsonValue
   def value: String
 }
 
-case object WindowedStockQuotationVolumesMeasurement extends WindowedVolumesMeasurement {
+case object WindowedStockQuotesMeasurement extends WindowedMeasurement {
   override val value = "stock-quotation-aggregates-sliding-window"
 }
 
-case object WindowedCryptoQuotationVolumesMeasurement extends WindowedVolumesMeasurement {
+case object WindowedStockTradesMeasurement extends WindowedMeasurement {
+  override val value = "stock-trade-aggregates-sliding-window"
+}
+
+case object WindowedCryptoQuotesMeasurement extends WindowedMeasurement {
   override val value = "crypto-quotation-aggregates-sliding-window"
+}
+
+case object WindowedCryptoTradesMeasurement extends WindowedMeasurement {
+  override val value = "crypto-trade-aggregates-sliding-window"
 }

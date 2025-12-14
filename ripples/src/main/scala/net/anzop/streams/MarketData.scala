@@ -3,11 +3,11 @@ package net.anzop.streams
 import net.anzop.Ripples.logger
 import net.anzop.config.{InfluxDetails, StreamConfig, WindowConfig}
 import net.anzop.helpers.StreamHelpers
-import net.anzop.processors.QuotationWindow
-import net.anzop.results.WindowedQuotationVolumes
+import net.anzop.processors.{QuotationWindow, TradeWindow}
+import net.anzop.results.{WindowedQuotes, WindowedTrades}
 import net.anzop.sinks.ResultSink
-import net.anzop.types.{CryptoQuotation, MarketDataMessage, StockQuotation}
-import org.apache.flink.streaming.api.scala.{DataStream, _}
+import net.anzop.types.{CryptoQuotation, CryptoTrade, MarketDataMessage, StockQuotation, StockTrade}
+import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows
 import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer
 
@@ -30,49 +30,74 @@ object MarketData {
     val marketDataStream: DataStream[MarketDataMessage] =
       env.addSource(kinesisConsumer)
 
-    val stockQuotationStream: DataStream[StockQuotation]   = StreamHelpers.filterType[StockQuotation](marketDataStream)
-    val cryptoQuotationStream: DataStream[CryptoQuotation] = StreamHelpers.filterType[CryptoQuotation](marketDataStream)
+    val stockQuotesStream: DataStream[StockQuotation]   = StreamHelpers.filterType[StockQuotation](marketDataStream)
+    val cryptoQuotesStream: DataStream[CryptoQuotation] = StreamHelpers.filterType[CryptoQuotation](marketDataStream)
+    val stockTradesStream: DataStream[StockTrade]       = StreamHelpers.filterType[StockTrade](marketDataStream)
+    val cryptoTradesStream: DataStream[CryptoTrade]     = StreamHelpers.filterType[CryptoTrade](marketDataStream)
 
-    val watermarkedStockQuotationStream: DataStream[StockQuotation] = StreamHelpers.watermarkForBound(
-      stockQuotationStream,
+    val watermarkedStockQuotesStream: DataStream[StockQuotation] = StreamHelpers.watermarkForBound(
+      stockQuotesStream,
       dueTime      = windowConfig.watermark.dueTime,
       idlePatience = windowConfig.watermark.idlePatience
     )
-
-    val watermarkedCryptoQuotationStream: DataStream[CryptoQuotation] = StreamHelpers.watermarkForBound(
-      cryptoQuotationStream,
+    val watermarkedCryptoQuotesStream: DataStream[CryptoQuotation] = StreamHelpers.watermarkForBound(
+      cryptoQuotesStream,
       dueTime      = windowConfig.watermark.dueTime,
       idlePatience = windowConfig.watermark.idlePatience
     )
-
+    val watermarkedStockTradesStream: DataStream[StockTrade] = StreamHelpers.watermarkForBound(
+      stockTradesStream,
+      dueTime      = windowConfig.watermark.dueTime,
+      idlePatience = windowConfig.watermark.idlePatience
+    )
+    val watermarkedCryptoTradesStream: DataStream[CryptoTrade] = StreamHelpers.watermarkForBound(
+      cryptoTradesStream,
+      dueTime      = windowConfig.watermark.dueTime,
+      idlePatience = windowConfig.watermark.idlePatience
+    )
     logger.info("Flink stream watermarking applied")
 
-    val windowedStockQuotationVolumes: DataStream[WindowedQuotationVolumes] = watermarkedStockQuotationStream
+    val windowedStockQuotes: DataStream[WindowedQuotes] = watermarkedStockQuotesStream
       .keyBy[String]((x: StockQuotation) => x.symbol)
       .window(SlidingEventTimeWindows.of(windowConfig.windowPeriodLength, windowConfig.windowInterval))
       .apply(QuotationWindow.forStockQuotation())
 
-    val windowedCryptoQuotationVolumes: DataStream[WindowedQuotationVolumes] = watermarkedCryptoQuotationStream
+    val windowedCryptoQuotes: DataStream[WindowedQuotes] = watermarkedCryptoQuotesStream
       .keyBy[String]((x: CryptoQuotation) => x.symbol)
       .window(SlidingEventTimeWindows.of(windowConfig.windowPeriodLength, windowConfig.windowInterval))
       .apply(QuotationWindow.forCryptoQuotation())
 
+    val windowedStockTrades: DataStream[WindowedTrades] = watermarkedStockTradesStream
+      .keyBy[String]((x: StockTrade) => x.symbol)
+      .window(SlidingEventTimeWindows.of(windowConfig.windowPeriodLength, windowConfig.windowInterval))
+      .apply(TradeWindow.forStockTrade())
+
+    val windowedCryptoTrades: DataStream[WindowedTrades] = watermarkedCryptoTradesStream
+      .keyBy[String]((x: CryptoTrade) => x.symbol)
+      .window(SlidingEventTimeWindows.of(windowConfig.windowPeriodLength, windowConfig.windowInterval))
+      .apply(TradeWindow.forCryptoTrade())
     logger.info("Flink stream windowing applied")
 
-    val influxDBSerializer = new WindowedQuotationVolumes.InfluxDBSerializer()
-    windowedStockQuotationVolumes.addSink(new ResultSink(influxDetails, influxDBSerializer))
-    windowedCryptoQuotationVolumes.addSink(new ResultSink(influxDetails, influxDBSerializer))
+    val windowedQuotesInfluxSink = new ResultSink(influxDetails, new WindowedQuotes.InfluxDBSerializer())
+    windowedStockQuotes.addSink(windowedQuotesInfluxSink)
+    windowedCryptoQuotes.addSink(windowedQuotesInfluxSink)
+
+    val windowedTradesInfluxSink = new ResultSink(influxDetails, new WindowedTrades.InfluxDBSerializer())
+    windowedStockTrades.addSink(windowedTradesInfluxSink)
+    windowedCryptoTrades.addSink(windowedTradesInfluxSink)
     logger.info("Flink stream results InfluxDB sink created")
 
     /*
     val kinesisSink: KinesisStreamsSink[WindowedQuotationVolumes] = KinesisSink.make(kinesisProps)
     logger.info("Flink stream results Kinesis sink created")
 
-    windowedStockQuotationVolumes.addSink(loggingKinesisSink[WindowedQuotationVolumes])
-    windowedCryptoQuotationVolumes.addSink(loggingKinesisSink[WindowedQuotationVolumes])
+    windowedStockQuotes.addSink(loggingKinesisSink[WindowedQuotationVolumes])
+    windowedCryptoQuotes.addSink(loggingKinesisSink[WindowedQuotationVolumes])
 
-    windowedStockQuotationVolumes.sinkTo(kinesisSink)
-    windowedCryptoQuotationVolumes.sinkTo(kinesisSink)
+    windowedStockQuotes.sinkTo(kinesisSink)
+    windowedCryptoQuotes.sinkTo(kinesisSink)
+    windowedStockTrades.sinkTo(kinesisSink)
+    windowedCryptoTrades.sinkTo(kinesisSink)
     logger.info("Flink stream results sinks connected")
      */
 
