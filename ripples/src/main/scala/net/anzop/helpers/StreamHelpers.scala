@@ -48,7 +48,7 @@ object StreamHelpers {
     val clazz = implicitly[ClassTag[T]].runtimeClass
     stream
       .filter(_.messageType.getClass.isAssignableFrom(clazz))
-      .map[MarketDataMessage]((a: MarketDataMessage) => a.messageType.asInstanceOf[T])(implicitly[TypeInformation[T]])
+      .map(_.messageType.asInstanceOf[T])(implicitly[TypeInformation[T]])
   }
 
   def watermarkForBound[T <: MarketDataContent](stream: DataStream[T], dueTime: Duration, idlePatience: Duration): DataStream[T] =
