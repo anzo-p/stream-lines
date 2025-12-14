@@ -30,7 +30,6 @@ export class IngestStack extends cdk.NestedStack {
 
     [
       { id: 'AlpacaSecret', name: 'prod/alpaca/api' },
-      { id: 'DatajockeySecret', name: 'prod/datajockey/api' },
       { id: 'GatherSharedSecret', name: 'prod/internal/shared-secret' }
     ].forEach(({ id, name }) => {
       const secret = secretsmanager.Secret.fromSecretNameV2(this, 'Ingest' + id, name);

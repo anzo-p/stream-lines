@@ -9,7 +9,7 @@ export class VpcStack extends cdk.NestedStack {
     super(scope, id, props);
 
     this.vpc = new ec2.Vpc(this, 'StreamLinesVpc', {
-      availabilityZones: ['eu-north-1a'], // ['eu-north-1a', 'eu-north-1b']
+      availabilityZones: ['eu-north-1a'],
       subnetConfiguration: [
         {
           name: 'public',

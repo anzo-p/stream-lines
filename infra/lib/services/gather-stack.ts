@@ -89,6 +89,7 @@ export class GatherStack extends cdk.NestedStack {
       },
       logging
     });
+
     new ecs.FargateService(this, 'GatherEcsService', {
       cluster: ecsCluster,
       taskDefinition,

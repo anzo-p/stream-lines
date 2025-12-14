@@ -40,7 +40,6 @@ export class InterfaceEndpointsStack extends cdk.NestedStack {
     ];
 
     [
-      // Toggle on when deplopying and off after successful deployment
       ...ec2EcrEndpints,
       ...ssmEnpoints,
       { id: 'CloudWatchLogsEndpoint', service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS },
