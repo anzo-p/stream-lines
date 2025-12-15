@@ -48,13 +48,13 @@ object WindowedQuotes {
            |window_start_time=${dateTimeToLong(data.windowStartTime)}i,
            |window_end_time=${timestamp}i,
            |record_count=${data.recordCount}i,
-           |ask_price_at_window_start=${setScale(data.askPriceAtWindowStart)}
+           |ask_price_at_window_start=${setScale(data.askPriceAtWindowStart)},
            |bid_price_at_window_start=${setScale(data.bidPriceAtWindowStart)},
            |min_ask_price=${setScale(data.minAskPrice)},
            |min_bid_price=${setScale(data.minBidPrice)},
            |max_ask_price=${setScale(data.maxAskPrice)},
            |max_bid_price=${setScale(data.maxBidPrice)},
-           |ask_price_at_window_end=${setScale(data.askPriceAtWindowEnd)}
+           |ask_price_at_window_end=${setScale(data.askPriceAtWindowEnd)},
            |bid_price_at_window_end=${setScale(data.bidPriceAtWindowEnd)},
            |sum_ask_quantity=${setScale(data.sumAskQuantity)},
            |sum_bid_quantity=${setScale(data.sumBidQuantity)},

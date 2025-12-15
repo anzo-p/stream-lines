@@ -43,7 +43,7 @@ object WindowedTrades {
            |price_at_window_start=${setScale(data.priceAtWindowStart)},
            |min_price=${setScale(data.minPrice)},
            |max_price=${setScale(data.maxPrice)},
-           |price_at_window_end=${setScale(data.priceAtWindowEnd)}
+           |price_at_window_end=${setScale(data.priceAtWindowEnd)},
            |sum_quantity=${setScale(data.sumQuantity)},
            |sum_notional=${setScale(data.sumNotional)},
            |volume_weighted_avg_price=${setScale(data.volumeWeightedAvgPrice)}
