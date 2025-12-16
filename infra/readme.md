@@ -75,26 +75,33 @@ make
 
 ## 3. Deplopy the app
 
-Before hitting cdk dploy make sure to read section 2.2 below about InfluxDB tokens.
-
 ### 3.1. CDK deploy commands
 
+1. Bootsrap once
 ```
-# once
 npm install -g aws-cdk
 npm install
 npx cdk bootstrap aws://<account>/<region>
+```
 
-# init provision requires SSM for services in private isolated to initialize
+2. Initial provisioning of infra and basics requires SSM for things in private isolated to initialize
+```
 npm run cdk deploy StreamLines-Infra -c enableBootstrapSsm=true
-# on success remove SSM by omitting the flag
+# on successful deploy remove SSM by calling redeploy without that flag
 npm run cdk deploy StreamLines-Infra
+```
 
+3. Provisioning of services
+```
+# automatic teardown outside NySe regular hours 9:30 - 16:00
 npm run cdk deploy StreamLines-Services
+
+# interim deployment
+npm run cdk deploy StreamLines-Services -c AutoTeardown=false
 npm run cdk destroy StreamLines-Services
 ```
 
-### 3.2. InfluxDB tokens
+### 3.3. InfluxDB tokens
 
 Varioius services will need access to read and/or write to influx. This requires read and write tokens which are nonexistent when system is provisioned for the first time (ie. form a clean EBS).
 
@@ -135,7 +142,7 @@ influx auth create \
 
 6. **Or if you have the bastion running**, just port-forward the influx port via `ssh` and navigate to `http://localhost:8086´. Then login with the credentials given as envs at influx stack and manage the buckets and tokens in the provided _Influx Data Explorer_ UI.
 
-#### 3.2.1. Troubleshooting InfluxDB host service
+#### 3.3.1. Troubleshooting InfluxDB host service
 
 Use SSM or SSH to connect into the EC2 instance hosting InfluxDB.
 
@@ -148,7 +155,7 @@ sudo tail -n 300 /var/log/amazon/ssm/amazon-ssm-agent.log
 sudo tail -n 300 /var/log/cloud-init-output.log
 ```
 
-### 3.3. CloudFront stack
+### 3.4. CloudFront stack
 
 The stack to inlude a Cloudfront is an experimental layer to this system which requires to deploy `Dashboard` (or at least the Client side of it) statically out of an S3 bucket. This is not currently activated but the required stack goes along in the monorepo for further experiments. Importantly CloudFront requires its ACM Certificate to be issued against `us-east-1` region.
 

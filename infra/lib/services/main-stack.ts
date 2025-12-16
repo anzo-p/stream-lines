@@ -3,6 +3,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import { Construct } from 'constructs';
 // import { AlbStack } from './alb-stack';
+import { AutoTeardownStack } from './auto-teardown';
 // import { BackendStack } from './backend-stack';
 // import { DashboardStack } from './dashboard-stack';
 import { EcsTaskExecutionRole } from './ecs-task-exec-role';
@@ -102,5 +103,10 @@ export class ServicesStack extends cdk.Stack {
     dashboardStack.addDependency(wsApigatewayStack);
     dashboardStack.addDependency(backendStack);
     */
+
+    new AutoTeardownStack(this, 'Teardown', {
+      targetStackName: cdk.Stack.of(this).stackName,
+      targetStackArn: cdk.Stack.of(this).stackId
+    });
   }
 }
