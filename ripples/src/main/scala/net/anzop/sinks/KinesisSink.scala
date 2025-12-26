@@ -1,7 +1,6 @@
 package net.anzop.sinks
 
-import net.anzop.results.WindowedQuotes
-import net.anzop.results.WindowedQuotes.JsonSerializerSchema
+import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.connector.kinesis.sink.{KinesisStreamsSink, PartitionKeyGenerator}
 import org.apache.flink.streaming.api.functions.sink.SinkFunction
 import org.slf4j.{Logger, LoggerFactory}
@@ -15,13 +14,13 @@ class SerializablePartitionKeyGenerator[T <: Serializable] extends PartitionKeyG
 object KinesisSink {
   val logger: Logger = LoggerFactory.getLogger(getClass)
 
-  def make[T <: Serializable](producerConfig: Properties): KinesisStreamsSink[WindowedQuotes] =
+  def make[T <: Serializable](producerConfig: Properties)(implicit serializationSchema: SerializationSchema[T]): KinesisStreamsSink[T] =
     KinesisStreamsSink
-      .builder[WindowedQuotes]()
+      .builder[T]()
       .setKinesisClientProperties(producerConfig)
       .setStreamName(producerConfig.getProperty("streamName"))
-      .setSerializationSchema(new JsonSerializerSchema())
-      .setPartitionKeyGenerator(new SerializablePartitionKeyGenerator[WindowedQuotes]())
+      .setSerializationSchema(serializationSchema)
+      .setPartitionKeyGenerator(new SerializablePartitionKeyGenerator[T]())
       .setFailOnError(true)
       .build()
 

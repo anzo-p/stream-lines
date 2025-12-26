@@ -2,7 +2,7 @@ package net.anzop.processors
 
 import net.anzop.Ripples.logger
 import net.anzop.results.WindowedTrades
-import net.anzop.types.{CryptoTrade, StockTrade, Trade}
+import net.anzop.types.Trade
 import org.apache.flink.streaming.api.scala.function.WindowFunction
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
@@ -10,12 +10,12 @@ import org.apache.flink.util.Collector
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
-class TradeWindow[T <: Trade] private (measurementType: WindowedMeasurement) extends WindowFunction[T, WindowedTrades, String, TimeWindow] {
+class TradeWindowProcessor[IN <: Trade] extends WindowFunction[IN, WindowedTrades, String, TimeWindow] {
 
   override def apply(
       key: String,
       window: TimeWindow,
-      input: Iterable[T],
+      input: Iterable[IN],
       out: Collector[WindowedTrades]
     ): Unit = {
     if (input.isEmpty) {
@@ -36,11 +36,10 @@ class TradeWindow[T <: Trade] private (measurementType: WindowedMeasurement) ext
 
     out.collect(
       WindowedTrades(
-        measureId = UUID.randomUUID(),
-        measurementType,
-        symbol                 = key,
+        measureId              = UUID.randomUUID(),
+        ticker                 = key,
         windowStartTime        = OffsetDateTime.ofInstant(Instant.ofEpochMilli(window.getStart), ZoneOffset.UTC),
-        windowEndTime          = OffsetDateTime.ofInstant(Instant.ofEpochMilli(window.getEnd), ZoneOffset.UTC),
+        timestamp              = OffsetDateTime.ofInstant(Instant.ofEpochMilli(window.getEnd), ZoneOffset.UTC),
         recordCount            = count,
         priceAtWindowStart     = priceAtWindowStart,
         minPrice               = minPrice,
@@ -53,13 +52,4 @@ class TradeWindow[T <: Trade] private (measurementType: WindowedMeasurement) ext
       )
     )
   }
-}
-
-object TradeWindow {
-
-  def forStockTrade(): TradeWindow[StockTrade] =
-    new TradeWindow[StockTrade](WindowedStockTradesMeasurement)
-
-  def forCryptoTrade(): TradeWindow[CryptoTrade] =
-    new TradeWindow[CryptoTrade](WindowedCryptoTradesMeasurement)
 }

@@ -3,12 +3,13 @@ package net.anzop.streams
 import net.anzop.Ripples.logger
 import net.anzop.config.{InfluxDetails, StreamConfig, WindowConfig}
 import net.anzop.helpers.StreamHelpers
-import net.anzop.processors.{QuotationWindow, TradeWindow}
-import net.anzop.results.{WindowedQuotes, WindowedTrades}
+import net.anzop.processors.{QuotationDeltaProcessor, QuotationWindowProcessor, TradeDeltaProcessor, TradeWindowProcessor}
+import net.anzop.results.WindowedTrades._
+import net.anzop.results.{QuotationDeltas, TradeDeltas, WindowedQuotes, WindowedTrades}
 import net.anzop.sinks.ResultSink
-import net.anzop.types.{CryptoQuotation, CryptoTrade, MarketDataMessage, StockQuotation, StockTrade}
+import net.anzop.types._
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows
 import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer
 
 import java.util.Properties
@@ -59,46 +60,53 @@ object MarketData {
 
     val windowedStockQuotes: DataStream[WindowedQuotes] = watermarkedStockQuotesStream
       .keyBy[String]((x: StockQuotation) => x.symbol)
-      .window(SlidingEventTimeWindows.of(windowConfig.windowPeriodLength, windowConfig.windowInterval))
-      .apply(QuotationWindow.forStockQuotation())
+      .window(TumblingEventTimeWindows.of(windowConfig.windowPeriodLength))
+      .apply(new QuotationWindowProcessor[StockQuotation])
 
     val windowedCryptoQuotes: DataStream[WindowedQuotes] = watermarkedCryptoQuotesStream
       .keyBy[String]((x: CryptoQuotation) => x.symbol)
-      .window(SlidingEventTimeWindows.of(windowConfig.windowPeriodLength, windowConfig.windowInterval))
-      .apply(QuotationWindow.forCryptoQuotation())
+      .window(TumblingEventTimeWindows.of(windowConfig.windowPeriodLength))
+      .apply(new QuotationWindowProcessor[CryptoQuotation])
 
     val windowedStockTrades: DataStream[WindowedTrades] = watermarkedStockTradesStream
       .keyBy[String]((x: StockTrade) => x.symbol)
-      .window(SlidingEventTimeWindows.of(windowConfig.windowPeriodLength, windowConfig.windowInterval))
-      .apply(TradeWindow.forStockTrade())
+      .window(TumblingEventTimeWindows.of(windowConfig.windowPeriodLength))
+      .apply(new TradeWindowProcessor[StockTrade])
 
     val windowedCryptoTrades: DataStream[WindowedTrades] = watermarkedCryptoTradesStream
       .keyBy[String]((x: CryptoTrade) => x.symbol)
-      .window(SlidingEventTimeWindows.of(windowConfig.windowPeriodLength, windowConfig.windowInterval))
-      .apply(TradeWindow.forCryptoTrade())
+      .window(TumblingEventTimeWindows.of(windowConfig.windowPeriodLength))
+      .apply(new TradeWindowProcessor[CryptoTrade])
+
     logger.info("Flink stream windowing applied")
 
-    val windowedQuotesInfluxSink = new ResultSink(influxDetails, new WindowedQuotes.InfluxDBSerializer())
-    windowedStockQuotes.addSink(windowedQuotesInfluxSink)
-    windowedCryptoQuotes.addSink(windowedQuotesInfluxSink)
+    val allWindowedQuotations: DataStream[WindowedQuotes] = windowedStockQuotes.union(windowedCryptoQuotes)
+    val allWindowedTrades: DataStream[WindowedTrades]     = windowedStockTrades.union(windowedCryptoTrades)
 
-    val windowedTradesInfluxSink = new ResultSink(influxDetails, new WindowedTrades.InfluxDBSerializer())
-    windowedStockTrades.addSink(windowedTradesInfluxSink)
-    windowedCryptoTrades.addSink(windowedTradesInfluxSink)
-    logger.info("Flink stream results InfluxDB sink created")
+    val quoteDifferences: DataStream[QuotationDeltas] = allWindowedQuotations
+      .keyBy[String]((x: WindowedQuotes) => x.ticker)
+      .process(new QuotationDeltaProcessor())
+
+    val tradeDifferences: DataStream[TradeDeltas] = allWindowedTrades
+      .keyBy[String]((x: WindowedTrades) => x.ticker)
+      .process(new TradeDeltaProcessor())
+
+    allWindowedQuotations.addSink(new ResultSink[WindowedQuotes](influxDetails))
+    allWindowedTrades.addSink(new ResultSink[WindowedTrades](influxDetails))
+    quoteDifferences.addSink(new ResultSink[QuotationDeltas](influxDetails))
+    tradeDifferences.addSink(new ResultSink[TradeDeltas](influxDetails))
+    logger.info("Flink stream results InfluxDB sinks created and connected")
 
     /*
-    val kinesisSink: KinesisStreamsSink[WindowedQuotationVolumes] = KinesisSink.make(kinesisProps)
-    logger.info("Flink stream results Kinesis sink created")
-
-    windowedStockQuotes.addSink(loggingKinesisSink[WindowedQuotationVolumes])
-    windowedCryptoQuotes.addSink(loggingKinesisSink[WindowedQuotationVolumes])
-
-    windowedStockQuotes.sinkTo(kinesisSink)
-    windowedCryptoQuotes.sinkTo(kinesisSink)
-    windowedStockTrades.sinkTo(kinesisSink)
-    windowedCryptoTrades.sinkTo(kinesisSink)
-    logger.info("Flink stream results sinks connected")
+    allWindowedQuotations.addSink(loggingKinesisSink[WindowedQuotes])
+    allWindowedQuotations.sinkTo(KinesisSink.make[WindowedQuotes](kinesisProps))
+    allWindowedTrades.addSink(loggingKinesisSink[WindowedTrades])
+    allWindowedTrades.sinkTo(KinesisSink.make[WindowedTrades](kinesisProps))
+    quoteDifferences.addSink(loggingKinesisSink[QuotationDeltas])
+    quoteDifferences.sinkTo(KinesisSink.make[QuotationDeltas](kinesisProps))
+    tradeDifferences.addSink(loggingKinesisSink[TradeDeltas])
+    tradeDifferences.sinkTo(KinesisSink.make[TradeDeltas](kinesisProps))
+    logger.info("Flink stream results Kinesis sinks created and connected")
      */
 
     env.execute("Flink Kinesis Example")

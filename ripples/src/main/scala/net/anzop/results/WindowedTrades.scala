@@ -1,7 +1,7 @@
 package net.anzop.results
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import net.anzop.processors.WindowedMeasurement
+import net.anzop.processors.{InfluxMeasurement, WindowedTradesMeasurement}
 import net.anzop.serdes.{DataSerializer, LocalJsonSerializer}
 import org.apache.flink.api.common.serialization.SerializationSchema
 
@@ -11,10 +11,9 @@ import java.util.UUID
 
 case class WindowedTrades(
     @JsonProperty("measure_id") measureId: UUID,
-    @JsonProperty("measurement") measurementType: WindowedMeasurement,
-    symbol: String,
+    ticker: String,
     @JsonProperty("window_start_time") windowStartTime: OffsetDateTime,
-    @JsonProperty("window_end_time") windowEndTime: OffsetDateTime,
+    @JsonProperty("window_end_time") timestamp: OffsetDateTime,
     @JsonProperty("record_count") recordCount: Long,
     @JsonProperty("price_at_window_start") priceAtWindowStart: BigDecimal,
     @JsonProperty("min_price") minPrice: BigDecimal,
@@ -24,19 +23,22 @@ case class WindowedTrades(
     @JsonProperty("sum_notional") sumNotional: BigDecimal,
     @JsonProperty("volume_weighted_avg_price") volumeWeightedAvgPrice: BigDecimal,
     tags: Map[String, String]
-  )
+  ) extends BaseWindow
 
 object WindowedTrades {
+  implicit val influxSerializer: DataSerializer[WindowedTrades]    = new InfluxDBSerializer
+  implicit val jsonSerializer: SerializationSchema[WindowedTrades] = new JsonSerializerSchema
 
-  class InfluxDBSerializer extends DataSerializer[WindowedTrades] with Serializable {
+  val measurement: InfluxMeasurement = WindowedTradesMeasurement
 
+  private class InfluxDBSerializer extends DataSerializer[WindowedTrades] with Serializable {
     override def serialize(data: WindowedTrades): String = {
       val tags      = serializeTags(data.tags)
-      val timestamp = dateTimeToLong(data.windowEndTime)
+      val timestamp = dateTimeToLong(data.windowStartTime)
       val fields =
         s"""
            |measure_id="${data.measureId.toString}",
-           |ticker="${data.symbol}",
+           |ticker="${data.ticker}",
            |window_start_time=${dateTimeToLong(data.windowStartTime)}i,
            |window_end_time=${timestamp}i,
            |record_count=${data.recordCount}i,
@@ -49,20 +51,19 @@ object WindowedTrades {
            |volume_weighted_avg_price=${setScale(data.volumeWeightedAvgPrice)}
            |""".stripMargin.replaceAll("\n", "")
 
-      s"${data.measurementType.value},$tags $fields $timestamp"
+      s"${measurement.value},$tags $fields $timestamp"
     }
   }
 
-  class JsonSerializerSchema extends SerializationSchema[WindowedTrades] with Serializable with LocalJsonSerializer {
-
+  private class JsonSerializerSchema extends SerializationSchema[WindowedTrades] with Serializable with LocalJsonSerializer {
     override def serialize(data: WindowedTrades): Array[Byte] = {
       val json =
         s"""{
            |"measure_id": ${jsString(data.measureId.toString)},
-           |"measurement": ${jsString(data.measurementType.value)},
-           |"ticker": ${jsString(data.symbol)},
+           |"measurement": ${jsString(measurement.value)},
+           |"ticker": ${jsString(data.ticker)},
            |"window_start_time": ${jsString(data.windowStartTime.toString)},
-           |"window_end_time": ${jsString(data.windowEndTime.toString)},
+           |"window_end_time": ${jsString(data.timestamp.toString)},
            |"record_count": ${data.recordCount},
            |"price_at_window_start": ${data.priceAtWindowStart},
            |"min_price": ${data.minPrice},

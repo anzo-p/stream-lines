@@ -1,7 +1,7 @@
 package net.anzop.serdes
 
 trait LocalJsonSerializer {
-  protected def escape(s: String): String =
+  private def escape(s: String): String =
     s.flatMap {
       case '"'  => "\\\""
       case '\\' => "\\\\"

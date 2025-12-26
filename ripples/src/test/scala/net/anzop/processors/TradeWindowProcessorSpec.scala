@@ -9,9 +9,9 @@ import org.scalatest.matchers.should.Matchers
 
 import java.time.OffsetDateTime
 
-class TradeWindowSpec extends AnyFlatSpec with Matchers with BeforeAndAfterAll with BaseWindowSpec {
+class TradeWindowProcessorSpec extends AnyFlatSpec with Matchers with BeforeAndAfterAll with BaseWindowSpec {
 
-  private val stockTradeWindow = TradeWindow.forStockTrade()
+  private val stockTradeWindow = new TradeWindowProcessor[StockTrade]()
   private val earlier          = OffsetDateTime.now()
   private val later            = earlier.plusSeconds(1)
 
@@ -52,7 +52,7 @@ class TradeWindowSpec extends AnyFlatSpec with Matchers with BeforeAndAfterAll w
     val result: List[WindowedTrades] = collector.getResults
 
     result.size should be(1)
-    result.head.symbol should be("AAPL")
+    result.head.ticker should be("AAPL")
     result.head.recordCount should be(2L)
     result.head.priceAtWindowStart should be(BigDecimal(100.0))
     result.head.minPrice should be(BigDecimal(90.0))

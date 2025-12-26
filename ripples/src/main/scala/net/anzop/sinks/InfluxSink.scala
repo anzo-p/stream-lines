@@ -14,10 +14,11 @@ import scala.util.Try
 trait InfluxSink[T] extends RichSinkFunction[T] {
   val logger: Logger = LoggerFactory.getLogger(getClass)
 
+  implicit def influxSerializer: DataSerializer[T]
+
   lazy val httpClient: CloseableHttpClient = HttpClients.createDefault()
 
   def influxDetails: InfluxDetails
-  val serializer: DataSerializer[T]
   val baseUri: String = s"${influxDetails.uri.toString}&bucket="
   val token: String   = influxDetails.token
 
@@ -29,9 +30,9 @@ trait InfluxSink[T] extends RichSinkFunction[T] {
   }
 }
 
-class ResultSink[T](val influxDetails: InfluxDetails, val serializer: DataSerializer[T]) extends InfluxSink[T] {
+class ResultSink[T](val influxDetails: InfluxDetails)(implicit val influxSerializer: DataSerializer[T]) extends InfluxSink[T] {
   override def invoke(value: T, context: SinkFunction.Context): Unit = {
-    val serializedData = serializer.serialize(value)
+    val serializedData = influxSerializer.serialize(value)
     val httpPost       = new HttpPost(baseUri + influxDetails.bucket)
     httpPost.setEntity(new StringEntity(serializedData))
     httpPost.addHeader("Authorization", s"Token $token")

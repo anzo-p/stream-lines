@@ -9,13 +9,14 @@ import org.scalatest.matchers.should.Matchers
 
 import java.time.OffsetDateTime
 
-class QuotationWindowSpec extends AnyFlatSpec with Matchers with BeforeAndAfterAll with BaseWindowSpec {
+class QuotationWindowProcessorSpec extends AnyFlatSpec with Matchers with BeforeAndAfterAll with BaseWindowSpec {
 
-  private val stockQuotationWindow = QuotationWindow.forStockQuotation()
+  private val stockQuotationWindow = new QuotationWindowProcessor[StockQuotation]()
   private val earlier              = OffsetDateTime.now()
   private val later                = earlier.plusSeconds(1)
 
   "QuotationWindow" should "correctly calculate stock quotation window" in {
+
     val stockQuotation1 = StockQuotation(
       symbol = "AAPL",
       ask = StockTradeUnit(
@@ -60,7 +61,7 @@ class QuotationWindowSpec extends AnyFlatSpec with Matchers with BeforeAndAfterA
     val result: List[WindowedQuotes] = collector.getResults
 
     result.size should be(1)
-    result.head.symbol should be("AAPL")
+    result.head.ticker should be("AAPL")
     result.head.recordCount should be(2L)
     result.head.askPriceAtWindowStart should be(100.0)
     result.head.bidPriceAtWindowStart should be(90.0)
@@ -76,5 +77,8 @@ class QuotationWindowSpec extends AnyFlatSpec with Matchers with BeforeAndAfterA
     result.head.sumBidNotional should be(1850.0)
     result.head.volumeWeightedAgAskPrice should be(99.5)
     result.head.volumeWeightedAvgBidPrice should be(92.5)
+    result.head.bidAskSpread should be(7.0)
+    result.head.spreadMidpoint should be(96.0)
+    result.head.orderBookImbalance should be(-0.2)
   }
 }

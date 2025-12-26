@@ -1,7 +1,7 @@
 package net.anzop.results
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import net.anzop.processors.WindowedMeasurement
+import net.anzop.processors.{InfluxMeasurement, WindowedQuotesMeasurement}
 import net.anzop.serdes.{DataSerializer, LocalJsonSerializer}
 import org.apache.flink.api.common.serialization.SerializationSchema
 
@@ -11,10 +11,9 @@ import java.util.UUID
 
 case class WindowedQuotes(
     @JsonProperty("measure_id") measureId: UUID,
-    @JsonProperty("measurement") measurementType: WindowedMeasurement,
-    symbol: String,
+    ticker: String,
     @JsonProperty("window_start_time") windowStartTime: OffsetDateTime,
-    @JsonProperty("window_end_time") windowEndTime: OffsetDateTime,
+    @JsonProperty("window_end_time") timestamp: OffsetDateTime,
     @JsonProperty("record_count") recordCount: Long,
     @JsonProperty("ask_price_at_window_start") askPriceAtWindowStart: BigDecimal,
     @JsonProperty("bid_price_at_window_start") bidPriceAtWindowStart: BigDecimal,
@@ -30,21 +29,26 @@ case class WindowedQuotes(
     @JsonProperty("sum_bid_notional") sumBidNotional: BigDecimal,
     @JsonProperty("volume_weighted_avg_ask_price") volumeWeightedAgAskPrice: BigDecimal,
     @JsonProperty("volume_weighted_avg_bid_price") volumeWeightedAvgBidPrice: BigDecimal,
-    @JsonProperty("tags")
+    @JsonProperty("bid_ask_spread") bidAskSpread: BigDecimal,
+    @JsonProperty("spread_midpoint") spreadMidpoint: BigDecimal,
+    @JsonProperty("order_book_imbalance") orderBookImbalance: BigDecimal,
     tags: Map[String, String]
-  )
+  ) extends BaseWindow
 
 object WindowedQuotes {
+  implicit val influxSerializer: DataSerializer[WindowedQuotes]    = new InfluxDBSerializer
+  implicit val jsonSerializer: SerializationSchema[WindowedQuotes] = new JsonSerializerSchema
 
-  class InfluxDBSerializer extends DataSerializer[WindowedQuotes] with Serializable {
+  val measurement: InfluxMeasurement = WindowedQuotesMeasurement
 
+  private class InfluxDBSerializer extends DataSerializer[WindowedQuotes] with Serializable {
     override def serialize(data: WindowedQuotes): String = {
       val tags      = serializeTags(data.tags)
-      val timestamp = dateTimeToLong(data.windowEndTime)
+      val timestamp = dateTimeToLong(data.timestamp)
       val fields =
         s"""
            |measure_id="${data.measureId.toString}",
-           |ticker="${data.symbol}",
+           |ticker="${data.ticker}",
            |window_start_time=${dateTimeToLong(data.windowStartTime)}i,
            |window_end_time=${timestamp}i,
            |record_count=${data.recordCount}i,
@@ -61,23 +65,25 @@ object WindowedQuotes {
            |sum_ask_notional=${setScale(data.sumAskNotional)},
            |sum_bid_notional=${setScale(data.sumBidNotional)},
            |volume_weighted_avg_ask_price=${setScale(data.volumeWeightedAgAskPrice)},
-           |volume_weighted_avg_bid_price=${setScale(data.volumeWeightedAvgBidPrice)}
+           |volume_weighted_avg_bid_price=${setScale(data.volumeWeightedAvgBidPrice)},
+           |bid_ask_spread=${setScale(data.bidAskSpread)},
+           |spread_midpoint=${setScale(data.spreadMidpoint)},
+           |order_book_imbalance=${setScale(data.orderBookImbalance)}
            |""".stripMargin.replaceAll("\n", "")
 
-      s"${data.measurementType.value},$tags $fields $timestamp"
+      s"${measurement.value},$tags $fields $timestamp"
     }
   }
 
-  class JsonSerializerSchema extends SerializationSchema[WindowedQuotes] with Serializable with LocalJsonSerializer {
-
+  private class JsonSerializerSchema extends SerializationSchema[WindowedQuotes] with Serializable with LocalJsonSerializer {
     override def serialize(data: WindowedQuotes): Array[Byte] = {
       val json =
         s"""{
            |"measure_id": ${jsString(data.measureId.toString)},
-           |"measurement": ${jsString(data.measurementType.value)},
-           |"ticker": ${jsString(data.symbol)},
+           |"measurement": ${jsString(measurement.value)},
+           |"ticker": ${jsString(data.ticker)},
            |"window_start_time": ${jsString(data.windowStartTime.toString)},
-           |"window_end_time": ${jsString(data.windowEndTime.toString)},
+           |"window_end_time": ${jsString(data.timestamp.toString)},
            |"record_count": ${data.recordCount},
            |"ask_price_at_window_start": ${data.askPriceAtWindowStart},
            |"bid_price_at_window_start": ${data.bidPriceAtWindowStart},
@@ -93,6 +99,9 @@ object WindowedQuotes {
            |"sum_bid_notional": ${data.sumBidNotional},
            |"volume_weighted_avg_ask_price": ${data.volumeWeightedAgAskPrice},
            |"volume_weighted_avg_bid_price": ${data.volumeWeightedAvgBidPrice},
+           |"bid_ask_spread": ${data.bidAskSpread},
+           |"spread_midpoint": ${data.spreadMidpoint},
+           |"order_book_imbalance": ${data.orderBookImbalance},
            |"tags": ${tagsJson(data.tags)}
            |}""".stripMargin
 
