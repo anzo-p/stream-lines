@@ -34,11 +34,10 @@ object WindowedTrades {
   private class InfluxDBSerializer extends DataSerializer[WindowedTrades] with Serializable {
     override def serialize(data: WindowedTrades): String = {
       val tags      = serializeTags(data.tags)
-      val timestamp = dateTimeToLong(data.windowStartTime)
+      val timestamp = dateTimeToLong(data.timestamp)
       val fields =
         s"""
            |measure_id="${data.measureId.toString}",
-           |ticker="${data.ticker}",
            |window_start_time=${dateTimeToLong(data.windowStartTime)}i,
            |window_end_time=${timestamp}i,
            |record_count=${data.recordCount}i,

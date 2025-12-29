@@ -26,7 +26,7 @@ case class QuotationDeltas(
     @JsonProperty("volume_weighted_avg_bid_price_delta") volumeWeightedAvgBidPriceDelta: BigDecimal,
     @JsonProperty("bid_ask_spread_delta") bidAskSpreadDelta: BigDecimal,
     @JsonProperty("spread_midpoint_delta") spreadMidpointDelta: BigDecimal,
-    @JsonProperty("order_book_imbalance_delta") orderBookImbalanceDelta: BigDecimal,
+    @JsonProperty("order_imbalance_delta") orderImbalanceDelta: BigDecimal,
     tags: Map[String, String]
   ) extends BaseDelta
 
@@ -43,7 +43,6 @@ object QuotationDeltas {
       val fields =
         s"""
            |measure_id="${data.measureId.toString}",
-           |ticker="${data.ticker}",
            |record_count_delta=${data.recordCountDelta}i,
            |min_ask_price_delta=${setScale(data.minAskPriceDelta)},
            |min_bid_price_delta=${setScale(data.minBidPriceDelta)},
@@ -57,7 +56,7 @@ object QuotationDeltas {
            |volume_weighted_avg_bid_price_delta=${setScale(data.volumeWeightedAvgBidPriceDelta)},
            |bid_ask_spread_delta=${setScale(data.bidAskSpreadDelta)},
            |spread_midpoint_delta=${setScale(data.spreadMidpointDelta)},
-           |order_book_imbalance_delta=${setScale(data.orderBookImbalanceDelta)}
+           |order_imbalance_delta=${setScale(data.orderImbalanceDelta)}
            |""".stripMargin.replaceAll("\n", "")
 
       s"${measurement.value},$tags $fields $timestamp"
@@ -85,7 +84,7 @@ object QuotationDeltas {
            |volume_weighted_avg_bid_price_delta: ${data.volumeWeightedAvgBidPriceDelta},
            |bid_ask_spread_delta: ${data.bidAskSpreadDelta},
            |spread_midpoint_delta: ${data.spreadMidpointDelta},
-           |order_book_imbalance_delta: ${data.orderBookImbalanceDelta},
+           |order_imbalance_delta: ${data.orderImbalanceDelta},
            |tags: ${tagsJson(data.tags)}
            |}""".stripMargin
 

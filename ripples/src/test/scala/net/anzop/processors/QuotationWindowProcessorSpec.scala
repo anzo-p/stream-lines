@@ -1,6 +1,6 @@
 package net.anzop.processors
 
-import net.anzop.results.WindowedQuotes
+import net.anzop.results.WindowedQuotations
 import net.anzop.types.{Money, StockQuotation, StockTradeUnit}
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.scalatest.BeforeAndAfterAll
@@ -15,7 +15,7 @@ class QuotationWindowProcessorSpec extends AnyFlatSpec with Matchers with Before
   private val earlier              = OffsetDateTime.now()
   private val later                = earlier.plusSeconds(1)
 
-  "QuotationWindow" should "correctly calculate stock quotation window" in {
+  "QuotationWindowProcessor" should "correctly calculate stock quotation window" in {
 
     val stockQuotation1 = StockQuotation(
       symbol = "AAPL",
@@ -54,23 +54,19 @@ class QuotationWindowProcessorSpec extends AnyFlatSpec with Matchers with Before
     )
 
     val window    = new TimeWindow(0, 1000)
-    val collector = new ListCollector[WindowedQuotes]
+    val collector = new ListCollector[WindowedQuotations]
 
     stockQuotationWindow.apply("AAPL", window, List(stockQuotation1, stockQuotation2), collector)
 
-    val result: List[WindowedQuotes] = collector.getResults
+    val result: List[WindowedQuotations] = collector.getResults
 
     result.size should be(1)
     result.head.ticker should be("AAPL")
     result.head.recordCount should be(2L)
-    result.head.askPriceAtWindowStart should be(100.0)
-    result.head.bidPriceAtWindowStart should be(90.0)
     result.head.minAskPrice should be(99.0)
     result.head.maxAskPrice should be(100.0)
     result.head.minBidPrice should be(90.0)
     result.head.maxBidPrice should be(95.0)
-    result.head.askPriceAtWindowEnd should be(99.0)
-    result.head.bidPriceAtWindowEnd should be(95.0)
     result.head.sumAskQuantity should be(30.0)
     result.head.sumBidQuantity should be(20.0)
     result.head.sumAskNotional should be(2985.0)
@@ -79,6 +75,6 @@ class QuotationWindowProcessorSpec extends AnyFlatSpec with Matchers with Before
     result.head.volumeWeightedAvgBidPrice should be(92.5)
     result.head.bidAskSpread should be(7.0)
     result.head.spreadMidpoint should be(96.0)
-    result.head.orderBookImbalance should be(-0.2)
+    result.head.orderImbalance should be(-0.2)
   }
 }

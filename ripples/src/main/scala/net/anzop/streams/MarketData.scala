@@ -5,7 +5,7 @@ import net.anzop.config.{InfluxDetails, StreamConfig, WindowConfig}
 import net.anzop.helpers.StreamHelpers
 import net.anzop.processors.{QuotationDeltaProcessor, QuotationWindowProcessor, TradeDeltaProcessor, TradeWindowProcessor}
 import net.anzop.results.WindowedTrades._
-import net.anzop.results.{QuotationDeltas, TradeDeltas, WindowedQuotes, WindowedTrades}
+import net.anzop.results.{QuotationDeltas, TradeDeltas, WindowedQuotations, WindowedTrades}
 import net.anzop.sinks.ResultSink
 import net.anzop.types._
 import org.apache.flink.streaming.api.scala._
@@ -58,12 +58,12 @@ object MarketData {
     )
     logger.info("Flink stream watermarking applied")
 
-    val windowedStockQuotes: DataStream[WindowedQuotes] = watermarkedStockQuotesStream
+    val windowedStockQuotes: DataStream[WindowedQuotations] = watermarkedStockQuotesStream
       .keyBy[String]((x: StockQuotation) => x.symbol)
       .window(TumblingEventTimeWindows.of(windowConfig.windowPeriodLength))
       .apply(new QuotationWindowProcessor[StockQuotation])
 
-    val windowedCryptoQuotes: DataStream[WindowedQuotes] = watermarkedCryptoQuotesStream
+    val windowedCryptoQuotes: DataStream[WindowedQuotations] = watermarkedCryptoQuotesStream
       .keyBy[String]((x: CryptoQuotation) => x.symbol)
       .window(TumblingEventTimeWindows.of(windowConfig.windowPeriodLength))
       .apply(new QuotationWindowProcessor[CryptoQuotation])
@@ -80,18 +80,18 @@ object MarketData {
 
     logger.info("Flink stream windowing applied")
 
-    val allWindowedQuotations: DataStream[WindowedQuotes] = windowedStockQuotes.union(windowedCryptoQuotes)
-    val allWindowedTrades: DataStream[WindowedTrades]     = windowedStockTrades.union(windowedCryptoTrades)
+    val allWindowedQuotations: DataStream[WindowedQuotations] = windowedStockQuotes.union(windowedCryptoQuotes)
+    val allWindowedTrades: DataStream[WindowedTrades]         = windowedStockTrades.union(windowedCryptoTrades)
 
     val quoteDifferences: DataStream[QuotationDeltas] = allWindowedQuotations
-      .keyBy[String]((x: WindowedQuotes) => x.ticker)
+      .keyBy[String]((x: WindowedQuotations) => x.ticker)
       .process(new QuotationDeltaProcessor())
 
     val tradeDifferences: DataStream[TradeDeltas] = allWindowedTrades
       .keyBy[String]((x: WindowedTrades) => x.ticker)
       .process(new TradeDeltaProcessor())
 
-    allWindowedQuotations.addSink(new ResultSink[WindowedQuotes](influxDetails))
+    allWindowedQuotations.addSink(new ResultSink[WindowedQuotations](influxDetails))
     allWindowedTrades.addSink(new ResultSink[WindowedTrades](influxDetails))
     quoteDifferences.addSink(new ResultSink[QuotationDeltas](influxDetails))
     tradeDifferences.addSink(new ResultSink[TradeDeltas](influxDetails))

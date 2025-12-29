@@ -35,7 +35,6 @@ object TradeDeltas {
       val fields =
         s"""
            |measure_id="${data.measureId.toString}",
-           |ticker="${data.ticker}",
            |record_count_delta=${data.recordCountDelta}i,
            |min_price_delta=${setScale(data.minPriceDelta)},
            |max_price_delta=${setScale(data.maxPriceDelta)},

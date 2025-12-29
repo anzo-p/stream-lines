@@ -1,5 +1,6 @@
 package net.anzop.processors
 
+import net.anzop.helpers.MapExtensions.MapOps
 import net.anzop.results.{TradeDeltas, WindowedTrades}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.scala.createTypeInformation
@@ -9,7 +10,7 @@ class TradeDeltaProcessor extends DeltaProcessor[WindowedTrades, TradeDeltas] {
   implicit override val typeInfoT: TypeInformation[WindowedTrades] =
     createTypeInformation[WindowedTrades]
 
-  override def compose(prev: WindowedTrades, curr: WindowedTrades): TradeDeltas =
+  override def compose(prev: WindowedTrades, curr: WindowedTrades): TradeDeltas = {
     TradeDeltas(
       measureId                   = curr.measureId,
       ticker                      = curr.ticker,
@@ -20,6 +21,7 @@ class TradeDeltaProcessor extends DeltaProcessor[WindowedTrades, TradeDeltas] {
       sumQuantityDelta            = curr.sumQuantity - prev.sumQuantity,
       sumNotionalDelta            = curr.sumNotional - prev.sumNotional,
       volumeWeightedAvgPriceDelta = curr.volumeWeightedAvgPrice - prev.volumeWeightedAvgPrice,
-      tags                        = curr.tags
+      tags                        = prev.tags.intersect(curr.tags)
     )
+  }
 }

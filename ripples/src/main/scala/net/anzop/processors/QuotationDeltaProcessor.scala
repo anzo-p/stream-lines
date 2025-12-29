@@ -1,15 +1,16 @@
 package net.anzop.processors
 
-import net.anzop.results.{QuotationDeltas, WindowedQuotes}
+import net.anzop.helpers.MapExtensions.MapOps
+import net.anzop.results.{QuotationDeltas, WindowedQuotations}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.scala._
 
-class QuotationDeltaProcessor extends DeltaProcessor[WindowedQuotes, QuotationDeltas] {
+class QuotationDeltaProcessor extends DeltaProcessor[WindowedQuotations, QuotationDeltas] {
 
-  implicit override val typeInfoT: TypeInformation[WindowedQuotes] =
-    createTypeInformation[WindowedQuotes]
+  implicit override val typeInfoT: TypeInformation[WindowedQuotations] =
+    createTypeInformation[WindowedQuotations]
 
-  override protected def compose(prev: WindowedQuotes, curr: WindowedQuotes): QuotationDeltas =
+  override def compose(prev: WindowedQuotations, curr: WindowedQuotations): QuotationDeltas =
     QuotationDeltas(
       measureId                      = curr.measureId,
       ticker                         = curr.ticker,
@@ -27,7 +28,7 @@ class QuotationDeltaProcessor extends DeltaProcessor[WindowedQuotes, QuotationDe
       volumeWeightedAvgBidPriceDelta = curr.volumeWeightedAvgBidPrice - prev.volumeWeightedAvgBidPrice,
       bidAskSpreadDelta              = curr.bidAskSpread - prev.bidAskSpread,
       spreadMidpointDelta            = curr.spreadMidpoint - prev.spreadMidpoint,
-      orderBookImbalanceDelta        = curr.orderBookImbalance - prev.orderBookImbalance,
-      tags                           = curr.tags
+      orderImbalanceDelta            = curr.orderImbalance - prev.orderImbalance,
+      tags                           = prev.tags.intersect(curr.tags)
     )
 }
