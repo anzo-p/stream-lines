@@ -5,6 +5,7 @@ import net.anzop.types.{MarketDataDeserializer, MarketDataMessage}
 import org.apache.flink.configuration._
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer
+import org.apache.flink.streaming.connectors.kinesis.config.ConsumerConfigConstants
 
 import java.util.Properties
 
@@ -17,7 +18,7 @@ object StreamConfig {
     cfg.set(CheckpointingOptions.CHECKPOINT_STORAGE, "filesystem")
     cfg.set(CheckpointingOptions.CHECKPOINTS_DIRECTORY, checkpointPath)
     env.configure(cfg)
-    env.getCheckpointConfig.setCheckpointInterval(60 * 1000L)
+    env.enableCheckpointing(60 * 1000L)
     env.setParallelism(1)
   }
 
@@ -32,7 +33,10 @@ object StreamConfig {
   def buildConsumer(): FlinkKinesisConsumer[MarketDataMessage] = {
     val consumerConfig = new Properties()
     consumerConfig.setProperty("aws.region", sys.env.getOrThrow("AWS_REGION", "AWS_REGION is not set"))
-    consumerConfig.setProperty("flink.stream.initpos", "LATEST")
+    consumerConfig.setProperty(
+      ConsumerConfigConstants.STREAM_INITIAL_POSITION,
+      ConsumerConfigConstants.InitialPosition.TRIM_HORIZON.name()
+    )
 
     new FlinkKinesisConsumer[MarketDataMessage](
       sys.env.getOrThrow("KINESIS_UPSTREAM_NAME", "KINESIS_UPSTREAM_NAME is not set"),

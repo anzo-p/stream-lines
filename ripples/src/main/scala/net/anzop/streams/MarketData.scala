@@ -3,6 +3,7 @@ package net.anzop.streams
 import net.anzop.Ripples.logger
 import net.anzop.config.{InfluxDetails, StreamConfig, WindowConfig}
 import net.anzop.helpers.StreamHelpers
+import net.anzop.helpers.StreamHelpers.nyseOpen
 import net.anzop.processors.{QuotationDeltaProcessor, QuotationWindowProcessor, TradeDeltaProcessor, TradeWindowProcessor}
 import net.anzop.results.WindowedTrades._
 import net.anzop.results.{QuotationDeltas, TradeDeltas, WindowedQuotations, WindowedTrades}
@@ -28,8 +29,14 @@ object MarketData {
     val kinesisConsumer: FlinkKinesisConsumer[MarketDataMessage] = StreamConfig.buildConsumer()
     logger.info("Flink Kinesis consumer created")
 
+    val earliestTs = nyseOpen()
+
     val marketDataStream: DataStream[MarketDataMessage] =
-      env.addSource(kinesisConsumer)
+      env
+        .addSource(kinesisConsumer)
+        .uid("kinesis-source")
+        .filter(_.messageType.marketTimestamp.toInstant.toEpochMilli >= earliestTs)
+        .name("redo-orders-of-today")
 
     val stockQuotesStream: DataStream[StockQuotation]   = StreamHelpers.filterType[StockQuotation](marketDataStream)
     val cryptoQuotesStream: DataStream[CryptoQuotation] = StreamHelpers.filterType[CryptoQuotation](marketDataStream)

@@ -9,7 +9,7 @@ import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
 import org.slf4j.{Logger, LoggerFactory}
 
-import java.time.Duration
+import java.time.{Duration, ZoneId, ZonedDateTime}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 import scala.reflect.ClassTag
@@ -42,6 +42,12 @@ object StreamHelpers {
         throw new RuntimeException(s"Failed to connect to InfluxDB: ${e.getMessage}", e)
       }
     }
+  }
+
+  def nyseOpen(): Long = {
+    val zoneNy = ZoneId.of("America/New_York")
+    val openNy = ZonedDateTime.now(zoneNy).toLocalDate.atTime(9, 30).atZone(zoneNy)
+    openNy.minusHours(1).toInstant.toEpochMilli
   }
 
   def filterType[T <: MarketDataContent : ClassTag : TypeInformation](stream: DataStream[MarketDataMessage]): DataStream[T] = {
