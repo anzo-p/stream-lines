@@ -28,6 +28,19 @@ async fn fetch_top_symbols(client: &Client, endpoint: &str, api_key: &str, n: us
     Ok(items.into_iter().take(n).map(|(sym, _)| sym).collect())
 }
 
+fn default_tickers_from_env() -> Option<Vec<String>> {
+    let raw = env::var("TICKERS_OVERRIDE").ok()?;
+
+    let tickers: Vec<String> = raw
+        .split(',')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .collect();
+
+    (!tickers.is_empty()).then_some(tickers)
+}
+
 pub(crate) async fn hydrate_symbols(mut cfg: AppConfig) -> Result<AppConfig, ProcessError> {
     let endpoint =
         env::var("TOP_TICKERS_API").map_err(|_| ProcessError::ConfigError("TOP_TICKERS_API not set".into()))?;
@@ -40,18 +53,30 @@ pub(crate) async fn hydrate_symbols(mut cfg: AppConfig) -> Result<AppConfig, Pro
     let client = Client::new();
 
     if let Some(feed) = cfg.feeds.iter_mut().find(|f| matches!(f.feed_type, FeedType::Stocks)) {
-        match timeout(Duration::from_secs(15), async {
+        let fetched = match timeout(Duration::from_secs(15), async {
             let api_key = get_internal_shared_secret().await?;
             fetch_top_symbols(&client, &endpoint, api_key, max_n).await
         })
         .await
         {
-            Ok(Ok(syms)) => feed.symbols = syms,
-            Ok(Err(e)) => warn!("Ticker fetch failed: {e}. Using config defaults."),
-            Err(_) => warn!("Ticker fetch timed out. Using config defaults."),
+            Ok(Ok(syms)) => Some(syms),
+            Ok(Err(e)) => {
+                warn!("Ticker fetch failed: {e}. Try TICKERS_OVERRIDE");
+                None
+            }
+            Err(_) => {
+                warn!("Ticker fetch timed out. Try TICKERS_OVERRIDE");
+                None
+            }
+        };
+
+        if let Some(syms) = fetched {
+            feed.symbols = syms;
+        } else if let Some(env_syms) = default_tickers_from_env() {
+            feed.symbols = env_syms;
         }
     } else {
-        warn!("No Stocks feed configured. Leaving feeds unchanged.");
+        warn!("No Stocks feed configured or no TICKERS_OVERRIDE found. Leaving feeds unchanged.");
     }
 
     Ok(cfg)
