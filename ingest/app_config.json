@@ -2,7 +2,7 @@
     "feeds": [
         {
             "url": "wss://stream.data.alpaca.markets/v2/iex",
-            "symbols": ["AAPL", "AMD", "AMZN", "GOOG", "META", "MSFT", "TSLA"],
+            "symbols": ["AAPL", "AMD", "AMZN", "AVGO", "GOOG", "META", "MSFT", "MU", "NFLX", "NVDA", "ORCL", "TSLA"],
             "feed_type": "Stocks",
             "max_reads_per_sec": 20
         },
