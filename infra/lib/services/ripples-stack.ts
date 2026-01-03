@@ -14,6 +14,7 @@ export class RipplesStack extends cdk.NestedStack {
     ecsCluster: ecs.Cluster,
     executionRole: iam.Role,
     securityGroup: ec2.SecurityGroup,
+    onDemandPricing: boolean = false,
     readKinesisUpstreamPerms: iam.PolicyStatement,
     writeKinesisDownStreamPerms: iam.PolicyStatement,
     props?: cdk.StackProps
@@ -88,12 +89,9 @@ export class RipplesStack extends cdk.NestedStack {
       securityGroups: [securityGroup],
       desiredCount: 1,
       assignPublicIp: false,
-      capacityProviderStrategies: [
-        {
-          capacityProvider: 'FARGATE_SPOT',
-          weight: 1
-        }
-      ]
+      capacityProviderStrategies: onDemandPricing
+        ? [{ capacityProvider: 'FARGATE', weight: 1 }]
+        : [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }]
     });
   }
 }

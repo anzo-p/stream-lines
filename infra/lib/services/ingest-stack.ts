@@ -68,6 +68,7 @@ export class IngestStack extends cdk.NestedStack {
         KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`,
         MAX_WS_READS_PER_SEC: `${process.env.INGEST_MAX_WS_READS_PER_SEC}`,
         MAX_TICKER_COUNT: `${process.env.INGEST_MAX_TICKER_COUNT}`,
+        TICKERS_OVERRIDE: `${process.env.INGEST_TICKERS_OVERRIDE}`,
         TOP_TICKERS_API: `${process.env.INGEST_TOP_TICKERS_API}`
       },
       logging

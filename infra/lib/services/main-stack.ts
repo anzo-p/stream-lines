@@ -27,6 +27,9 @@ export class ServicesStack extends cdk.Stack {
 
     const { vpc, securityGroups, ecsCluster } = props;
 
+    const autoTearDownNotDenied = this.node.tryGetContext('autoTeardown') !== 'false';
+    const runOnlyOnDemandServices = this.node.tryGetContext('onlyOnDemand') === 'true';
+
     /*
     const wsApigatewayStack = new WebSocketApiGatewayStack(
       this,
@@ -47,22 +50,28 @@ export class ServicesStack extends cdk.Stack {
 
     new NatGatewayStack(this, 'NatGatewayStack', vpc);
 
-    const gatherStack = new GatherStack(
-      this,
-      'GatherStack',
-      ecsCluster,
-      taskExecRoleStack.role,
-      securityGroups['gather'],
-      securityGroups['bastion'],
-      ['ingest'].map((id) => ({ id, sg: securityGroups[id] }))
-    );
+    let gatherStack: GatherStack | undefined;
+    if (!runOnlyOnDemandServices) {
+      gatherStack = new GatherStack(
+        this,
+        'GatherStack',
+        ecsCluster,
+        taskExecRoleStack.role,
+        securityGroups['gather'],
+        securityGroups['bastion'],
+        ['ingest'].map((id) => ({ id, sg: securityGroups[id] }))
+      );
+
+      new CurrentsStack(this, 'CurrentsStack', ecsCluster, taskExecRoleStack.role, securityGroups['currents']);
+    }
 
     const ripplesStack = new RipplesStack(
       this,
-      'ripplesStack',
+      'RipplesStack',
       ecsCluster,
       taskExecRoleStack.role,
       securityGroups['ripples'],
+      runOnlyOnDemandServices,
       kinesisStack.readUpstreamPerms,
       kinesisStack.writeDownstreamPerms
     );
@@ -77,9 +86,7 @@ export class ServicesStack extends cdk.Stack {
       kinesisStack.writeUpstreamPerms
     );
     ingestStack.addDependency(kinesisStack);
-    ingestStack.addDependency(gatherStack);
-
-    new CurrentsStack(this, 'CurrentsStack', ecsCluster, taskExecRoleStack.role, securityGroups['currents']);
+    if (gatherStack) ingestStack.addDependency(gatherStack);
 
     /*
     const backendStack = new BackendStack(
@@ -104,9 +111,11 @@ export class ServicesStack extends cdk.Stack {
     dashboardStack.addDependency(backendStack);
     */
 
-    new AutoTeardownStack(this, 'Teardown', {
-      targetStackName: cdk.Stack.of(this).stackName,
-      targetStackArn: cdk.Stack.of(this).stackId
-    });
+    if (autoTearDownNotDenied) {
+      new AutoTeardownStack(this, 'Teardown', {
+        targetStackName: cdk.Stack.of(this).stackName,
+        targetStackArn: cdk.Stack.of(this).stackId,
+      });
+    }
   }
 }

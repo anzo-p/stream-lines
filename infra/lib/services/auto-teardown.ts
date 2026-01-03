@@ -15,8 +15,6 @@ export class AutoTeardownStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: AutoTeardownStackProps) {
     super(scope, id, props);
 
-    const teardownTag = 'AutoTeardown';
-
     const teardownFn = new NodejsFunction(this, 'TeardownFn', {
       runtime: lambda.Runtime.NODEJS_20_X,
       entry: path.join(__dirname, '../../lambda/teardown.ts'),
@@ -53,6 +51,6 @@ export class AutoTeardownStack extends cdk.NestedStack {
       }
     });
 
-    cdk.Tags.of(this).add(teardownTag, 'true');
+    cdk.Tags.of(this).add('autoTeardown', 'true');
   }
 }
