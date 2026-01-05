@@ -27,8 +27,9 @@ export class ServicesStack extends cdk.Stack {
 
     const { vpc, securityGroups, ecsCluster } = props;
 
-    const autoTearDownNotDenied = this.node.tryGetContext('autoTeardown') !== 'false';
+    const autoTearDownDenied = this.node.tryGetContext('autoTeardown') === 'false';
     const runOnlyOnDemandServices = this.node.tryGetContext('onlyOnDemand') === 'true';
+    const runAllServicesOnDemand = this.node.tryGetContext('runAllAsOnDemand') === 'true';
 
     /*
     const wsApigatewayStack = new WebSocketApiGatewayStack(
@@ -51,40 +52,40 @@ export class ServicesStack extends cdk.Stack {
     new NatGatewayStack(this, 'NatGatewayStack', vpc);
 
     let gatherStack: GatherStack | undefined;
-    if (!runOnlyOnDemandServices) {
-      gatherStack = new GatherStack(
-        this,
-        'GatherStack',
+    if (!runOnlyOnDemandServices || runAllServicesOnDemand) {
+      gatherStack = new GatherStack(this, 'GatherStack', {
         ecsCluster,
-        taskExecRoleStack.role,
-        securityGroups['gather'],
-        securityGroups['bastion'],
-        ['ingest'].map((id) => ({ id, sg: securityGroups[id] }))
-      );
+        executionRole: taskExecRoleStack.role,
+        securityGroup: securityGroups['gather'],
+        runAsOndemand: runAllServicesOnDemand,
+        bastionSecurityGroup: securityGroups['bastion'],
+        connectingServiceSGs: ['ingest'].map((id) => ({ id, sg: securityGroups[id] }))
+      });
 
-      new CurrentsStack(this, 'CurrentsStack', ecsCluster, taskExecRoleStack.role, securityGroups['currents']);
+      new CurrentsStack(this, 'CurrentsStack', {
+        ecsCluster,
+        executionRole: taskExecRoleStack.role,
+        securityGroup: securityGroups['currents'],
+        runAsOndemand: runAllServicesOnDemand
+      });
     }
 
-    const ripplesStack = new RipplesStack(
-      this,
-      'RipplesStack',
+    const ripplesStack = new RipplesStack(this, 'RipplesStack', {
       ecsCluster,
-      taskExecRoleStack.role,
-      securityGroups['ripples'],
-      runOnlyOnDemandServices,
-      kinesisStack.readUpstreamPerms,
-      kinesisStack.writeDownstreamPerms
-    );
+      executionRole: taskExecRoleStack.role,
+      securityGroup: securityGroups['ripples'],
+      runAsOndemand: runOnlyOnDemandServices || runAllServicesOnDemand,
+      readKinesisUpstreamPerms: kinesisStack.readUpstreamPerms,
+      writeKinesisDownStreamPerms: kinesisStack.writeDownstreamPerms
+    });
     ripplesStack.addDependency(kinesisStack);
 
-    const ingestStack = new IngestStack(
-      this,
-      'IngestStack',
+    const ingestStack = new IngestStack(this, 'IngestStack', {
       ecsCluster,
-      taskExecRoleStack.role,
-      securityGroups['ingest'],
-      kinesisStack.writeUpstreamPerms
-    );
+      executionRole: taskExecRoleStack.role,
+      securityGroup: securityGroups['ingest'],
+      writeKinesisUpstreamPerms: kinesisStack.writeUpstreamPerms
+    });
     ingestStack.addDependency(kinesisStack);
     if (gatherStack) ingestStack.addDependency(gatherStack);
 
@@ -111,10 +112,10 @@ export class ServicesStack extends cdk.Stack {
     dashboardStack.addDependency(backendStack);
     */
 
-    if (autoTearDownNotDenied) {
+    if (!autoTearDownDenied) {
       new AutoTeardownStack(this, 'Teardown', {
         targetStackName: cdk.Stack.of(this).stackName,
-        targetStackArn: cdk.Stack.of(this).stackId,
+        targetStackArn: cdk.Stack.of(this).stackId
       });
     }
   }

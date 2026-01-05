@@ -8,17 +8,18 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
+export type InfluxDbStackProps = cdk.NestedStackProps & {
+  vpc: ec2.Vpc;
+  ecsCluster: ecs.Cluster;
+  bastionSecurityGroup: ec2.SecurityGroup;
+  connectingServiceSGs: { id: string; sg: ec2.SecurityGroup }[];
+};
+
 export class InfluxDbStack extends cdk.NestedStack {
-  constructor(
-    scope: Construct,
-    id: string,
-    vpc: ec2.Vpc,
-    ecsCluster: ecs.Cluster,
-    bastionSecurityGroup: ec2.SecurityGroup,
-    connectingServiceSGs: { id: string; sg: ec2.SecurityGroup }[],
-    props?: cdk.NestedStackProps
-  ) {
+  constructor(scope: Construct, id: string, props: InfluxDbStackProps) {
     super(scope, id, props);
+
+    const { vpc, ecsCluster, bastionSecurityGroup, connectingServiceSGs } = props;
 
     const influxDbPort = Number(process.env.INFLUXDB_SERVER_PORT ?? '8086');
 

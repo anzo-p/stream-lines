@@ -2,15 +2,16 @@ import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { Construct } from 'constructs';
 
+export type JumpBastionStackProps = cdk.NestedStackProps & {
+  vpc: ec2.Vpc;
+  bastionSecurityGroup: ec2.SecurityGroup;
+};
+
 export class JumpBastionStack extends cdk.NestedStack {
-  constructor(
-    scope: Construct,
-    id: string,
-    vpc: ec2.Vpc,
-    bastionSecurityGroup: ec2.SecurityGroup,
-    props?: cdk.NestedStackProps
-  ) {
+  constructor(scope: Construct, id: string, props: JumpBastionStackProps) {
     super(scope, id, props);
+
+    const { vpc, bastionSecurityGroup } = props;
 
     bastionSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22), 'SSH access into Bastion');
 

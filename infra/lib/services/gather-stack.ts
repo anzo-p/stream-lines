@@ -10,18 +10,28 @@ import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
+export type GatherStackProps = cdk.NestedStackProps & {
+  ecsCluster: ecs.Cluster;
+  executionRole: iam.Role;
+  securityGroup: ec2.SecurityGroup;
+  runAsOndemand: boolean;
+  bastionSecurityGroup: ec2.SecurityGroup;
+  connectingServiceSGs: { id: string; sg: ec2.SecurityGroup }[];
+  teardownTag?: string;
+};
+
 export class GatherStack extends cdk.NestedStack {
-  constructor(
-    scope: Construct,
-    id: string,
-    ecsCluster: ecs.Cluster,
-    executionRole: iam.Role,
-    securityGroup: ec2.SecurityGroup,
-    bastionSecurityGroup: ec2.SecurityGroup,
-    connectingServiceSGs: { id: string; sg: ec2.SecurityGroup }[],
-    props?: cdk.StackProps
-  ) {
+  constructor(scope: Construct, id: string, props: GatherStackProps) {
     super(scope, id, props);
+
+    const {
+      ecsCluster,
+      executionRole,
+      securityGroup,
+      runAsOndemand = false,
+      bastionSecurityGroup,
+      connectingServiceSGs
+    } = props;
 
     const gatherPort = Number(process.env.GATHER_SERVER_PORT ?? '8080');
 
@@ -97,12 +107,9 @@ export class GatherStack extends cdk.NestedStack {
       securityGroups: [securityGroup],
       desiredCount: 1,
       assignPublicIp: false,
-      capacityProviderStrategies: [
-        {
-          capacityProvider: 'FARGATE_SPOT',
-          weight: 1
-        }
-      ],
+      capacityProviderStrategies: runAsOndemand
+        ? [{ capacityProvider: 'FARGATE', weight: 1 }]
+        : [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }],
       cloudMapOptions: {
         name: 'gather',
         dnsTtl: cdk.Duration.seconds(30),

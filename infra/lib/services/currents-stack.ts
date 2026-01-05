@@ -8,16 +8,18 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
+export type CurrentsStackProps = cdk.NestedStackProps & {
+  ecsCluster: ecs.Cluster;
+  executionRole: iam.Role;
+  securityGroup: ec2.SecurityGroup;
+  runAsOndemand: boolean;
+};
+
 export class CurrentsStack extends cdk.NestedStack {
-  constructor(
-    scope: Construct,
-    id: string,
-    ecsCluster: ecs.Cluster,
-    executionRole: iam.Role,
-    securityGroup: ec2.SecurityGroup,
-    props?: cdk.StackProps
-  ) {
+  constructor(scope: Construct, id: string, props: CurrentsStackProps) {
     super(scope, id, props);
+
+    const { ecsCluster, executionRole, securityGroup, runAsOndemand = false } = props;
 
     const taskRole = new iam.Role(this, 'CurrentsTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
@@ -89,12 +91,9 @@ export class CurrentsStack extends cdk.NestedStack {
       securityGroups: [securityGroup],
       desiredCount: 1,
       assignPublicIp: false,
-      capacityProviderStrategies: [
-        {
-          capacityProvider: 'FARGATE_SPOT',
-          weight: 1
-        }
-      ]
+      capacityProviderStrategies: runAsOndemand
+        ? [{ capacityProvider: 'FARGATE', weight: 1 }]
+        : [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }]
     });
   }
 }

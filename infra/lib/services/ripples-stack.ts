@@ -7,19 +7,27 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
+export type RipplesStackProps = cdk.StackProps & {
+  ecsCluster: ecs.Cluster;
+  executionRole: iam.Role;
+  securityGroup: ec2.SecurityGroup;
+  runAsOndemand?: boolean;
+  readKinesisUpstreamPerms: iam.PolicyStatement;
+  writeKinesisDownStreamPerms: iam.PolicyStatement;
+};
+
 export class RipplesStack extends cdk.NestedStack {
-  constructor(
-    scope: Construct,
-    id: string,
-    ecsCluster: ecs.Cluster,
-    executionRole: iam.Role,
-    securityGroup: ec2.SecurityGroup,
-    onDemandPricing: boolean = false,
-    readKinesisUpstreamPerms: iam.PolicyStatement,
-    writeKinesisDownStreamPerms: iam.PolicyStatement,
-    props?: cdk.StackProps
-  ) {
+  constructor(scope: Construct, id: string, props: RipplesStackProps) {
     super(scope, id, props);
+
+    const {
+      ecsCluster,
+      executionRole,
+      securityGroup,
+      runAsOndemand = false,
+      readKinesisUpstreamPerms,
+      writeKinesisDownStreamPerms
+    } = props;
 
     const taskRole = new iam.Role(this, 'TaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
@@ -89,7 +97,7 @@ export class RipplesStack extends cdk.NestedStack {
       securityGroups: [securityGroup],
       desiredCount: 1,
       assignPublicIp: false,
-      capacityProviderStrategies: onDemandPricing
+      capacityProviderStrategies: runAsOndemand
         ? [{ capacityProvider: 'FARGATE', weight: 1 }]
         : [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }]
     });

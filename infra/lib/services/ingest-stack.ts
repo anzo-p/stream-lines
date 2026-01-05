@@ -8,17 +8,18 @@ import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
+export type IngestStackProps = cdk.NestedStackProps & {
+  ecsCluster: ecs.Cluster;
+  executionRole: iam.Role;
+  securityGroup: ec2.SecurityGroup;
+  writeKinesisUpstreamPerms: iam.PolicyStatement;
+};
+
 export class IngestStack extends cdk.NestedStack {
-  constructor(
-    scope: Construct,
-    id: string,
-    ecsCluster: ecs.Cluster,
-    executionRole: iam.Role,
-    securityGroup: ec2.SecurityGroup,
-    writeKinesisUpstreamPerms: iam.PolicyStatement,
-    props?: cdk.StackProps
-  ) {
+  constructor(scope: Construct, id: string, props: IngestStackProps) {
     super(scope, id, props);
+
+    const { ecsCluster, executionRole, securityGroup, writeKinesisUpstreamPerms } = props;
 
     securityGroup.addEgressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), 'Allow HTTPS only');
 

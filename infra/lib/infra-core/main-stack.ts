@@ -47,15 +47,16 @@ export class InfraCoreStack extends cdk.Stack {
       })
     );
 
-    new JumpBastionStack(this, 'JumpBastionStack', this.vpc, this.serviceSecurityGroups['bastion']);
+    new JumpBastionStack(this, 'JumpBastionStack', {
+      vpc: this.vpc,
+      bastionSecurityGroup: this.serviceSecurityGroups['bastion']
+    });
 
-    new InfluxDbStack(
-      this,
-      'InfluxDbStack',
-      this.vpc,
-      this.ecsCluster,
-      this.serviceSecurityGroups['bastion'],
-      sgSpecsDbConnServices.map(({ id }) => ({ id, sg: this.serviceSecurityGroups[id] }))
-    );
+    new InfluxDbStack(this, 'InfluxDbStack', {
+      vpc: this.vpc,
+      ecsCluster: this.ecsCluster,
+      bastionSecurityGroup: this.serviceSecurityGroups['bastion'],
+      connectingServiceSGs: sgSpecsDbConnServices.map(({ id }) => ({ id, sg: this.serviceSecurityGroups[id] }))
+    });
   }
 }
