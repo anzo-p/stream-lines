@@ -11,10 +11,12 @@ import org.apache.flink.configuration.Configuration
 import org.apache.flink.util.Collector
 import org.slf4j.Logger
 
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import scala.collection.compat.toTraversableLikeExtensionMethods
 import scala.jdk.CollectionConverters.iterableAsScalaIterableConverter
 
-case class TrendDiscovery(discovered: List[TrendSegment], undecidedTail: DV[MarketData])
+case class TrendDiscovery(discovered: List[TrendSegment], undecidedTail: TrendSegment, tailData: DV[MarketData])
 
 class TrendProcessor(config: TrendConfig, trendDiscoverer: TrendDiscoverer)
     extends RichFlatMapFunction[List[MarketData], List[TrendSegment]]
@@ -80,9 +82,24 @@ class TrendProcessor(config: TrendConfig, trendDiscoverer: TrendDiscoverer)
         DenseVector(newChunk)
     }
 
-    val TrendDiscovery(discovered, tail) = trendDiscoverer.processChunk(data)
-    if (discovered.nonEmpty) out.collect(discovered)
+    val TrendDiscovery(discovered, tail, tailData) = trendDiscoverer.processChunk(data)
 
-    updateState(tail)
+    if (discovered.nonEmpty) {
+      val tooRecent = Instant
+        .now()
+        .minus(config.minimumWindow.toLong, ChronoUnit.DAYS)
+        .toEpochMilli
+
+      out.collect {
+        if (tail.ends > tooRecent) {
+          discovered :+ tail
+        }
+        else {
+          discovered
+        }
+      }
+    }
+
+    updateState(tailData)
   }
 }

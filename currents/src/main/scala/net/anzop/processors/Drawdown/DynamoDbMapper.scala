@@ -4,18 +4,21 @@ import net.anzop.repository.dynamodb.AttribValMapper
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue
 
 protected object DynamoDbMapper {
-  implicit val stateMapper: AttribValMapper[(Long, (Double, Double, Double))] =
-    new AttribValMapper[(Long, (Double, Double, Double))] {
+
+  implicit val stateMapper: AttribValMapper[DrawdownState] =
+    new AttribValMapper[DrawdownState] {
       override def pk: String = "DRAWDOWNSTATE"
 
-      override def fromItem(item: Map[String, AttributeValue]): (Long, (Double, Double, Double)) = (
+      override def fromItem(item: Map[String, AttributeValue]): DrawdownState = DrawdownState(
         item("timestamp").n.toLong,
-        (item("drawdownLow").n.toDouble, item("drawdownAvg").n.toDouble, item("drawdownHigh").n.toDouble)
+        item("drawdownLow").n.toDouble,
+        item("drawdownAvg").n.toDouble,
+        item("drawdownHigh").n.toDouble
       )
 
-      override def toItem(value: (Long, (Double, Double, Double))): Map[String, AttributeValue] =
+      override def toItem(value: DrawdownState): Map[String, AttributeValue] =
         value match {
-          case (ts, (low, avg, high)) =>
+          case DrawdownState(ts, low, avg, high) =>
             baseAttribs() + (
               "timestamp"    -> AttributeValue.builder().n(ts.toString).build(),
               "drawdownLow"  -> AttributeValue.builder().n(low.toString).build(),
@@ -24,6 +27,6 @@ protected object DynamoDbMapper {
             )
         }
 
-      override def toGetKey(value: (Long, (Double, Double, Double))): Map[String, AttributeValue] = ???
+      override def toGetKey(value: DrawdownState): Map[String, AttributeValue] = ???
     }
 }

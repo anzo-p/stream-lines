@@ -6,13 +6,19 @@ import net.anzop.helpers.LinearRegression
 import net.anzop.helpers.StatisticsHelpers.{linearRegression, tippingPoint}
 import net.anzop.models.MarketData
 import net.anzop.models.Types.DV
+import org.slf4j.Logger
 
 import scala.annotation.tailrec
 
 class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
   final private case class TrendSegmentConfirmation(segment: TrendSegment, tippingElementAtTailSegment: Int)
 
+  private val logger: Logger = org.slf4j.LoggerFactory.getLogger(getClass)
+
   private val minimumSegmentAndTail: Int = 2 * trendConfig.minimumWindow
+
+  private def isInsufficient(data: DV[MarketData]): Boolean =
+    data.length < minimumSegmentAndTail
 
   private def createSegment(
       window: DV[MarketData],
@@ -64,15 +70,16 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
   }
 
   @tailrec
-  private def processChunk(
+  private def runDiscoveryLoop(
       currentWindow: DV[MarketData],
       remainingData: DV[MarketData],
       discoveredTrend: List[TrendSegment]
     ): TrendDiscovery =
-    if (remainingData.length < minimumSegmentAndTail) {
+    if (isInsufficient(remainingData)) {
       TrendDiscovery(
         discovered    = discoveredTrend,
-        undecidedTail = DenseVector.vertcat(currentWindow, remainingData)
+        undecidedTail = TrendSegment.makeTail(remainingData),
+        tailData      = DenseVector.vertcat(currentWindow, remainingData)
       )
     }
     else {
@@ -80,26 +87,32 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
       val taiSegmentStart           = incWindow.length - trendConfig.minimumWindow
       val tailSegment               = incWindow(taiSegmentStart until incWindow.length)
 
-      val (maybeTrendSegment, updatedWindow, updatedRemaining) =
-        discover(incWindow, tailSegment, decRemaining)
+      val (maybeTrendSegment, updatedWindow, updatedRemaining) = discover(incWindow, tailSegment, decRemaining)
 
       val updatedTrend = maybeTrendSegment match {
         case Some(trendSegment) => discoveredTrend :+ trendSegment
         case None               => discoveredTrend
       }
 
-      processChunk(updatedWindow, updatedRemaining, updatedTrend)
+      runDiscoveryLoop(updatedWindow, updatedRemaining, updatedTrend)
     }
 
-  def processChunk(dataChunk: DV[MarketData]): TrendDiscovery =
-    if (dataChunk.length < minimumSegmentAndTail) {
-      TrendDiscovery(List(), dataChunk)
+  def processChunk(dataChunk: DV[MarketData]): TrendDiscovery = {
+    if (isInsufficient(dataChunk)) {
+      logger.warn(s"Trend - Insufficient data to discover trends, data chunk length: ${dataChunk.length}")
+
+      TrendDiscovery(
+        discovered    = List(),
+        undecidedTail = TrendSegment.makeTail(dataChunk),
+        tailData      = dataChunk
+      )
     }
     else {
-      processChunk(
+      runDiscoveryLoop(
         currentWindow   = dataChunk(0 until trendConfig.minimumWindow - 1),
         remainingData   = dataChunk(trendConfig.minimumWindow until dataChunk.length),
         discoveredTrend = List()
       )
     }
+  }
 }

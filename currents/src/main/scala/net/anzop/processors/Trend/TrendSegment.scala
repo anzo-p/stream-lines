@@ -1,12 +1,16 @@
 package net.anzop.processors.Trend
 
+import net.anzop.helpers.StatisticsHelpers.linearRegression
 import net.anzop.helpers.{DateAndTimeHelpers, LinearRegression}
+import net.anzop.models.MarketData
+import net.anzop.models.Types.DV
 import net.anzop.sinks.influxdb.InfluxSerializable
 
 import java.time.{Duration, Instant}
 
 case class TrendSegment(
     timestamp: Long,
+    open: Boolean,
     begins: Long,
     ends: Long,
     growth: Double,
@@ -19,6 +23,7 @@ case class TrendSegment(
 
   override def fields: Map[String, Any] =
     Map(
+      "open"                 -> open,
       "begins"               -> begins,
       "ends"                 -> ends,
       "growth"               -> growth,
@@ -32,6 +37,7 @@ case class TrendSegment(
 
   override def toString: String =
     s"""TrendSegment(
+       |open: $open,
        |begins: ${DateAndTimeHelpers.epochToStringDate(begins)},
        |ends: ${DateAndTimeHelpers.epochToStringDate(ends)},
        |growth: $growth,
@@ -43,7 +49,12 @@ case class TrendSegment(
 
 object TrendSegment {
 
-  def make(begins: Long, ends: Long, linearRegression: LinearRegression): TrendSegment = {
+  def make(
+      begins: Long,
+      ends: Long,
+      linearRegression: LinearRegression,
+      open: Boolean = false
+    ): TrendSegment = {
     val days = Duration
       .between(
         Instant.ofEpochMilli(begins),
@@ -52,7 +63,8 @@ object TrendSegment {
       .toDays
 
     TrendSegment(
-      timestamp           = ends, // a trend (segment) is established at its ending date as a new one begins
+      timestamp           = ends,
+      open                = open,
       begins              = begins,
       ends                = ends,
       growth              = linearRegression.slope * days,
@@ -61,4 +73,13 @@ object TrendSegment {
       regressionVariance  = linearRegression.variance
     )
   }
+
+  def makeTail(data: DV[MarketData]): TrendSegment =
+    make(
+      open             = true,
+      begins           = data(0).timestamp,
+      ends             = data(data.length - 1).timestamp,
+      linearRegression = linearRegression(data.map(_.priceChangeAvg))
+    )
+
 }

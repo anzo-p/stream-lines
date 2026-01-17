@@ -2,8 +2,8 @@ package net.anzop.processors.Drawdown
 
 import net.anzop.helpers.DateAndTimeHelpers.isBeforeToday
 import net.anzop.models.MarketData
-import net.anzop.processors.Drawdown.DynamoDbMapper._
 import net.anzop.processors.AutoResettingProcessor
+import net.anzop.processors.Drawdown.DynamoDbMapper._
 import net.anzop.repository.dynamodb.DynamoDb
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.configuration.Configuration
@@ -13,22 +13,30 @@ import org.slf4j.Logger
 
 import scala.util.chaining._
 
+case class DrawdownState(
+    timestamp: Long,
+    drawdownLow: Double,
+    drawdownAvg: Double,
+    drawdownHigh: Double
+  )
+
 class DrawdownProcessor(config: DrawdownConfig)
     extends KeyedProcessFunction[String, MarketData, Drawdown]
     with AutoResettingProcessor {
 
   private val logger: Logger = org.slf4j.LoggerFactory.getLogger(getClass)
 
-  private var maxValuesState: ValueState[(Long, (Double, Double, Double))] = _
-  private var timerState: ValueState[Long]                                 = _
-  private val initState: (Long, (Double, Double, Double))                  = (0L, (0.0, 0.0, 0.0))
-  private val saveDelay: Long                                              = 15 * 1000L
+  private var maxValuesState: ValueState[DrawdownState] = _
+  private var timerState: ValueState[Long]              = _
+  private val initState: DrawdownState                  = DrawdownState(0L, 0.0, 0.0, 0.0)
+  private val saveDelay: Long                           = 15 * 1000L
 
-  private def resolveState(): (Long, (Double, Double, Double)) =
+  private def resolveState(): DrawdownState =
     Option(maxValuesState.value()) match {
       case Some(state) => state
       case None =>
         DynamoDb.getSingle match {
+          // TODO check if rocksdb already maintains this and the whole manual DynamoDB persistence is redundant
           case Some(state) =>
             logger.info(s"Drawdown - Restoring state from DynamoDB: $state")
             state
@@ -47,9 +55,7 @@ class DrawdownProcessor(config: DrawdownConfig)
 
   override def open(parameters: Configuration): Unit = {
     maxValuesState = getRuntimeContext.getState(
-      new ValueStateDescriptor[(Long, (Double, Double, Double))](
-        "maxValueState",
-        classOf[(Long, (Double, Double, Double))])
+      new ValueStateDescriptor[DrawdownState]("maxValueState", classOf[DrawdownState])
     )
     timerState = getRuntimeContext.getState(
       new ValueStateDescriptor[Long]("timerState", classOf[Long])
@@ -61,7 +67,7 @@ class DrawdownProcessor(config: DrawdownConfig)
       ctx: KeyedProcessFunction[String, MarketData, Drawdown]#Context,
       out: Collector[Drawdown]
     ): Unit = {
-    val (lastTs, (highestLow, highestAvg, highestHigh)) =
+    val state =
       if (autoResetState(elem.timestamp)) {
         logger.info(s"Drawdown - Data indicates reset; clearing state")
         initState
@@ -70,18 +76,17 @@ class DrawdownProcessor(config: DrawdownConfig)
         resolveState().tap(maxValuesState.update)
       }
 
-    if (lastTs > initState._1 && elem.timestamp <= lastTs) {
-      logger.info(s"Drawdown - Skipping out-of-order event: $elem (latest timestamp: $lastTs)")
+    if (state.timestamp > initState.timestamp && elem.timestamp <= state.timestamp) {
+      logger.info(s"Drawdown - Skipping out-of-order event: $elem (latest timestamp: ${state.timestamp})")
       return
     }
 
-    val highestLowUpdate  = Math.max(highestLow, elem.priceChangeLow)
-    val highestAvgUpdate  = Math.max(highestAvg, elem.priceChangeAvg)
-    val highestHighUpdate = Math.max(highestHigh, elem.priceChangeHigh)
+    val highestLowUpdate  = Math.max(state.drawdownLow, elem.priceChangeLow)
+    val highestAvgUpdate  = Math.max(state.drawdownAvg, elem.priceChangeAvg)
+    val highestHighUpdate = Math.max(state.drawdownHigh, elem.priceChangeHigh)
 
     if (isBeforeToday(elem.timestamp)) {
-      val state = elem.timestamp -> (highestLowUpdate, highestAvgUpdate, highestHighUpdate)
-      maxValuesState.update(state)
+      maxValuesState.update(DrawdownState(elem.timestamp, highestLowUpdate, highestAvgUpdate, highestHighUpdate))
 
       Option(timerState.value()).foreach(ctx.timerService().deleteProcessingTimeTimer)
 

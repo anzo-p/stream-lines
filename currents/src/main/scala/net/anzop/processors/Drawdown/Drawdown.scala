@@ -35,7 +35,7 @@ case class Drawdown(
        |priceChangeAvg: $priceChangeAvg,
        |priceChangeHigh: $priceChangeHigh,
        |drawdownLow: $drawdownLow,
-       |drawdownAvg: $drawdownAvg
-       |drawdownHigh: $drawdownHigh),
+       |drawdownAvg: $drawdownAvg,
+       |drawdownHigh: $drawdownHigh
        |""".stripMargin
 }
