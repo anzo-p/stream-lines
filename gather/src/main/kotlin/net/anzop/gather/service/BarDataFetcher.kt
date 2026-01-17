@@ -129,7 +129,7 @@ class BarDataFetcher(
         val bars = barEntries
             .mapNotNull { entry ->
                 runCatching {
-                    entry.toModel(Measurement.SECURITIES_DAILY_BARS_RAW, params)
+                    entry.toModel(Measurement.SECURITIES_SEMI_HOURLY_BARS_RAW, params)
                 }.onFailure {
                     logger.warn("Validation failed for ${params.marketData.ticker} bar data: ${it.message}")
                 }.getOrNull()

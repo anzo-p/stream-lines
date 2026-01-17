@@ -33,7 +33,7 @@ class IndexProcessor(
 
     fun run() =
         try {
-            process(Measurement.INDEX_DAILY_CHANGE_REGULAR_HOURS)
+            Measurement.indexMeasurements.forEach(::process)
             //marketDataFacade.saveAsync(asyncRecordsToInsert)
         } catch (e: Exception) {
             logger.error("IndexProcessor failed", e)

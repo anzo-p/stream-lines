@@ -70,7 +70,7 @@ curl -X POST \
   -d '{
     "start": "YYYY-MM-DDTHH:MM:SSZ",
     "stop":  "YYYY-MM-DDTHH:MM:SSZ",
-    "predicate": "_measurement=\"<measurement>\""
+    "predicate": "_measurement=\"<measurement>\"AND ticker=<ticker>"
   }'
 ```
 REST API Commands works also through SSH port forwarding, when connecting to InfluxDB through a Jump Bastion.  

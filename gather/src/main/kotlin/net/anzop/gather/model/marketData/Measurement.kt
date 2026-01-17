@@ -5,6 +5,10 @@ enum class Measurement(val code: String, val description: String) {
         "securities-daily-bars-raw",
         "Market data one day bars for individual securities"
     ),
+    SECURITIES_SEMI_HOURLY_BARS_RAW(
+        "securities-semi-hourly-bars-raw",
+        "Market data in bars of 30 minutes, including extended hours"
+    ),
     SECURITIES_DAILY_CHANGE_REGULAR_HOURS(
         "securities-daily-change-regular-hours",
         "Current prices compared to introduction day prices during regular trading hours " +
@@ -26,8 +30,8 @@ enum class Measurement(val code: String, val description: String) {
 
     fun regularHours() =
         when (this) {
-            INDEX_DAILY_CHANGE_EXTENDED_HOURS -> true
-            INDEX_DAILY_CHANGE_REGULAR_HOURS -> false
+            INDEX_DAILY_CHANGE_EXTENDED_HOURS -> false
+            INDEX_DAILY_CHANGE_REGULAR_HOURS -> true
             else -> throw IllegalArgumentException("Measurement: ${this.code} does not have assigned securities measurement")
         }
 

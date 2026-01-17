@@ -1,5 +1,5 @@
 alpaca:
-  bar_data_time_frame: 1day
+  bar_data_time_frame: 30min
   daily_bars_url: "https://data.alpaca.markets/v2/stocks/bars"
   data_source: sip
   earliest_historical_date: 2016-01-02

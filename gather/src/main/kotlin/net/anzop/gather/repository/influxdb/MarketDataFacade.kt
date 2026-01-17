@@ -24,19 +24,16 @@ class MarketDataFacade (
     fun <T> saveAsync(entities: List<T>) =
         marketDataRepository.saveAsync(entities)
 
-    fun deleteBarData(ticker: String, since: Instant) =
-        marketDataRepository.deleteBarData(ticker, since)
-
     fun getEarliestSourceBarDataEntry(ticker: String): Instant? =
         marketDataRepository.getFirstMeasurementTime(
-            measurement = Measurement.SECURITIES_DAILY_BARS_RAW,
+            measurement = Measurement.SECURITIES_SEMI_HOURLY_BARS_RAW,
             ticker = ticker
         )
 
     fun getLatestSourceBarDataEntry(ticker: String): Instant? =
         listOf(false, true).mapNotNull {
             marketDataRepository.getLatestMeasurementTime(
-                measurement = Measurement.SECURITIES_DAILY_BARS_RAW,
+                measurement = Measurement.SECURITIES_SEMI_HOURLY_BARS_RAW,
                 ticker = ticker,
                 regularTradingHours = it
             )
@@ -56,7 +53,7 @@ class MarketDataFacade (
         val (from, til) = nyseTradingHoursOr24h(date, onlyRegularTradingHours) ?: return emptyList()
 
         return getMeasurements(
-            measurement = Measurement.SECURITIES_DAILY_BARS_RAW,
+            measurement = Measurement.SECURITIES_SEMI_HOURLY_BARS_RAW,
             from = from,
             til = til,
             ticker = ticker,

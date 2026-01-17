@@ -7,7 +7,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withTimeoutOrNull
 import net.anzop.gather.config.AlpacaProps
 import net.anzop.gather.config.SourceDataConfig
-import net.anzop.gather.repository.influxdb.MarketDataFacade
 import net.anzop.gather.service.BarDataFetcher
 import net.anzop.gather.service.FinancialsFetcher
 import net.anzop.gather.service.IndexProcessor
@@ -21,7 +20,6 @@ class AppRunner(
     private val barDataFetcher: BarDataFetcher,
     private val indexProcessor: IndexProcessor,
     private val financialsFetcher: FinancialsFetcher,
-    private val marketDataFacade: MarketDataFacade,
 ) {
     private val logger = LoggerFactory.getLogger(AppRunner::class.java)
 
@@ -50,9 +48,6 @@ class AppRunner(
                 val timeoutMinutes = alpacaProps.maxExecDurationMinutes.minutes.plus(1.minutes)
                 withTimeoutOrNull(timeoutMinutes) {
                     when (command) {
-                        is DeleteMarketData ->
-                            marketDataFacade.deleteBarData(command.ticker, command.since)
-
                         is FetchFinancials ->
                             SourceDataConfig
                                 .resolve(command.ticker)
