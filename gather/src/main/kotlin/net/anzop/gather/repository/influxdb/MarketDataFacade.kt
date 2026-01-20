@@ -31,13 +31,10 @@ class MarketDataFacade (
         )
 
     fun getLatestSourceBarDataEntry(ticker: String): Instant? =
-        listOf(false, true).mapNotNull {
-            marketDataRepository.getLatestMeasurementTime(
-                measurement = Measurement.SECURITIES_SEMI_HOURLY_BARS_RAW,
-                ticker = ticker,
-                regularTradingHours = it
-            )
-        }.maxOrNull()
+        marketDataRepository.getLatestMeasurementTime(
+            measurement = Measurement.SECURITIES_SEMI_HOURLY_BARS_RAW,
+            ticker = ticker,
+        )
 
     fun getLatestIndexEntry(measurement: Measurement): Instant? =
         marketDataRepository.getLatestMeasurementTime(

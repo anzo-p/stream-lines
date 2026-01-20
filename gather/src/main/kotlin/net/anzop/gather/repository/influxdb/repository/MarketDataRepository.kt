@@ -83,20 +83,14 @@ class MarketDataRepository (
         measurement: Measurement,
         ticker: String,
         earlierThan: Instant? = null,
-        regularTradingHours: Boolean? = true,
-    ): Instant? {
-        val baseQ = baseFlux(
-            measurement = measurement,
-            ticker = ticker,
-            stop = earlierThan
-        ).max("_time")
-
-        val q = regularTradingHours?.let {
-            baseQ.filter(Restrictions.tag("regularTradingHours").equal(it.toString()))
-        } ?: baseQ
-
-        return queryForTimestamp(q)
-    }
+    ): Instant? =
+        queryForTimestamp(
+            baseFlux(
+                measurement = measurement,
+                ticker = ticker,
+                stop = earlierThan
+            ).max("_time")
+        )
 
     fun <T> save(entities: List<T>) =
         influxDBClient.takeIf { entities.isNotEmpty() }
