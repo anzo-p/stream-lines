@@ -1,11 +1,12 @@
 import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import { EcsClusterStack } from './ecs-cluster-stack';
 import { InfluxDbStack } from './influxdb-ec2-stack';
+import { BastionStack } from './bastion-stack';
 import { InterfaceEndpointsStack } from './endpoints-stack';
-import { JumpBastionStack } from './jump-bastion-stack';
 import { VpcStack } from './vpc-stack';
 
 export class InfraCoreStack extends cdk.Stack {
@@ -28,8 +29,8 @@ export class InfraCoreStack extends cdk.Stack {
 
     const sgSpecsDbConnServices = [
       { id: 'currents', name: 'CurrentsSecurityGroup' },
-      { id: 'ripples', name: 'RipplesSecurityGroup' },
-      { id: 'gather', name: 'GatherSecurityGroup' }
+      { id: 'gather', name: 'GatherSecurityGroup' },
+      { id: 'ripples', name: 'RipplesSecurityGroup' }
     ];
 
     const sgSpecsOtherServices = [
@@ -47,16 +48,28 @@ export class InfraCoreStack extends cdk.Stack {
       })
     );
 
-    new JumpBastionStack(this, 'JumpBastionStack', {
-      vpc: this.vpc,
-      bastionSecurityGroup: this.serviceSecurityGroups['bastion']
+    const ssmRole = new iam.Role(this, 'Ec2SsmRole', {
+      assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com')
+    });
+
+    ['AmazonEC2ContainerRegistryReadOnly', 'AmazonSSMManagedInstanceCore', 'CloudWatchAgentServerPolicy'].forEach(
+      (policyName) => {
+        ssmRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName(policyName));
+      }
+    );
+
+    new BastionStack(this, 'BastionStack', {
+      bastionSecurityGroup: this.serviceSecurityGroups['bastion'],
+      ssmRole,
+      vpc: this.vpc
     });
 
     new InfluxDbStack(this, 'InfluxDbStack', {
-      vpc: this.vpc,
-      ecsCluster: this.ecsCluster,
       bastionSecurityGroup: this.serviceSecurityGroups['bastion'],
-      connectingServiceSGs: sgSpecsDbConnServices.map(({ id }) => ({ id, sg: this.serviceSecurityGroups[id] }))
+      connectingServiceSGs: sgSpecsDbConnServices.map(({ id }) => ({ id, sg: this.serviceSecurityGroups[id] })),
+      ecsCluster: this.ecsCluster,
+      ssmRole,
+      vpc: this.vpc
     });
   }
 }

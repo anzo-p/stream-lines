@@ -11,15 +11,15 @@ export class NatGatewayStack extends cdk.NestedStack {
     });
 
     const natGateway = new ec2.CfnNatGateway(this, 'NatGateway', {
-      subnetId: vpc.publicSubnets[0].subnetId,
-      allocationId: natEip.attrAllocationId
+      allocationId: natEip.attrAllocationId,
+      subnetId: vpc.publicSubnets[0].subnetId
     });
 
     for (const subnet of vpc.privateSubnets) {
       new ec2.CfnRoute(this, `NatRoute${subnet.node.id}`, {
-        routeTableId: subnet.routeTable.routeTableId,
         destinationCidrBlock: '0.0.0.0/0',
-        natGatewayId: natGateway.ref
+        natGatewayId: natGateway.ref,
+        routeTableId: subnet.routeTable.routeTableId
       });
     }
   }

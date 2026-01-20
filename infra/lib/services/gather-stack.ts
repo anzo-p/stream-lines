@@ -11,12 +11,13 @@ import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type GatherStackProps = cdk.NestedStackProps & {
-  ecsCluster: ecs.Cluster;
-  executionRole: iam.Role;
-  securityGroup: ec2.SecurityGroup;
-  runAsOndemand: boolean;
   bastionSecurityGroup: ec2.SecurityGroup;
   connectingServiceSGs: { id: string; sg: ec2.SecurityGroup }[];
+  desiredCount: number;
+  ecsCluster: ecs.Cluster;
+  executionRole: iam.Role;
+  runAsOndemand: boolean;
+  securityGroup: ec2.SecurityGroup;
   teardownTag?: string;
 };
 
@@ -25,12 +26,13 @@ export class GatherStack extends cdk.NestedStack {
     super(scope, id, props);
 
     const {
+      bastionSecurityGroup,
+      connectingServiceSGs,
+      desiredCount,
       ecsCluster,
       executionRole,
-      securityGroup,
       runAsOndemand = false,
-      bastionSecurityGroup,
-      connectingServiceSGs
+      securityGroup
     } = props;
 
     const gatherPort = Number(process.env.GATHER_SERVER_PORT ?? '8080');
@@ -61,34 +63,32 @@ export class GatherStack extends cdk.NestedStack {
     table.grantReadWriteData(taskRole);
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'GatherTaskDefinition', {
-      family: 'GatherTaskDefinition',
+      cpu: 512,
       executionRole,
-      taskRole,
+      family: 'GatherTaskDefinition',
       runtimePlatform: {
-        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
-        cpuArchitecture: ecs.CpuArchitecture.ARM64
+        cpuArchitecture: ecs.CpuArchitecture.ARM64,
+        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX
       },
       memoryLimitMiB: 1024,
-      cpu: 512
+      taskRole
     });
 
     const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-gather');
 
     const logGroup = new logs.LogGroup(this, 'GatherLogGroup', {
-      retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY
+      removalPolicy: RemovalPolicy.DESTROY,
+      retention: logs.RetentionDays.ONE_WEEK
     });
 
     const logging = ecs.LogDrivers.awsLogs({
-      streamPrefix: 'gather',
-      logGroup: logGroup
+      logGroup: logGroup,
+      streamPrefix: 'gather'
     });
 
     taskDefinition.addContainer('GatherContainer', {
-      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: gatherPort }],
-      memoryLimitMiB: 1024,
       cpu: 512,
+      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       environment: {
         GATHER_DYNAMODB_TABLE_NAME: `${process.env.GATHER_DYNAMODB_TABLE_NAME}`,
         INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
@@ -97,15 +97,12 @@ export class GatherStack extends cdk.NestedStack {
         INFLUXDB_URL: `${process.env.INFLUXDB_URL}`,
         SPRING_PROFILES_ACTIVE: `${process.env.GATHER_SPRING_PROFILES_ACTIVE}`
       },
-      logging
+      logging,
+      memoryLimitMiB: 1024,
+      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: gatherPort }]
     });
 
     new ecs.FargateService(this, 'GatherEcsService', {
-      cluster: ecsCluster,
-      taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-      securityGroups: [securityGroup],
-      desiredCount: 1,
       assignPublicIp: false,
       capacityProviderStrategies: runAsOndemand
         ? [{ capacityProvider: 'FARGATE', weight: 1 }]
@@ -114,7 +111,12 @@ export class GatherStack extends cdk.NestedStack {
         name: 'gather',
         dnsTtl: cdk.Duration.seconds(30),
         dnsRecordType: servicediscovery.DnsRecordType.A
-      }
+      },
+      cluster: ecsCluster,
+      desiredCount,
+      securityGroups: [securityGroup],
+      taskDefinition,
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }
     });
   }
 }

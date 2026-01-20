@@ -10,6 +10,7 @@ export class VpcStack extends cdk.NestedStack {
 
     this.vpc = new ec2.Vpc(this, 'StreamLinesVpc', {
       availabilityZones: ['eu-north-1a'],
+      natGateways: 0, // only provision upon need in services stack
       subnetConfiguration: [
         {
           name: 'public',
@@ -23,8 +24,7 @@ export class VpcStack extends cdk.NestedStack {
           name: 'isolated',
           subnetType: ec2.SubnetType.PRIVATE_ISOLATED
         }
-      ],
-      natGateways: 0 // only provision upon need in services stack
+      ]
     });
 
     [

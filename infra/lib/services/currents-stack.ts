@@ -9,6 +9,7 @@ import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type CurrentsStackProps = cdk.NestedStackProps & {
+  desiredCount: number;
   ecsCluster: ecs.Cluster;
   executionRole: iam.Role;
   securityGroup: ec2.SecurityGroup;
@@ -19,7 +20,7 @@ export class CurrentsStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: CurrentsStackProps) {
     super(scope, id, props);
 
-    const { ecsCluster, executionRole, securityGroup, runAsOndemand = false } = props;
+    const { desiredCount, ecsCluster, executionRole, securityGroup, runAsOndemand = false } = props;
 
     const taskRole = new iam.Role(this, 'CurrentsTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
@@ -27,8 +28,8 @@ export class CurrentsStack extends cdk.NestedStack {
 
     taskRole.addToPolicy(
       new iam.PolicyStatement({
-        effect: iam.Effect.ALLOW,
         actions: ['s3:DeleteObject', 's3:GetObject', 's3:ListBucket', 's3:PutObject'],
+        effect: iam.Effect.ALLOW,
         resources: [`arn:aws:s3:::${process.env.S3_APP_BUCKET}`, `arn:aws:s3:::${process.env.S3_APP_BUCKET}/*`]
       })
     );
@@ -38,33 +39,32 @@ export class CurrentsStack extends cdk.NestedStack {
     table.grantReadWriteData(taskRole);
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'CurrentsTaskDefinition', {
-      family: 'CurrentsTaskDefinition',
+      cpu: 512,
       executionRole,
-      taskRole,
+      family: 'CurrentsTaskDefinition',
+      memoryLimitMiB: 1024,
       runtimePlatform: {
         operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
         cpuArchitecture: ecs.CpuArchitecture.ARM64
       },
-      memoryLimitMiB: 1024,
-      cpu: 512
+      taskRole
     });
 
     const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-currents');
 
     const logGroup = new logs.LogGroup(this, 'CurrentsLogGroup', {
-      retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY
+      removalPolicy: RemovalPolicy.DESTROY,
+      retention: logs.RetentionDays.ONE_WEEK
     });
 
     const logging = ecs.LogDrivers.awsLogs({
-      streamPrefix: 'currents',
-      logGroup: logGroup
+      logGroup: logGroup,
+      streamPrefix: 'currents'
     });
 
     taskDefinition.addContainer('CurrentsContainer', {
-      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      memoryLimitMiB: 1024,
       cpu: 512,
+      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       environment: {
         CHECKPOINT_PATH: `${process.env.FLINK_CHECKPOINTS_CURRENTS},`,
         CURRENTS_DYNAMODB_TABLE_NAME: `${process.env.CURRENTS_DYNAMODB_TABLE_NAME}`,
@@ -81,19 +81,20 @@ export class CurrentsStack extends cdk.NestedStack {
           '--add-opens=java.base/java.util=ALL-UNNAMED'
         ].join(' ')
       },
-      logging
+      logging,
+      memoryLimitMiB: 1024
     });
 
     new ecs.FargateService(this, 'CCurrentsEcsService', {
-      cluster: ecsCluster,
-      taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-      securityGroups: [securityGroup],
-      desiredCount: 1,
       assignPublicIp: false,
       capacityProviderStrategies: runAsOndemand
         ? [{ capacityProvider: 'FARGATE', weight: 1 }]
-        : [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }]
+        : [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }],
+      cluster: ecsCluster,
+      desiredCount,
+      securityGroups: [securityGroup],
+      taskDefinition,
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }
     });
   }
 }

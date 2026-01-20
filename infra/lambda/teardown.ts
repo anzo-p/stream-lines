@@ -12,7 +12,7 @@ export const handler = async (event: { stackName?: string }) => {
   const tags = desc.Stacks?.[0]?.Tags ?? [];
   const isAutoTeardownDenied = tags.some((t) => t.Key === 'autoTeardown' && t.Value === 'false');
   if (isAutoTeardownDenied) {
-    // safegard that no one else but the proper stack action is calling to delete that stack
+    // safeguard that no one else but the proper stack action is calling to delete that stack
     console.log(`Will not tear down stack ${stackName} as AutoTeardown tag was set to false.`);
     return;
   }

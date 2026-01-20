@@ -44,17 +44,17 @@ export class KinesisStreamsStack extends cdk.NestedStack {
     super(scope, id, props);
 
     new kinesis.Stream(this, 'MarketDataUpStream', {
-      streamName: 'stream-lines-market-data-upstream',
-      shardCount: 1,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
       retentionPeriod: cdk.Duration.hours(24),
-      removalPolicy: cdk.RemovalPolicy.DESTROY
+      shardCount: 1,
+      streamName: 'stream-lines-market-data-upstream'
     });
 
     /*
     const resultsStream = new kinesis.Stream(this, 'ResultsDownStream', {
-      streamName: 'stream-lines-results-downstream',
+      retentionPeriod: cdk.Duration.hours(24),
       shardCount: 1,
-      retentionPeriod: cdk.Duration.hours(24)
+      streamName: 'stream-lines-results-downstream'
     });
 
     const roleResultsStreamPusherLambda = new iam.Role(
@@ -115,19 +115,19 @@ export class KinesisStreamsStack extends cdk.NestedStack {
       this,
       'StreamPusherLambda',
       {
-        functionName: 'KinesisResultsStreamPusher',
-        runtime: lambda.Runtime.NODEJS_20_X,
-        handler: 'index.handler',
         code: lambda.Code.fromBucket(
           bucketResultStreamPusherLambda,
           `${process.env.S3_KEY_RESULTS_PUSHER}`
         ),
-        role: roleResultsStreamPusherLambda,
         environment: {
           API_GW_CONNECTIONS_URL: `${wsApiGatewayConnectionsUrl}`,
           WS_CONNS_TABLE_NAME: `${process.env.WS_CONNS_TABLE_NAME}`,
           WS_CONNS_BY_SYMBOL_INDEX: `${process.env.WS_CONNS_BY_SYMBOL_INDEX}`
-        }
+        },
+        functionName: 'KinesisResultsStreamPusher',
+        handler: 'index.handler',
+        runtime: lambda.Runtime.NODEJS_20_X,
+        role: roleResultsStreamPusherLambda
       }
     );
 

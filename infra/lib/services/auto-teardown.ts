@@ -7,8 +7,8 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
 
 export interface AutoTeardownStackProps extends cdk.NestedStackProps {
-  targetStackName: string;
   targetStackArn: string;
+  targetStackName: string;
 }
 
 export class AutoTeardownStack extends cdk.NestedStack {
@@ -16,9 +16,9 @@ export class AutoTeardownStack extends cdk.NestedStack {
     super(scope, id, props);
 
     const teardownFn = new NodejsFunction(this, 'TeardownFn', {
-      runtime: lambda.Runtime.NODEJS_20_X,
       entry: path.join(__dirname, '../../lambda/teardown.ts'),
       handler: 'handler',
+      runtime: lambda.Runtime.NODEJS_20_X,
       timeout: cdk.Duration.seconds(30)
     });
 

@@ -13,11 +13,11 @@ export class EcsClusterStack extends cdk.NestedStack {
     super(scope, id, props);
 
     this.ecsCluster = new ecs.Cluster(this, 'StreamLinesEcsCluster', {
-      vpc,
       defaultCloudMapNamespace: {
         name: `${process.env.PRIVATE_NAMESPACE}`,
         type: servicediscovery.NamespaceType.DNS_PRIVATE
-      }
+      },
+      vpc
     });
 
     this.ecsCluster.enableFargateCapacityProviders();

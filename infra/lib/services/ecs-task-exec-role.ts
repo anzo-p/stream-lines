@@ -10,13 +10,12 @@ export class EcsTaskExecutionRole extends cdk.NestedStack {
 
     const ecsTaskExecutionRole = new iam.Role(this, 'StreamLinesEcsTaskExecRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
-      roleName: 'ECSTaskExecutionRole',
-      path: '/'
+      path: '/',
+      roleName: 'ECSTaskExecutionRole'
     });
 
     ecsTaskExecutionRole.addToPolicy(
       new iam.PolicyStatement({
-        effect: iam.Effect.ALLOW,
         actions: [
           'logs:CreateLogGroup',
           'logs:CreateLogStream',
@@ -26,6 +25,7 @@ export class EcsTaskExecutionRole extends cdk.NestedStack {
           'ssmmessages:OpenControlChannel',
           'ssmmessages:OpenDataChannel'
         ],
+        effect: iam.Effect.ALLOW,
         resources: ['arn:aws:logs:*:*:*']
       })
     );

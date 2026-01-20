@@ -27,7 +27,7 @@ export class ServicesStack extends cdk.Stack {
 
     const { vpc, securityGroups, ecsCluster } = props;
 
-    const autoTearDownDenied = this.node.tryGetContext('autoTeardown') === 'false';
+    const autoTeardownDenied = this.node.tryGetContext('autoTeardown') === 'false';
     const runOnlyOnDemandServices = this.node.tryGetContext('onlyOnDemand') === 'true';
     const runAllServicesOnDemand = this.node.tryGetContext('runAllAsOnDemand') === 'true';
 
@@ -54,15 +54,17 @@ export class ServicesStack extends cdk.Stack {
     let gatherStack: GatherStack | undefined;
     if (!runOnlyOnDemandServices || runAllServicesOnDemand) {
       gatherStack = new GatherStack(this, 'GatherStack', {
+        bastionSecurityGroup: securityGroups['bastion'],
+        connectingServiceSGs: ['ingest'].map((id) => ({ id, sg: securityGroups[id] })),
+        desiredCount: 1,
         ecsCluster,
         executionRole: taskExecRoleStack.role,
-        securityGroup: securityGroups['gather'],
         runAsOndemand: runAllServicesOnDemand,
-        bastionSecurityGroup: securityGroups['bastion'],
-        connectingServiceSGs: ['ingest'].map((id) => ({ id, sg: securityGroups[id] }))
+        securityGroup: securityGroups['gather']
       });
 
       new CurrentsStack(this, 'CurrentsStack', {
+        desiredCount: 1,
         ecsCluster,
         executionRole: taskExecRoleStack.role,
         securityGroup: securityGroups['currents'],
@@ -71,19 +73,22 @@ export class ServicesStack extends cdk.Stack {
     }
 
     const ripplesStack = new RipplesStack(this, 'RipplesStack', {
+      desiredCount: 1,
       ecsCluster,
       executionRole: taskExecRoleStack.role,
       securityGroup: securityGroups['ripples'],
-      runAsOndemand: runOnlyOnDemandServices || runAllServicesOnDemand,
+      runAsOndemand: true,
       readKinesisUpstreamPerms: kinesisStack.readUpstreamPerms,
       writeKinesisDownStreamPerms: kinesisStack.writeDownstreamPerms
     });
     ripplesStack.addDependency(kinesisStack);
 
     const ingestStack = new IngestStack(this, 'IngestStack', {
+      desiredCount: 1,
       ecsCluster,
       executionRole: taskExecRoleStack.role,
       securityGroup: securityGroups['ingest'],
+      runAsOndemand: true,
       writeKinesisUpstreamPerms: kinesisStack.writeUpstreamPerms
     });
     ingestStack.addDependency(kinesisStack);
@@ -112,8 +117,8 @@ export class ServicesStack extends cdk.Stack {
     dashboardStack.addDependency(backendStack);
     */
 
-    if (!autoTearDownDenied) {
-      new AutoTeardownStack(this, 'Teardown', {
+    if (!autoTeardownDenied) {
+      new AutoTeardownStack(this, 'AutoTeardownStack', {
         targetStackName: cdk.Stack.of(this).stackName,
         targetStackArn: cdk.Stack.of(this).stackId
       });

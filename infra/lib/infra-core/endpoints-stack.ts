@@ -19,8 +19,8 @@ export class InterfaceEndpointsStack extends cdk.NestedStack {
     super(scope, id, props);
 
     const vpnEndpointSg = new ec2.SecurityGroup(this, 'EcrEndpointSg', {
-      vpc,
-      allowAllOutbound: true
+      allowAllOutbound: true,
+      vpc
     });
 
     vpnEndpointSg.addIngressRule(ec2.Peer.ipv4(vpc.vpcCidrBlock), ec2.Port.tcp(443), 'Allow VPC to reach AWS Services');
@@ -46,11 +46,11 @@ export class InterfaceEndpointsStack extends cdk.NestedStack {
       { id: 'KinesisStreamsEndpoint', service: ec2.InterfaceVpcEndpointAwsService.KINESIS_STREAMS }
     ].forEach(({ id, service }) => {
       const endpoint = new ec2.InterfaceVpcEndpoint(this, id, {
-        vpc,
-        service,
         privateDnsEnabled: true,
         securityGroups: [vpnEndpointSg],
-        subnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }
+        service,
+        subnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+        vpc
       });
       cdk.Tags.of(endpoint).add('Name', id);
     });

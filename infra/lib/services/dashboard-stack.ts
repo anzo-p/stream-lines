@@ -18,14 +18,14 @@ export class DashboardStack extends cdk.NestedStack {
     super(scope, id, props);
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'DashboardTaskDefinition', {
-      family: 'DashboardTaskDefinition',
+      cpu: 256,
       executionRole,
+      family: 'DashboardTaskDefinition',
+      memoryLimitMiB: 512,
       runtimePlatform: {
         operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
         cpuArchitecture: ecs.CpuArchitecture.ARM64
-      },
-      memoryLimitMiB: 512,
-      cpu: 256
+      }
     });
 
     const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-dashboard');
@@ -33,19 +33,19 @@ export class DashboardStack extends cdk.NestedStack {
     const containerPort = parseInt(process.env.DASHBOARD_SERVER_PORT!);
 
     taskDefinition.addContainer('DashboardContainer', {
-      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort }],
-      memoryLimitMiB: 512,
       cpu: 256,
-      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'dashboard' })
+      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
+      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'dashboard' }),
+      memoryLimitMiB: 512,
+      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort }]
     });
 
     const dashboardService = new ecs.FargateService(this, 'DashboardEcsService', {
+      assignPublicIp: true,
       cluster: ecsCluster,
-      taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       desiredCount: 1,
-      assignPublicIp: true
+      taskDefinition,
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC }
     });
 
     dashboardService.registerLoadBalancerTargets({

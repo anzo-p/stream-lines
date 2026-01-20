@@ -25,19 +25,19 @@ export class FrontendStack extends cdk.NestedStack {
     const bucket = s3.Bucket.fromBucketName(this, 'FrontendBucket', `${process.env.S3_WEBAPP_BUCKET}`);
 
     const distribution = new cloudfront.Distribution(this, 'FrontendDist', {
+      certificate,
       defaultBehavior: {
         origin: new origins.S3Origin(bucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS
       },
       defaultRootObject: 'index.html',
-      domainNames: [domainName],
-      certificate
+      domainNames: [domainName]
     });
 
     new route53.ARecord(this, 'FrontendAlias', {
-      zone,
       recordName: domainName,
-      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution))
+      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
+      zone
     });
 
     new cdk.CfnOutput(this, 'BucketName', { value: bucket.bucketName });

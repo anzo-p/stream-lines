@@ -21,35 +21,35 @@ export class BackendStack extends cdk.NestedStack {
     super(scope, id, props);
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'BackendTaskDefinition', {
-      family: 'BackendTaskDefinition',
+      cpu: 256,
       executionRole,
+      family: 'BackendTaskDefinition',
+      memoryLimitMiB: 512,
       runtimePlatform: {
         operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
         cpuArchitecture: ecs.CpuArchitecture.X86_64
-      },
-      memoryLimitMiB: 512,
-      cpu: 256
+      }
     });
 
     const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-backend');
 
     const logGroup = new logs.LogGroup(this, 'BackendLogGroup', {
-      retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY
+      removalPolicy: RemovalPolicy.DESTROY,
+      retention: logs.RetentionDays.ONE_WEEK
     });
 
     const logging = ecs.LogDrivers.awsLogs({
-      streamPrefix: 'backend',
-      logGroup: logGroup
+      logGroup: logGroup,
+      streamPrefix: 'backend'
     });
 
     const containerPort = process.env.BACKEND_SERVER_PORT!;
 
     taskDefinition.addContainer('BackendContainer', {
-      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: parseInt(containerPort) }],
-      memoryLimitMiB: 512,
       cpu: 256,
+      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
+      memoryLimitMiB: 512,
+      portMappings: [{ containerPort: parseInt(containerPort), protocol: ecs.Protocol.TCP }],
       environment: {
         GRAPHQL_SERVER_ADDRESS: `${process.env.BACKEND_SERVER_ADDRESS}`,
         GRAPHQL_SERVER_PORT: containerPort,
@@ -62,29 +62,29 @@ export class BackendStack extends cdk.NestedStack {
     });
 
     const backendService = new ecs.FargateService(this, 'BackendEcsService', {
+      assignPublicIp: false,
       cluster: ecsCluster,
-      taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }, // PRIVATE_WITH_EGRESS
-      securityGroups: [securityGroup],
       desiredCount: 1,
-      assignPublicIp: false
+      securityGroups: [securityGroup],
+      taskDefinition,
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED } // PRIVATE_WITH_EGRESS
     });
 
     backendService.registerLoadBalancerTargets({
       containerName: 'BackendContainer',
-      containerPort: 3030,
-      newTargetGroupId: 'BackendTargetGroup',
+      containerPort: parseInt(containerPort),
       listener: ecs.ListenerConfig.applicationListener(backendAlbListener, {
-        protocol: elbv2.ApplicationProtocol.HTTP,
         healthCheck: {
-          path: '/health',
-          interval: cdk.Duration.seconds(30),
-          timeout: cdk.Duration.seconds(15),
+          healthyHttpCodes: '200',
           healthyThresholdCount: 3,
-          unhealthyThresholdCount: 3,
-          healthyHttpCodes: '200'
-        }
-      })
+          interval: cdk.Duration.seconds(30),
+          path: '/health',
+          timeout: cdk.Duration.seconds(15),
+          unhealthyThresholdCount: 3
+        },
+        protocol: elbv2.ApplicationProtocol.HTTP
+      }),
+      newTargetGroupId: 'BackendTargetGroup'
     });
   }
 }

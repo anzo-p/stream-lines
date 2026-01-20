@@ -9,67 +9,60 @@ import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type InfluxDbStackProps = cdk.NestedStackProps & {
-  vpc: ec2.Vpc;
-  ecsCluster: ecs.Cluster;
   bastionSecurityGroup: ec2.SecurityGroup;
   connectingServiceSGs: { id: string; sg: ec2.SecurityGroup }[];
+  ecsCluster: ecs.Cluster;
+  ssmRole: iam.Role;
+  vpc: ec2.Vpc;
 };
 
 export class InfluxDbStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: InfluxDbStackProps) {
     super(scope, id, props);
 
-    const { vpc, ecsCluster, bastionSecurityGroup, connectingServiceSGs } = props;
+    const { vpc, ecsCluster, bastionSecurityGroup, ssmRole, connectingServiceSGs } = props;
 
     const influxDbPort = Number(process.env.INFLUXDB_SERVER_PORT ?? '8086');
 
     const securityGroup = new ec2.SecurityGroup(this, 'InfluxDbSecurityGroup', {
-      vpc,
-      allowAllOutbound: true
+      allowAllOutbound: true,
+      vpc
     });
 
-    securityGroup.addIngressRule(
-      bastionSecurityGroup,
-      ec2.Port.tcp(influxDbPort),
-      'Allow Jump Bastion access to InfluxDB'
-    );
+    [
+      { port: ec2.Port.tcp(22), description: 'Allow Jump Bastion access to InfluxDB instance' },
+      { port: ec2.Port.tcp(influxDbPort), description: 'Allow Jump Bastion access to machine running influxDB' }
+    ].forEach(({ port, description }) => {
+      securityGroup.addIngressRule(bastionSecurityGroup, port, description);
+    });
 
     connectingServiceSGs.forEach(({ id, sg }) => {
       securityGroup.connections.allowFrom(sg, ec2.Port.tcp(influxDbPort), `${id}-to-Influx`);
     });
 
-    const ssmRole = new iam.Role(this, 'Ec2SsmRole', {
-      assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com')
-    });
-
-    ['AmazonEC2ContainerRegistryReadOnly', 'AmazonSSMManagedInstanceCore', 'CloudWatchAgentServerPolicy'].forEach(
-      (policyName) => {
-        ssmRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName(policyName));
-      }
-    );
-
     const influxDbInstance = new ec2.Instance(this, 'InfluxDbEc2Instance', {
-      vpc,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       availabilityZone: 'eu-north-1a', // same as EBS volume
       instanceType: new ec2.InstanceType('t4g.medium'),
+      keyName: process.env.KEY_NAME_INFLUXDB,
       machineImage: ec2.MachineImage.latestAmazonLinux2023({
         cpuType: ec2.AmazonLinuxCpuType.ARM_64
       }),
+      role: ssmRole,
       securityGroup,
-      role: ssmRole
+      vpc,
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED }
     });
 
     new logs.LogGroup(this, 'InfluxEc2LogGroup', {
       logGroupName: '/ec2/influxdb',
-      retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY
+      removalPolicy: RemovalPolicy.DESTROY,
+      retention: logs.RetentionDays.ONE_WEEK
     });
 
     new ec2.CfnVolumeAttachment(this, 'InfluxDataAttachment', {
+      device: '/dev/xvdf',
       instanceId: influxDbInstance.instanceId,
-      volumeId: `${process.env.INFLUXDB_FILE_SYSTEM_ID}`,
-      device: '/dev/xvdf'
+      volumeId: `${process.env.INFLUXDB_FILE_SYSTEM_ID}`
     });
 
     const namespace = ecsCluster.defaultCloudMapNamespace;
@@ -78,27 +71,21 @@ export class InfluxDbStack extends cdk.NestedStack {
     }
 
     const influxDiscoveryService = new cloudmap.Service(this, 'InfluxDbDiscoveryService', {
-      name: 'influxdb',
-      namespace,
+      dnsTtl: cdk.Duration.seconds(30),
       dnsRecordType: cloudmap.DnsRecordType.A,
-      dnsTtl: cdk.Duration.seconds(30)
+      name: 'influxdb',
+      namespace
     });
 
     new cloudmap.IpInstance(this, 'InfluxDbInstance', {
-      service: influxDiscoveryService,
       ipv4: influxDbInstance.instancePrivateIp,
-      port: influxDbPort
+      port: influxDbPort,
+      service: influxDiscoveryService
     });
 
     // only SSM has internet acess, via Vpc Endpoint
     new ssm.CfnAssociation(this, 'InstallDockerAssociation', {
       name: 'AWS-RunShellScript',
-      targets: [
-        {
-          key: 'InstanceIds',
-          values: [influxDbInstance.instanceId]
-        }
-      ],
       parameters: {
         commands: [
           [
@@ -111,7 +98,13 @@ export class InfluxDbStack extends cdk.NestedStack {
             'sudo systemctl start amazon-ssm-agent'
           ].join(' && ')
         ]
-      }
+      },
+      targets: [
+        {
+          key: 'InstanceIds',
+          values: [influxDbInstance.instanceId]
+        }
+      ]
     });
 
     influxDbInstance.addUserData(

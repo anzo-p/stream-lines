@@ -9,9 +9,11 @@ import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type IngestStackProps = cdk.NestedStackProps & {
+  desiredCount: number;
   ecsCluster: ecs.Cluster;
   executionRole: iam.Role;
   securityGroup: ec2.SecurityGroup;
+  runAsOndemand?: boolean;
   writeKinesisUpstreamPerms: iam.PolicyStatement;
 };
 
@@ -19,7 +21,14 @@ export class IngestStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: IngestStackProps) {
     super(scope, id, props);
 
-    const { ecsCluster, executionRole, securityGroup, writeKinesisUpstreamPerms } = props;
+    const {
+      desiredCount,
+      ecsCluster,
+      executionRole,
+      securityGroup,
+      writeKinesisUpstreamPerms,
+      runAsOndemand = false
+    } = props;
 
     securityGroup.addEgressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), 'Allow HTTPS only');
 
@@ -38,32 +47,30 @@ export class IngestStack extends cdk.NestedStack {
     });
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'IngestTaskDefinition', {
-      family: 'IngestTaskDefinition',
+      cpu: 256,
       executionRole,
-      taskRole,
-      runtimePlatform: {
-        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
-        cpuArchitecture: ecs.CpuArchitecture.X86_64
-      },
+      family: 'IngestTaskDefinition',
       memoryLimitMiB: 512,
-      cpu: 256
+      runtimePlatform: {
+        cpuArchitecture: ecs.CpuArchitecture.X86_64,
+        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX
+      },
+      taskRole
     });
 
     const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-ingest');
 
     const logGroup = new logs.LogGroup(this, 'IngestLogGroup', {
-      retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY
+      removalPolicy: RemovalPolicy.DESTROY,
+      retention: logs.RetentionDays.ONE_WEEK
     });
 
     const logging = ecs.LogDrivers.awsLogs({
-      streamPrefix: 'ingest',
-      logGroup: logGroup
+      logGroup: logGroup,
+      streamPrefix: 'ingest'
     });
 
     taskDefinition.addContainer('IngestContainer', {
-      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      memoryLimitMiB: 512,
       cpu: 256,
       environment: {
         KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`,
@@ -72,16 +79,21 @@ export class IngestStack extends cdk.NestedStack {
         TICKERS_OVERRIDE: `${process.env.INGEST_TICKERS_OVERRIDE}`,
         TOP_TICKERS_API: `${process.env.INGEST_TOP_TICKERS_API}`
       },
-      logging
+      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
+      logging,
+      memoryLimitMiB: 512
     });
 
     new ecs.FargateService(this, 'IngestEcsService', {
+      assignPublicIp: false,
+      capacityProviderStrategies: runAsOndemand
+        ? [{ capacityProvider: 'FARGATE', weight: 1 }]
+        : [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }],
       cluster: ecsCluster,
-      taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      desiredCount,
       securityGroups: [securityGroup],
-      desiredCount: 1,
-      assignPublicIp: false
+      taskDefinition,
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }
     });
   }
 }

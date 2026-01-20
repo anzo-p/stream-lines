@@ -8,11 +8,12 @@ import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type RipplesStackProps = cdk.StackProps & {
+  desiredCount: number;
   ecsCluster: ecs.Cluster;
   executionRole: iam.Role;
-  securityGroup: ec2.SecurityGroup;
-  runAsOndemand?: boolean;
   readKinesisUpstreamPerms: iam.PolicyStatement;
+  runAsOndemand?: boolean;
+  securityGroup: ec2.SecurityGroup;
   writeKinesisDownStreamPerms: iam.PolicyStatement;
 };
 
@@ -21,11 +22,12 @@ export class RipplesStack extends cdk.NestedStack {
     super(scope, id, props);
 
     const {
+      desiredCount,
       ecsCluster,
       executionRole,
-      securityGroup,
-      runAsOndemand = false,
       readKinesisUpstreamPerms,
+      runAsOndemand = false,
+      securityGroup,
       writeKinesisDownStreamPerms
     } = props;
 
@@ -38,39 +40,37 @@ export class RipplesStack extends cdk.NestedStack {
 
     taskRole.addToPolicy(
       new iam.PolicyStatement({
-        effect: iam.Effect.ALLOW,
         actions: ['s3:DeleteObject', 's3:GetObject', 's3:ListBucket', 's3:PutObject'],
+        effect: iam.Effect.ALLOW,
         resources: [`arn:aws:s3:::${process.env.S3_APP_BUCKET}`, `arn:aws:s3:::${process.env.S3_APP_BUCKET}/*`]
       })
     );
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'RipplesTaskDefinition', {
-      family: 'RipplesTaskDefinition',
+      cpu: 512,
       executionRole,
-      taskRole,
+      family: 'RipplesTaskDefinition',
+      memoryLimitMiB: 1024,
       runtimePlatform: {
         operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
         cpuArchitecture: ecs.CpuArchitecture.ARM64
       },
-      memoryLimitMiB: 1024,
-      cpu: 512
+      taskRole
     });
 
     const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-ripples');
 
     const logGroup = new logs.LogGroup(this, 'RipplesLogGroup', {
-      retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY
+      removalPolicy: RemovalPolicy.DESTROY,
+      retention: logs.RetentionDays.ONE_WEEK
     });
 
     const logging = ecs.LogDrivers.awsLogs({
-      streamPrefix: 'ripples',
-      logGroup: logGroup
+      logGroup: logGroup,
+      streamPrefix: 'ripples'
     });
 
     taskDefinition.addContainer('RipplesContainer', {
-      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      memoryLimitMiB: 1024,
       cpu: 512,
       environment: {
         CHECKPOINT_PATH: `${process.env.FLINK_CHECKPOINTS_RIPPLES},`,
@@ -87,19 +87,21 @@ export class RipplesStack extends cdk.NestedStack {
           '--add-opens=java.base/java.util=ALL-UNNAMED'
         ].join(' ')
       },
-      logging
+      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
+      logging,
+      memoryLimitMiB: 1024
     });
 
     new ecs.FargateService(this, 'RipplesEcsService', {
-      cluster: ecsCluster,
-      taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-      securityGroups: [securityGroup],
-      desiredCount: 1,
       assignPublicIp: false,
       capacityProviderStrategies: runAsOndemand
         ? [{ capacityProvider: 'FARGATE', weight: 1 }]
-        : [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }]
+        : [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }],
+      cluster: ecsCluster,
+      desiredCount,
+      securityGroups: [securityGroup],
+      taskDefinition,
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }
     });
   }
 }

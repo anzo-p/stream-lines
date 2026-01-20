@@ -47,14 +47,14 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
     );
 
     const webSocketHandlerLambda = new lambda.Function(this, 'WebSocketHandlerLambda', {
-      functionName: 'ApiGatewayWebSocketHandler',
-      runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
       code: lambda.Code.fromBucket(bucketWebSocketHandlerLambda, `${process.env.S3_KEY_WS_CONN_HANDLER}`),
-      role: roleWebSocketHandlerLambda,
       environment: {
         WS_CONNS_TABLE_NAME: `${process.env.WS_CONNS_TABLE_NAME}`
-      }
+      },
+      functionName: 'ApiGatewayWebSocketHandler',
+      handler: 'index.handler',
+      role: roleWebSocketHandlerLambda,
+      runtime: lambda.Runtime.NODEJS_20_X
     });
 
     const webSocketApiGateway = new apigw2.WebSocketApi(this, 'WebSocketApiGateway', {
@@ -70,15 +70,15 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
     });
 
     const stageProd = new apigw2.WebSocketStage(this, 'StageProd', {
-      webSocketApi: webSocketApiGateway,
+      autoDeploy: true,
       stageName: 'prod',
-      autoDeploy: true
+      webSocketApi: webSocketApiGateway
     });
 
     this.wsApiGatewayStageProdArn = this.formatArn({
-      service: 'execute-api',
+      resource: webSocketApiGateway.apiId,
       resourceName: `${stageProd.stageName}/POST/@connections/*`,
-      resource: webSocketApiGateway.apiId
+      service: 'execute-api'
     });
 
     webSocketHandlerLambda.addToRolePolicy(
@@ -102,12 +102,12 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
     webSocketHandlerLambda.addEnvironment('API_GW_CONNECTIONS_URL', `${this.wsApiGatewayConnectionsUrl}`);
 
     const apigwCustomDomain = new apigw2.DomainName(this, 'CustomDomainName', {
-      domainName: `${process.env.WS_API_DOMAIN_NAME}`,
       certificate: acm.Certificate.fromCertificateArn(
         this,
         'Certificate',
         `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:certificate/${process.env.ACM_APIGW_CERT}`
-      )
+      ),
+      domainName: `${process.env.WS_API_DOMAIN_NAME}`
     });
 
     new apigw2.ApiMapping(this, 'ApiMapping', {
@@ -117,16 +117,16 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
     });
 
     new route53.ARecord(this, 'WebSocketApiGatewayAliasRecord', {
-      zone: route53.HostedZone.fromLookup(this, 'HostedZone', {
-        domainName: 'anzop.net'
-      }),
       recordName: `${process.env.WS_API_SUBDOMAIN}`,
       target: route53.RecordTarget.fromAlias(
         new targets.ApiGatewayv2DomainProperties(
           apigwCustomDomain.regionalDomainName,
           apigwCustomDomain.regionalHostedZoneId
         )
-      )
+      ),
+      zone: route53.HostedZone.fromLookup(this, 'HostedZone', {
+        domainName: 'anzop.net'
+      })
     });
   }
 }

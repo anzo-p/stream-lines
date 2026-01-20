@@ -19,25 +19,25 @@ export class AlbStack extends cdk.NestedStack {
     });
 
     const backendAlb = new elbv2.ApplicationLoadBalancer(this, 'BackendAlb', {
-      vpc,
-      internetFacing: true
+      internetFacing: true,
+      vpc
     });
 
     const dashboardAlb = new elbv2.ApplicationLoadBalancer(this, 'DashboardAlb', {
-      vpc,
-      internetFacing: true
+      internetFacing: true,
+      vpc
     });
 
     new route53.ARecord(this, 'BackendAlbAliasRecord', {
-      zone,
       recordName: `${process.env.BACKEND_SUBDOMAIN}`,
-      target: route53.RecordTarget.fromAlias(new targets.LoadBalancerTarget(backendAlb))
+      target: route53.RecordTarget.fromAlias(new targets.LoadBalancerTarget(backendAlb)),
+      zone
     });
 
     new route53.ARecord(this, 'DashboardAlbAliasRecord', {
-      zone,
       recordName: `${process.env.DASHBOARD_SUBDOMAIN}`,
-      target: route53.RecordTarget.fromAlias(new targets.LoadBalancerTarget(dashboardAlb))
+      target: route53.RecordTarget.fromAlias(new targets.LoadBalancerTarget(dashboardAlb)),
+      zone
     });
 
     const backendAlbCertificate = acm.Certificate.fromCertificateArn(
@@ -53,27 +53,27 @@ export class AlbStack extends cdk.NestedStack {
     );
 
     this.backendAlbListener = backendAlb.addListener('BackendAlbListener', {
+      certificates: [backendAlbCertificate],
       port: 443,
-      protocol: elbv2.ApplicationProtocol.HTTPS,
-      certificates: [backendAlbCertificate]
+      protocol: elbv2.ApplicationProtocol.HTTPS
     });
 
     this.dashboardAlbListener = dashboardAlb.addListener('DashboardAlbListenerHttps', {
+      certificates: [webappAlbCertificate],
       port: 443,
-      protocol: elbv2.ApplicationProtocol.HTTPS,
-      certificates: [webappAlbCertificate]
+      protocol: elbv2.ApplicationProtocol.HTTPS
     });
 
     dashboardAlb.addListener('DashboardAlbListenerRedirectToHttps', {
-      port: 80,
-      protocol: elbv2.ApplicationProtocol.HTTP,
       defaultAction: elbv2.ListenerAction.redirect({
-        protocol: 'HTTPS',
         host: '#{host}',
         path: '/#{path}',
+        permanent: true,
         port: '443',
-        permanent: true
-      })
+        protocol: 'HTTPS'
+      }),
+      port: 80,
+      protocol: elbv2.ApplicationProtocol.HTTP
     });
   }
 }
