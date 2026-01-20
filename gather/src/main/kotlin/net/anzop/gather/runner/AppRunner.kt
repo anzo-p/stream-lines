@@ -56,7 +56,7 @@ class AppRunner(
                         is FetchMarketDataAndProcessIndex -> {
                             if (barDataFetcher.run()) {
                                 indexProcessor.run()
-                                financialsFetcher.run()
+                                //financialsFetcher.run()
                             } else {
                                 logger.warn("Skipping index processing and fetch for financials.")
                             }
