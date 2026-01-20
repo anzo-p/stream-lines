@@ -74,3 +74,43 @@ curl -X POST \
   }'
 ```
 REST API Commands works also through SSH port forwarding, when connecting to InfluxDB through a Jump Bastion.  
+
+## Access InfluxDB machine running on EC2 instance through Jump Bastion
+
+1. Create and assigng key
+```
+ssh-keygen -t rsa -b 4096 -C "<key name>" -f ~/.ssh/<key file name>
+
+base64 < ~/.ssh/<key file name>.pub | tr -d '\n' > ~/.ssh/<key file name>.pub.b64
+
+aws ec2 import-key-pair \
+  --key-name <key name> \
+  --public-key-material file://~/.ssh/<key file name>.pub.b64
+```
+
+2. Add key to InfluxDB EC2 instance through CDK
+```
+new ec2.Instance(this, 'InfluxDbEc2Instance', {
+  keyName: <key name>,
+  ..
+```
+
+3. ~/.ssh/config
+```
+Host bastion
+    HostName <BASTION_PUBLIC_IP>
+    User ec2-user
+    IdentityFile ~/.ssh/<bastion key name>
+
+Host influx
+    HostName <INFLUX_PRIVATE_IP>
+    User ec2-user
+    IdentityFile ~/.ssh/<influx key name>
+    ProxyJump bastion
+```
+
+4. Connect to InfluxDB machine
+```
+ssh influx
+```
+
