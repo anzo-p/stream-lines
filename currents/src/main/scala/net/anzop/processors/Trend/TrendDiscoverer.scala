@@ -8,6 +8,8 @@ import net.anzop.models.MarketData
 import net.anzop.models.Types.DV
 import org.slf4j.Logger
 
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import scala.annotation.tailrec
 
 class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
@@ -19,6 +21,15 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
 
   private def isInsufficient(data: DV[MarketData]): Boolean =
     data.length < minimumSegmentAndTail
+
+  private def isTooRecent(dataChunk: DV[MarketData]): Boolean = {
+    val tooRecent = Instant
+      .now()
+      .minus(trendConfig.minimumWindow.toLong, ChronoUnit.DAYS)
+      .toEpochMilli
+
+    dataChunk.data.last.timestamp >= tooRecent
+  }
 
   private def createSegment(
       window: DV[MarketData],
@@ -78,7 +89,7 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
     if (isInsufficient(remainingData)) {
       TrendDiscovery(
         discovered    = discoveredTrend,
-        undecidedTail = TrendSegment.makeTail(remainingData),
+        undecidedTail = Some(remainingData).filter(isTooRecent).map(TrendSegment.makeTail),
         tailData      = DenseVector.vertcat(currentWindow, remainingData)
       )
     }
@@ -101,11 +112,7 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
     if (isInsufficient(dataChunk)) {
       logger.warn(s"Trend - Insufficient data to discover trends, data chunk length: ${dataChunk.length}")
 
-      TrendDiscovery(
-        discovered    = List(),
-        undecidedTail = TrendSegment.makeTail(dataChunk),
-        tailData      = dataChunk
-      )
+      TrendDiscovery.boomerang(dataChunk)
     }
     else {
       runDiscoveryLoop(
