@@ -5,6 +5,7 @@ import net.anzop.helpers.DateAndTimeHelpers.oneWeekInMillis
 import net.anzop.models.MarketData
 import net.anzop.models.Types.DV
 import net.anzop.processors.AutoResettingProcessor
+import net.anzop.processors.Trend.models.{TrendDiscovery, TrendSegment}
 import org.apache.flink.api.common.functions.RichFlatMapFunction
 import org.apache.flink.api.common.state.{MapState, MapStateDescriptor}
 import org.apache.flink.configuration.Configuration
@@ -80,11 +81,18 @@ class TrendProcessor(config: TrendConfig, trendDiscoverer: TrendDiscoverer)
 
     val TrendDiscovery(discovered, tail, tailData) = trendDiscoverer.processChunk(data)
 
-    out.collect {
-      tail match {
-        case Some(tail) => discovered :+ tail
-        case None       => discovered
+    val trends = tail match {
+      case Some(tail) => {
+        trendState.clear()
+        discovered :+ tail
       }
+      case None => {
+        discovered
+      }
+    }
+
+    if (trends.nonEmpty) {
+      out.collect(trends)
     }
 
     updateState(tailData)

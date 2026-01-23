@@ -1,4 +1,4 @@
-package net.anzop.processors.Trend
+package net.anzop.processors.Trend.models
 
 import net.anzop.helpers.StatisticsHelpers.linearRegression
 import net.anzop.helpers.{DateAndTimeHelpers, LinearRegression}
@@ -10,7 +10,7 @@ import java.time.{Duration, Instant}
 
 case class TrendSegment(
     timestamp: Long,
-    open: Boolean,
+    established: Boolean,
     begins: Long,
     ends: Long,
     growth: Double,
@@ -23,7 +23,6 @@ case class TrendSegment(
 
   override def fields: Map[String, Any] =
     Map(
-      "open"                 -> open,
       "begins"               -> begins,
       "ends"                 -> ends,
       "growth"               -> growth,
@@ -33,11 +32,10 @@ case class TrendSegment(
     )
 
   override def tags: Map[String, String] =
-    Map("type" -> "segment")
+    Map("type" -> "segment", "established" -> established.toString)
 
   override def toString: String =
     s"""TrendSegment(
-       |open: $open,
        |begins: ${DateAndTimeHelpers.epochToStringDate(begins)},
        |ends: ${DateAndTimeHelpers.epochToStringDate(ends)},
        |growth: $growth,
@@ -53,7 +51,7 @@ object TrendSegment {
       begins: Long,
       ends: Long,
       linearRegression: LinearRegression,
-      open: Boolean = false
+      established: Boolean = true
     ): TrendSegment = {
     val days = Duration
       .between(
@@ -64,7 +62,7 @@ object TrendSegment {
 
     TrendSegment(
       timestamp           = ends,
-      open                = open,
+      established         = established,
       begins              = begins,
       ends                = ends,
       growth              = linearRegression.slope * days,
@@ -76,7 +74,7 @@ object TrendSegment {
 
   def makeTail(data: DV[MarketData]): TrendSegment =
     make(
-      open             = true,
+      established      = false,
       begins           = data(0).timestamp,
       ends             = data(data.length - 1).timestamp,
       linearRegression = linearRegression(data.map(_.priceChangeAvg))
