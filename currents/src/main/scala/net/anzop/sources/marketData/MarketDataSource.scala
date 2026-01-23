@@ -32,14 +32,14 @@ class MarketDataSource(influxConfig: InfluxConfig, config: SourceRunnerConfig) e
   }
 
   private def fetchCollect(ctx: SourceFunction.SourceContext[MarketData]): Unit = {
-    // delete trend measurement for a full redo; processors will know to recalculate everything
+    // delete this measurement for a full redo; processors will know to recalculate everything
     val lastestTrendEntry: Option[Long] =
       dbConn
         .requestData[Long](
           mapping = GetLatestTrendEntry,
           params = QueryParams(
             bucket      = influxConfig.bucket,
-            measurement = "trend"
+            measurement = "trends-by-statistical-regression"
           )
         )
         .headOption
@@ -56,6 +56,8 @@ class MarketDataSource(influxConfig: InfluxConfig, config: SourceRunnerConfig) e
         )
       )
       .foreach(ctx.collect)
+
+    dbConn.deleteOpenTrendSegments()
   }
 
   override def run(ctx: SourceFunction.SourceContext[MarketData]): Unit =

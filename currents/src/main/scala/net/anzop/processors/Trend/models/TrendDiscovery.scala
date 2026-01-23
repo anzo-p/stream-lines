@@ -1,4 +1,4 @@
-package net.anzop.processors.Trend
+package net.anzop.processors.Trend.models
 
 import net.anzop.models.MarketData
 import net.anzop.models.Types.DV

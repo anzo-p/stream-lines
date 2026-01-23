@@ -3,7 +3,8 @@ package net.anzop
 import net.anzop.config.{InfluxConfig, SourceRunnerConfig, StreamConfig}
 import net.anzop.models.MarketData
 import net.anzop.processors.Drawdown.{Drawdown, DrawdownConfig, DrawdownProcessor}
-import net.anzop.processors.Trend.{TrendConfig, TrendDiscoverer, TrendProcessor, TrendSegment}
+import net.anzop.processors.Trend.models.TrendSegment
+import net.anzop.processors.Trend.{TrendConfig, TrendDiscoverer, TrendProcessor}
 import net.anzop.sinks.influxdb.InfluxHttpSink
 import net.anzop.sources.marketData.MarketDataSource
 import net.anzop.triggers.CountOrTimerTrigger
