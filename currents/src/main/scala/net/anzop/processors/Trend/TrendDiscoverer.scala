@@ -9,8 +9,6 @@ import net.anzop.models.Types.DV
 import net.anzop.processors.Trend.models.{TrendDiscovery, TrendSegment}
 import org.slf4j.Logger
 
-import java.time.Instant
-import java.time.temporal.ChronoUnit
 import scala.annotation.tailrec
 
 class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
@@ -22,15 +20,6 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
 
   private def isInsufficient(data: DV[MarketData]): Boolean =
     data.length < minimumSegmentAndTail
-
-  private def isTooRecent(dataChunk: DV[MarketData]): Boolean = {
-    val tooRecent = Instant
-      .now()
-      .minus(trendConfig.minimumWindow.toLong, ChronoUnit.DAYS)
-      .toEpochMilli
-
-    dataChunk.data.last.timestamp >= tooRecent
-  }
 
   private def createSegment(
       window: DV[MarketData],
@@ -65,7 +54,8 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
     val slopeDiff    = Math.abs(overallTrend.slope - tailTrend.slope)
     val varianceDiff = Math.abs(overallTrend.variance - tailTrend.variance)
 
-    if (slopeDiff > trendConfig.regressionSlopeThreshold) {
+    if (window.length >= trendConfig.minimumWindow &&
+        slopeDiff > trendConfig.regressionSlopeThreshold) {
       val trendSegment = createSegment(window, tailSegment, overallTrend)
       val (newRemainingData, newTailSegment) =
         appendFromHead(
@@ -92,24 +82,10 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
         s"Trend - recur - Insufficient remaining data (${remainingData.length}) to continue. " +
           s"Current window: ${currentWindow.length}, discovered trends: ${discoveredTrend.length}")
 
-      val entireTail = DenseVector.vertcat(currentWindow, remainingData)
-
-      if (isTooRecent(remainingData)) {
-        logger.warn(s"Trend - recur - Appears like the true tail, make temporary trend and exit")
-        TrendDiscovery(
-          discovered    = discoveredTrend,
-          undecidedTail = Some(entireTail).filter(isTooRecent).map(TrendSegment.makeTail),
-          tailData      = entireTail
-        )
-      }
-      else {
-        logger.warn(s"Trend - recur - This is not yet the true tail, store found trends")
-        TrendDiscovery(
-          discovered    = discoveredTrend,
-          undecidedTail = None,
-          tailData      = entireTail
-        )
-      }
+      TrendDiscovery(
+        discovered    = discoveredTrend,
+        undecidedTail = DenseVector.vertcat(currentWindow, remainingData)
+      )
     }
     else {
       val (decRemaining, incWindow) = appendFromHead(remainingData, currentWindow, 1)
@@ -130,17 +106,6 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
   def processChunk(dataChunk: DV[MarketData]): TrendDiscovery = {
     if (isInsufficient(dataChunk)) {
       logger.warn(s"Trend - Insufficient data (${dataChunk.length}) to discover trends")
-
-      if (isTooRecent(dataChunk)) {
-        logger.warn(s"Trend - Make open tail")
-        TrendDiscovery(
-          discovered    = Nil,
-          undecidedTail = Some(TrendSegment.makeTail(dataChunk)),
-          tailData      = dataChunk
-        )
-      }
-      else
-        logger.warn(s"Trend - Just exit")
       TrendDiscovery.boomerang(dataChunk)
     }
     else {

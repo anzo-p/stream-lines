@@ -1,11 +1,9 @@
 package net.anzop.sources.marketData
 
-import com.influxdb.client.domain.DeletePredicateRequest
 import com.influxdb.client.{InfluxDBClient, InfluxDBClientFactory}
 import net.anzop.config.InfluxConfig
 
 import java.io.Serializable
-import java.time.OffsetDateTime
 import scala.jdk.CollectionConverters._
 
 class InfluxDB(influxDetails: InfluxConfig) extends Serializable {
@@ -31,26 +29,6 @@ class InfluxDB(influxDetails: InfluxConfig) extends Serializable {
         logger.error(s"Failed to fetch data from InfluxDB: $e")
         List.empty
     }
-
-  def deleteOpenTrendSegments(): Unit = {
-    try {
-      client
-        .getDeleteApi
-        .delete(
-          new DeletePredicateRequest()
-            .start(OffsetDateTime.parse("1900-01-01T00:00:00Z"))
-            .stop(OffsetDateTime.parse("2199-12-31T00:00:00Z"))
-            .predicate(
-              """_measurement="trends-by-statistical-regression" AND established == "true" """
-            ),
-          influxDetails.bucket,
-          influxDetails.org
-        )
-    } catch {
-      case e: Exception =>
-        logger.error(s"Failed to delete data from InfluxDB: $e")
-    }
-  }
 
   def close(): Unit =
     client.close()

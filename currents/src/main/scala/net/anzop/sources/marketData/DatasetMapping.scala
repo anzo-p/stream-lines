@@ -33,7 +33,7 @@ sealed trait DatasetMapping[T] {
 case object GetLatestTrendEntry extends DatasetMapping[Long] {
   override def conditions: String =
     s"""
-       # |> filter(fn: (r) => r.established == "true")
+       # |> filter(fn: (r) => r["_field"] == "regression_slope")
        # |> last()
        # |> keep(columns: ["_time"])
        #""".stripMargin('#')

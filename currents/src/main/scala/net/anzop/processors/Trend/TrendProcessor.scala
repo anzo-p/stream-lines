@@ -79,22 +79,12 @@ class TrendProcessor(config: TrendConfig, trendDiscoverer: TrendDiscoverer)
         DenseVector(newChunk)
     }
 
-    val TrendDiscovery(discovered, tail, tailData) = trendDiscoverer.processChunk(data)
+    val TrendDiscovery(discovered, remains) = trendDiscoverer.processChunk(data)
 
-    val trends = tail match {
-      case Some(tail) => {
-        trendState.clear()
-        discovered :+ tail
-      }
-      case None => {
-        discovered
-      }
+    if (discovered.nonEmpty) {
+      out.collect(discovered)
     }
 
-    if (trends.nonEmpty) {
-      out.collect(trends)
-    }
-
-    updateState(tailData)
+    updateState(remains)
   }
 }

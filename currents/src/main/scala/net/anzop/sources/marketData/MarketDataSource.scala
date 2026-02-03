@@ -56,8 +56,6 @@ class MarketDataSource(influxConfig: InfluxConfig, config: SourceRunnerConfig) e
         )
       )
       .foreach(ctx.collect)
-
-    dbConn.deleteOpenTrendSegments()
   }
 
   override def run(ctx: SourceFunction.SourceContext[MarketData]): Unit =
