@@ -1,0 +1,5 @@
+services:
+  narwhal:
+    build: .
+    env_file:
+      - .env
