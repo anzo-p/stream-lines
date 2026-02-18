@@ -102,7 +102,7 @@ Consumes a websocket from an external provider. In this case market data feed fr
 
 ### Gather
 
-Consumes rest api from an external provider. Currently bar data for historical transactions from Alpaca and company financials from [DataJockey](https://datajockey.io).
+Consumes rest api from an external provider. Currently bar data for historical transactions from Alpaca.
 
 ### Ripples
 
