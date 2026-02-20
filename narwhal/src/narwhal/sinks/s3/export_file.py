@@ -7,35 +7,37 @@ import boto3
 s3 = boto3.client("s3")
 
 
-TRAINING_DATA_BUCKET = os.environ["TRAINING_DATA_BUCKET"]
-TRAINING_DATA_PREFIX = os.environ["TRAINING_DATA_PREFIX"]
+S3_DATA_BUCKET = os.environ["S3_DATA_BUCKET"]
+S3_PREDICTION_PREFIX = os.environ["S3_PREDICTION_PREFIX"]
+S3_TRAINING_PREFIX = os.environ["S3_TRAINING_PREFIX"]
+S3_MODEL_PREFIX = os.environ["S3_MODEL_PREFIX"]
 
 
 def _resolve_filename() -> str:
     run_id = datetime.datetime.now(datetime.timezone.utc).strftime("%Y.%m.%dT:%H:%M:%SZ")
-    return f"train_data_{run_id}.csv.gz"
+    return f"data_{run_id}.csv.gz"
 
 
 def _latest() -> str:
-    return f"train_data_latest.csv.gz"
+    return f"data_latest.csv.gz"
 
 
-def export_file(content: bytes):
+def export_training_file(content: bytes):
     logger = logging.getLogger(__name__)
 
     s3 = boto3.client("s3")
 
     s3.put_object(
-        Bucket=TRAINING_DATA_BUCKET,
-        Key=f"{TRAINING_DATA_PREFIX}/{_resolve_filename()}",
+        Bucket=S3_DATA_BUCKET,
+        Key=f"{S3_TRAINING_PREFIX}/train_{_resolve_filename()}",
         Body=content,
         ContentType="application/gzip",
     )
     logger.info(f"Exported {_resolve_filename()}")
 
     s3.put_object(
-        Bucket=TRAINING_DATA_BUCKET,
-        Key=f"{TRAINING_DATA_PREFIX}/{_latest()}",
+        Bucket=S3_DATA_BUCKET,
+        Key=f"{S3_TRAINING_PREFIX}/train_{_latest()}",
         Body=content,
         ContentType="application/gzip",
     )

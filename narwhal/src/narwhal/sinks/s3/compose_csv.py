@@ -4,7 +4,26 @@ import io
 
 from typing import Iterable
 
-from src.features.create_dataset import TrainingData
+from narwhal.domain.create_dataset import TrainingData
+
+
+def to_single_line_csv(row: TrainingData) -> bytes:
+    buf = io.BytesIO()
+    text = io.TextIOWrapper(buf, encoding="utf-8", newline="")
+    writer = csv.writer(text)
+    writer.writerow(
+        [
+            row.fwd_max_drawdown,
+            row.members_daily_spread,
+            row.index_over_moving_avg,
+            row.index_over_kaufman_avg,
+            row.volume_over_moving_avg,
+            row.current_drawdown,
+            row.days_since_dip,
+        ]
+    )
+    text.flush()
+    return buf.getvalue()
 
 
 def to_gzipped_csv(rows: Iterable[TrainingData]) -> bytes:
@@ -17,7 +36,7 @@ def to_gzipped_csv(rows: Iterable[TrainingData]) -> bytes:
         for r in rows:
             writer.writerow(
                 [
-                    r.fwd_max_drawdown,  # label first
+                    r.fwd_max_drawdown,
                     r.members_daily_spread,
                     r.index_over_moving_avg,
                     r.index_over_kaufman_avg,

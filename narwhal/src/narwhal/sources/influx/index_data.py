@@ -3,7 +3,10 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Iterator, List
 
-from .client import InfluxHandle
+from influxdb_client.client.flux_table import TableList
+
+from narwhal.sources.influx.client import InfluxHandle
+from narwhal.sources.influx.helpers import compose_default_range
 
 
 @dataclass(frozen=True)
@@ -18,7 +21,7 @@ def _flux(bucket: str, avg_days: int) -> str:
 import "math"
 
 base = from(bucket: "{bucket}")
-  |> range(start: time(v: "2016-02-01"), stop: now())
+  |> {compose_default_range()}
   |> filter(fn: (r) => r._measurement == "index-daily-change-regular-hours")
   |> filter(fn: (r) => r._field == "priceChangeHigh")
   |> map(fn: (r) => ({{ r with _value: math.log(x: r._value) }}))
@@ -49,11 +52,11 @@ union(tables: [index, movingAvg, kaufmanAvg])
 def index_query(h: InfluxHandle, moving_avg_days: int) -> Iterator[IndexData]:
     logger = logging.getLogger(__name__)
 
-    fetch = h.query_api.query(_flux(h.bucket, moving_avg_days))
+    table_ist: TableList = h.query_api.query(_flux(h.bucket, moving_avg_days))
     logger.info(f"Fetched index data with moving average window of {moving_avg_days} days")
 
     out: List[IndexData] = []
-    for table in fetch:
+    for table in table_ist:
         for record in table.records:
             t = record.get_time()
             v = record["index"]

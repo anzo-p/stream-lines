@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Iterator, List
 
-from src.sources.influxdb.client import InfluxHandle
-
+from narwhal.sources.influx.client import InfluxHandle
+from narwhal.sources.influx.helpers import compose_default_range
 
 TOP_TICKERS_COUNT = 40
 
@@ -37,7 +37,7 @@ topTickers = from(bucket: "{bucket}")
 priceChangePercentage = (r) => (r.priceChangeAvg - r.prevPriceChangeAvg) / r.prevPriceChangeAvg * 100.0
 
 base = from(bucket: "{bucket}")
-  |> range(start: time(v: "2016-02-01"), stop: now())
+  |> {compose_default_range()}
   |> filter(fn: (r) => r._measurement == "securities-daily-change-extended-hours")
   |> filter(fn: (r) => r._field == "priceChangeAvg" or r._field == "prevPriceChangeAvg")
   |> filter(fn: (r) => contains(value: r.ticker, set: topTickers))
@@ -67,13 +67,13 @@ union(tables:[
 def member_query(h: InfluxHandle) -> Iterator[MemberData]:
     logger = logging.getLogger(__name__)
 
-    fetch = h.query_api.query(_flux(h.bucket))
+    table_list = h.query_api.query(_flux(h.bucket))
     logger.info(
         f"Fetched member data for top {TOP_TICKERS_COUNT} tickers by trading value in the last 15 days"
     )
 
     out: List[MemberData] = []
-    for table in fetch:
+    for table in table_list:
         for record in table.records:
             t = record.get_time()
             v = record["spread"]

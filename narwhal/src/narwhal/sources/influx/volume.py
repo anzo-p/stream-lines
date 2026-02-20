@@ -3,7 +3,8 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Iterator, List
 
-from src.sources.influxdb.client import InfluxHandle
+from narwhal.sources.influx.client import InfluxHandle
+from narwhal.sources.influx.helpers import compose_default_range
 
 
 @dataclass(frozen=True)
@@ -15,7 +16,7 @@ class VolumeData:
 def _flux(bucket: str, avg_days: int) -> str:
     return f'''
 base = from(bucket: "{bucket}")
-  |> range(start: time(v: "2016-02-01"), stop: now())
+  |> {compose_default_range()}
   |> filter(fn: (r) => r._measurement == "index-daily-change-regular-hours")
   |> filter(fn: (r) => r._field == "totalTradingValue")
   |> keep(columns: ["_time", "_value"])
@@ -42,11 +43,11 @@ join(
 def volume_query(h: InfluxHandle, moving_avg_days: int) -> Iterator[VolumeData]:
     logger = logging.getLogger(__name__)
 
-    fetch = h.query_api.query(_flux(h.bucket, moving_avg_days))
-    logger.info(f"Fetched {len(fetch)} volume data with moving average of {moving_avg_days}")
+    table_list = h.query_api.query(_flux(h.bucket, moving_avg_days))
+    logger.info(f"Fetched {len(table_list)} volume data with moving average of {moving_avg_days}")
 
     out: List[VolumeData] = []
-    for table in fetch:
+    for table in table_list:
         for record in table.records:
             t = record.get_time()
             v = record.get_value()
