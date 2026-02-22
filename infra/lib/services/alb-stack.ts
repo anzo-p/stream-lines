@@ -14,16 +14,12 @@ export class AlbStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, vpc: ec2.Vpc, props?: cdk.NestedStackProps) {
     super(scope, id, props);
 
+    // backend
     const zone = route53.HostedZone.fromLookup(this, 'HostedZone', {
       domainName: 'anzop.net'
     });
 
     const backendAlb = new elbv2.ApplicationLoadBalancer(this, 'BackendAlb', {
-      internetFacing: true,
-      vpc
-    });
-
-    const dashboardAlb = new elbv2.ApplicationLoadBalancer(this, 'DashboardAlb', {
       internetFacing: true,
       vpc
     });
@@ -34,22 +30,10 @@ export class AlbStack extends cdk.NestedStack {
       zone
     });
 
-    new route53.ARecord(this, 'DashboardAlbAliasRecord', {
-      recordName: `${process.env.DASHBOARD_SUBDOMAIN}`,
-      target: route53.RecordTarget.fromAlias(new targets.LoadBalancerTarget(dashboardAlb)),
-      zone
-    });
-
     const backendAlbCertificate = acm.Certificate.fromCertificateArn(
       this,
       'BackendCertificate',
       `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:certificate/${process.env.ACM_BACKEND_CERT}`
-    );
-
-    const webappAlbCertificate = acm.Certificate.fromCertificateArn(
-      this,
-      'WebAppCertificate',
-      `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:certificate/${process.env.ACM_WEBAPP_CERT}`
     );
 
     this.backendAlbListener = backendAlb.addListener('BackendAlbListener', {
@@ -57,6 +41,25 @@ export class AlbStack extends cdk.NestedStack {
       port: 443,
       protocol: elbv2.ApplicationProtocol.HTTPS
     });
+
+    /*
+    // dashboard
+    const dashboardAlb = new elbv2.ApplicationLoadBalancer(this, 'DashboardAlb', {
+      internetFacing: true,
+      vpc
+    });
+
+    new route53.ARecord(this, 'DashboardAlbAliasRecord', {
+      recordName: `${process.env.DASHBOARD_SUBDOMAIN}`,
+      target: route53.RecordTarget.fromAlias(new targets.LoadBalancerTarget(dashboardAlb)),
+      zone
+    });
+
+    const webappAlbCertificate = acm.Certificate.fromCertificateArn(
+      this,
+      'WebAppCertificate',
+      `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:certificate/${process.env.ACM_WEBAPP_CERT}`
+    );
 
     this.dashboardAlbListener = dashboardAlb.addListener('DashboardAlbListenerHttps', {
       certificates: [webappAlbCertificate],
@@ -75,5 +78,6 @@ export class AlbStack extends cdk.NestedStack {
       port: 80,
       protocol: elbv2.ApplicationProtocol.HTTP
     });
+    */
   }
 }

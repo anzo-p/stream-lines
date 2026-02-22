@@ -8,16 +8,17 @@ private data class IrregularHoliday(val date: LocalDate)
 private data class VariableRegularHoliday(val month: Int, val dayOfWeek: DayOfWeek, val n: Int)
 
 private val irregularHolidays: Set<IrregularHoliday> = setOf(
-    IrregularHoliday(LocalDate.of(2016, 3, 25)), // Good Friday
-    IrregularHoliday(LocalDate.of(2017, 4, 14)), // Good Friday
-    IrregularHoliday(LocalDate.of(2018, 3, 30)), // Good Friday
-    IrregularHoliday(LocalDate.of(2019, 4, 19)), // Good Friday
-    IrregularHoliday(LocalDate.of(2020, 4, 10)), // Good Friday
-    IrregularHoliday(LocalDate.of(2021, 4, 2)),  // Good Friday
-    IrregularHoliday(LocalDate.of(2022, 4, 15)), // Good Friday
-    IrregularHoliday(LocalDate.of(2023, 4, 7)),  // Good Friday
-    IrregularHoliday(LocalDate.of(2024, 3, 29)), // Good Friday
-    IrregularHoliday(LocalDate.of(2025, 4, 18)), // Good Friday
+    // Good Fridays
+    IrregularHoliday(LocalDate.of(2016, 3, 25)),
+    IrregularHoliday(LocalDate.of(2017, 4, 14)),
+    IrregularHoliday(LocalDate.of(2018, 3, 30)),
+    IrregularHoliday(LocalDate.of(2019, 4, 19)),
+    IrregularHoliday(LocalDate.of(2020, 4, 10)),
+    IrregularHoliday(LocalDate.of(2021, 4, 2)),
+    IrregularHoliday(LocalDate.of(2022, 4, 15)),
+    IrregularHoliday(LocalDate.of(2023, 4, 7)),
+    IrregularHoliday(LocalDate.of(2024, 3, 29)),
+    IrregularHoliday(LocalDate.of(2025, 4, 18)),
 )
 
 private val fixedRegularHolidays: Set<Pair<Int, Int>> = setOf(

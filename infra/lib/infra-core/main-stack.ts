@@ -4,14 +4,13 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import { EcsClusterStack } from './ecs-cluster-stack';
-import { InfluxDbStack } from './influxdb-ec2-stack';
+import { InfluxDbStack } from './influxdb-stack';
 import { BastionStack } from './bastion-stack';
 import { InterfaceEndpointsStack } from './endpoints-stack';
 import { VpcStack } from './vpc-stack';
 
 export class InfraCoreStack extends cdk.Stack {
   readonly vpc: ec2.Vpc;
-  readonly serviceSecurityGroups: Record<string, ec2.SecurityGroup>;
   readonly ecsCluster: ecs.Cluster;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -25,28 +24,23 @@ export class InfraCoreStack extends cdk.Stack {
 
     this.ecsCluster = new EcsClusterStack(this, 'EcsClusterStack', this.vpc).ecsCluster;
 
-    const sgSpecsBastion = [{ id: 'bastion', name: 'BastionSecurityGroup' }];
-
-    const sgSpecsDbConnServices = [
-      { id: 'currents', name: 'CurrentsSecurityGroup' },
-      { id: 'gather', name: 'GatherSecurityGroup' },
-      { id: 'ripples', name: 'RipplesSecurityGroup' }
-    ];
-
-    const sgSpecsOtherServices = [
-      //{ id: 'backend', name: 'BackendSecurityGroup' },
-      { id: 'ingest', name: 'IngestSecurityGroup' }
-    ];
-
-    this.serviceSecurityGroups = Object.fromEntries(
-      [...sgSpecsBastion, ...sgSpecsDbConnServices, ...sgSpecsOtherServices].map(({ id, name }) => {
-        const sg = new ec2.SecurityGroup(this, name, {
-          vpc: this.vpc,
-          allowAllOutbound: true
-        });
-        return [id, sg];
-      })
-    );
+    const bastionSg = new ec2.SecurityGroup(this, 'BastionSecurityGroup', {
+      vpc: this.vpc,
+      allowAllOutbound: true
+    });
+    const influxSg = new ec2.SecurityGroup(this, 'InfluxDbSecurityGroup', {
+      vpc: this.vpc,
+      allowAllOutbound: true
+    });
+    [
+      { port: ec2.Port.tcp(22), description: 'Allow Jump Bastion access to InfluxDB instance' },
+      {
+        port: ec2.Port.tcp(Number(process.env.INFLUXDB_SERVER_PORT!)),
+        description: 'Allow Jump Bastion access to machine running influxDB'
+      }
+    ].forEach(({ port, description }) => {
+      influxSg.addIngressRule(bastionSg, port, description);
+    });
 
     const ssmRole = new iam.Role(this, 'Ec2SsmRole', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com')
@@ -59,17 +53,26 @@ export class InfraCoreStack extends cdk.Stack {
     );
 
     new BastionStack(this, 'BastionStack', {
-      bastionSecurityGroup: this.serviceSecurityGroups['bastion'],
+      securityGroup: bastionSg,
       ssmRole,
       vpc: this.vpc
     });
 
     new InfluxDbStack(this, 'InfluxDbStack', {
-      bastionSecurityGroup: this.serviceSecurityGroups['bastion'],
-      connectingServiceSGs: sgSpecsDbConnServices.map(({ id }) => ({ id, sg: this.serviceSecurityGroups[id] })),
       ecsCluster: this.ecsCluster,
+      securityGroup: influxSg,
       ssmRole,
       vpc: this.vpc
+    });
+
+    new cdk.CfnOutput(this, 'BastionSgIdOut', {
+      value: bastionSg.securityGroupId,
+      exportName: `${cdk.Stack.of(this).stackName}:BastionSgId`
+    });
+
+    new cdk.CfnOutput(this, 'InfluxSgIdOut', {
+      value: influxSg.securityGroupId,
+      exportName: `${cdk.Stack.of(this).stackName}:InfluxSgId`
     });
   }
 }

@@ -1,10 +1,10 @@
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as kinesis from 'aws-cdk-lib/aws-kinesis';
-//import { KinesisEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
-//import * as lambda from 'aws-cdk-lib/aws-lambda';
-//import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
+import { KinesisEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 
 export class KinesisStreamsStack extends cdk.NestedStack {
   readonly writeUpstreamPerms: iam.PolicyStatement;
@@ -37,8 +37,8 @@ export class KinesisStreamsStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,
-    //wsApiGatewayStageProdArn: string,
-    //wsApiGatewayConnectionsUrl: string,
+    wsApiGatewayStageProdArn: string,
+    wsApiGatewayConnectionsUrl: string,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
@@ -50,34 +50,21 @@ export class KinesisStreamsStack extends cdk.NestedStack {
       streamName: 'stream-lines-market-data-upstream'
     });
 
-    /*
     const resultsStream = new kinesis.Stream(this, 'ResultsDownStream', {
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
       retentionPeriod: cdk.Duration.hours(24),
       shardCount: 1,
       streamName: 'stream-lines-results-downstream'
     });
 
-    const roleResultsStreamPusherLambda = new iam.Role(
-      this,
-      'KinesisStreamPusherRole',
-      {
-        assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
-        managedPolicies: [
-          iam.ManagedPolicy.fromAwsManagedPolicyName(
-            'service-role/AWSLambdaBasicExecutionRole'
-          )
-        ]
-      }
-    );
-
+    const roleResultsStreamPusherLambda = new iam.Role(this, 'KinesisStreamPusherRole', {
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')]
+    });
 
     roleResultsStreamPusherLambda.addToPolicy(
       new iam.PolicyStatement({
-        actions: [
-          'logs:CreateLogGroup',
-          'logs:CreateLogStream',
-          'logs:PutLogEvents'
-        ],
+        actions: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents'],
         effect: iam.Effect.ALLOW,
         resources: ['arn:aws:logs:*:*:*']
       })
@@ -94,9 +81,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
       })
     );
 
-    roleResultsStreamPusherLambda.addToPolicy(
-      this.makeReadAccessPolicy(resultsStream.streamName)
-    );
+    roleResultsStreamPusherLambda.addToPolicy(this.makeReadAccessPolicy(resultsStream.streamName));
 
     roleResultsStreamPusherLambda.addToPolicy(
       new iam.PolicyStatement({
@@ -111,25 +96,18 @@ export class KinesisStreamsStack extends cdk.NestedStack {
       `${process.env.S3_APP_BUCKET}`
     );
 
-    const resultsStreamPusherLambda = new lambda.Function(
-      this,
-      'StreamPusherLambda',
-      {
-        code: lambda.Code.fromBucket(
-          bucketResultStreamPusherLambda,
-          `${process.env.S3_KEY_RESULTS_PUSHER}`
-        ),
-        environment: {
-          API_GW_CONNECTIONS_URL: `${wsApiGatewayConnectionsUrl}`,
-          WS_CONNS_TABLE_NAME: `${process.env.WS_CONNS_TABLE_NAME}`,
-          WS_CONNS_BY_SYMBOL_INDEX: `${process.env.WS_CONNS_BY_SYMBOL_INDEX}`
-        },
-        functionName: 'KinesisResultsStreamPusher',
-        handler: 'index.handler',
-        runtime: lambda.Runtime.NODEJS_20_X,
-        role: roleResultsStreamPusherLambda
-      }
-    );
+    const resultsStreamPusherLambda = new lambda.Function(this, 'StreamPusherLambda', {
+      code: lambda.Code.fromBucket(bucketResultStreamPusherLambda, `${process.env.S3_KEY_RESULTS_PUSHER}`),
+      environment: {
+        API_GW_CONNECTIONS_URL: `${wsApiGatewayConnectionsUrl}`,
+        WS_CONNS_TABLE_NAME: `${process.env.WS_CONNS_TABLE_NAME}`,
+        WS_CONNS_BY_SYMBOL_INDEX: `${process.env.WS_CONNS_BY_SYMBOL_INDEX}`
+      },
+      functionName: 'KinesisResultsStreamPusher',
+      handler: 'index.handler',
+      runtime: lambda.Runtime.NODEJS_20_X,
+      role: roleResultsStreamPusherLambda
+    });
 
     resultsStreamPusherLambda.addEventSource(
       new KinesisEventSource(resultsStream, {
@@ -139,7 +117,6 @@ export class KinesisStreamsStack extends cdk.NestedStack {
         retryAttempts: 3
       })
     );
-      */
 
     this.writeUpstreamPerms = this.makeWriteAccessPolicy('stream-lines-market-data-upstream');
     this.readUpstreamPerms = this.makeReadAccessPolicy('stream-lines-market-data-upstream');

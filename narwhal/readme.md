@@ -21,14 +21,14 @@ Both the _training data_ (orange line) and the _prediction_ (purple line) are th
 
 ## Interacting with the service
 
-...while schema still in early development (aka. no cronjob yet)
+...while schema still in early development (ie. no time to wait for periodical cronjob)
 
 ```
 brew install --cask session-manager-plugin
 
 aws ecs list-tasks \
   --cluster <cluster-arn> \
-  --service<service-arn> \
+  --service <service-arn> \
   
 aws ecs execute-command \
   --cluster <cluster-arn> \
@@ -38,6 +38,6 @@ aws ecs execute-command \
   --command "/bin/sh"
 
 curl localhost:8000/health
-curl http://localhost:8000/train
-curl http://localhost:8000/predict?model-id=<model-id>
+curl -o /dev/null -s -w "%{http_code}\n" -X POST http://localhost:8000/train
+curl -o /dev/null -s -w "%{http_code}\n" -X POST http://localhost:8000/predict?model-id=<model-id>
 ```

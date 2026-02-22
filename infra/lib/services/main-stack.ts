@@ -2,22 +2,21 @@ import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import { Construct } from 'constructs';
-// import { AlbStack } from './alb-stack';
+import { AlbStack } from './alb-stack';
 import { AutoTeardownStack } from './auto-teardown';
-// import { BackendStack } from './backend-stack';
+import { BackendStack } from './backend-stack';
+import { CurrentsStack } from './currents-stack';
 // import { DashboardStack } from './dashboard-stack';
 import { EcsTaskExecutionRole } from './ecs-task-exec-role';
 import { GatherStack } from './gather-stack';
 import { IngestStack } from './ingest-stack';
 import { KinesisStreamsStack } from './kinesis-stack';
-import { RipplesStack } from './ripples-stack';
-// import { WebSocketApiGatewayStack } from './api-gateway-stack';
-import { CurrentsStack } from './currents-stack';
 import { NatGatewayStack } from './nat-gateway-stack';
+import { RipplesStack } from './ripples-stack';
+import { WebSocketApiGatewayStack } from './api-gateway-stack';
 
 interface ServicesStackProps extends cdk.StackProps {
   vpc: ec2.Vpc;
-  securityGroups: Record<string, ec2.SecurityGroup>;
   ecsCluster: ecs.Cluster;
 }
 
@@ -25,27 +24,43 @@ export class ServicesStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ServicesStackProps) {
     super(scope, id, props);
 
-    const { vpc, securityGroups, ecsCluster } = props;
+    const { vpc, ecsCluster } = props;
+
+    const influxSg = ec2.SecurityGroup.fromSecurityGroupId(
+      this,
+      'ImportedInfluxSg',
+      cdk.Fn.importValue('StreamLines-Infra:InfluxSgId'),
+      { mutable: true }
+    );
+
+    const backendSg = new ec2.SecurityGroup(this, 'BackendSecurityGroup', { vpc, allowAllOutbound: true });
+    const currentsSg = new ec2.SecurityGroup(this, 'CurrentsSecurityGroup', { vpc, allowAllOutbound: true });
+    const gatherSg = new ec2.SecurityGroup(this, 'GatherSecurityGroup', { vpc, allowAllOutbound: true });
+    const ingestSg = new ec2.SecurityGroup(this, 'IngestSecurityGroup', { vpc, allowAllOutbound: true });
+    const ripplesSg = new ec2.SecurityGroup(this, 'RipplesSecurityGroup', { vpc, allowAllOutbound: true });
+
+    [currentsSg, gatherSg, ingestSg, ripplesSg].forEach((sg) => {
+      influxSg.connections.allowFrom(
+        sg,
+        ec2.Port.tcp(Number(process.env.INFLUXDB_SERVER_PORT!)),
+        `${sg.node.id}-to-Influx`
+      );
+    });
 
     const autoTeardownDenied = this.node.tryGetContext('autoTeardown') === 'false';
     const runOnlyOnDemandServices = this.node.tryGetContext('onlyOnDemand') === 'true';
     const runAllServicesOnDemand = this.node.tryGetContext('runAllAsOnDemand') === 'true';
 
-    /*
-    const wsApigatewayStack = new WebSocketApiGatewayStack(
-      this,
-      'ApiGatewayStack'
-    );
-    */
+    const wsApigatewayStack = new WebSocketApiGatewayStack(this, 'ApiGatewayStack');
 
     const kinesisStack = new KinesisStreamsStack(
       this,
-      'KinesisStack'
-      //wsApigatewayStack.wsApiGatewayStageProdArn,
-      //wsApigatewayStack.wsApiGatewayConnectionsUrl
+      'KinesisStack',
+      wsApigatewayStack.wsApiGatewayStageProdArn,
+      wsApigatewayStack.wsApiGatewayConnectionsUrl
     );
 
-    // const albStack = new AlbStack(this, 'AlbStack', vpc);
+    const albStack = new AlbStack(this, 'AlbStack', vpc);
 
     const taskExecRoleStack = new EcsTaskExecutionRole(this, 'StreamLinesEcsTaskExecRole');
 
@@ -54,20 +69,18 @@ export class ServicesStack extends cdk.Stack {
     let gatherStack: GatherStack | undefined;
     if (!runOnlyOnDemandServices || runAllServicesOnDemand) {
       gatherStack = new GatherStack(this, 'GatherStack', {
-        bastionSecurityGroup: securityGroups['bastion'],
-        connectingServiceSGs: ['ingest'].map((id) => ({ id, sg: securityGroups[id] })),
         desiredCount: 1,
         ecsCluster,
         executionRole: taskExecRoleStack.role,
         runAsOndemand: runAllServicesOnDemand,
-        securityGroup: securityGroups['gather']
+        securityGroup: gatherSg
       });
 
       new CurrentsStack(this, 'CurrentsStack', {
         desiredCount: 1,
         ecsCluster,
         executionRole: taskExecRoleStack.role,
-        securityGroup: securityGroups['currents'],
+        securityGroup: currentsSg,
         runAsOndemand: runAllServicesOnDemand
       });
     }
@@ -76,7 +89,7 @@ export class ServicesStack extends cdk.Stack {
       desiredCount: 1,
       ecsCluster,
       executionRole: taskExecRoleStack.role,
-      securityGroup: securityGroups['ripples'],
+      securityGroup: ripplesSg,
       runAsOndemand: true,
       readKinesisUpstreamPerms: kinesisStack.readUpstreamPerms,
       writeKinesisDownStreamPerms: kinesisStack.writeDownstreamPerms
@@ -87,32 +100,28 @@ export class ServicesStack extends cdk.Stack {
       desiredCount: 1,
       ecsCluster,
       executionRole: taskExecRoleStack.role,
-      securityGroup: securityGroups['ingest'],
+      securityGroup: ingestSg,
       runAsOndemand: true,
       writeKinesisUpstreamPerms: kinesisStack.writeUpstreamPerms
     });
     ingestStack.addDependency(kinesisStack);
     if (gatherStack) ingestStack.addDependency(gatherStack);
 
-    /*
-    const backendStack = new BackendStack(
-      this,
-      'BackendStack',
-      ecsCluster.ecsCluster,
-      taskExecRoleStack.role,
-      backendSecurityGroup,
-
-      albStack.backendAlbListener
-    );
+    const backendStack = new BackendStack(this, 'BackendStack', {
+      backendAlbListener: albStack.backendAlbListener,
+      ecsCluster,
+      ecsTaskExecRole: taskExecRoleStack.role,
+      securityGroup: backendSg
+    });
     backendStack.addDependency(wsApigatewayStack);
 
-    const dashboardStack = new DashboardStack(
-      this,
-      'DashboardStack',
-      ecsCluster.ecsCluster,
-      taskExecRoleStack.role,
-      albStack.dashboardAlbListener
-    );
+    /*
+    // should frontend be run out of S3 via CloudFront?
+    const dashboardStack = new DashboardStack(this, 'DashboardStack', {
+      dashboardAlbListener: albStack.dashboardAlbListener,
+      ecsCluster,
+      ecsTaskExecRole: taskExecRoleStack.role
+    });
     dashboardStack.addDependency(wsApigatewayStack);
     dashboardStack.addDependency(backendStack);
     */

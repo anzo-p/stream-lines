@@ -9,9 +9,8 @@ import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type InfluxDbStackProps = cdk.NestedStackProps & {
-  bastionSecurityGroup: ec2.SecurityGroup;
-  connectingServiceSGs: { id: string; sg: ec2.SecurityGroup }[];
   ecsCluster: ecs.Cluster;
+  securityGroup: ec2.SecurityGroup;
   ssmRole: iam.Role;
   vpc: ec2.Vpc;
 };
@@ -20,25 +19,9 @@ export class InfluxDbStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: InfluxDbStackProps) {
     super(scope, id, props);
 
-    const { vpc, ecsCluster, bastionSecurityGroup, ssmRole, connectingServiceSGs } = props;
+    const { ecsCluster, securityGroup, ssmRole, vpc } = props;
 
-    const influxDbPort = Number(process.env.INFLUXDB_SERVER_PORT ?? '8086');
-
-    const securityGroup = new ec2.SecurityGroup(this, 'InfluxDbSecurityGroup', {
-      allowAllOutbound: true,
-      vpc
-    });
-
-    [
-      { port: ec2.Port.tcp(22), description: 'Allow Jump Bastion access to InfluxDB instance' },
-      { port: ec2.Port.tcp(influxDbPort), description: 'Allow Jump Bastion access to machine running influxDB' }
-    ].forEach(({ port, description }) => {
-      securityGroup.addIngressRule(bastionSecurityGroup, port, description);
-    });
-
-    connectingServiceSGs.forEach(({ id, sg }) => {
-      securityGroup.connections.allowFrom(sg, ec2.Port.tcp(influxDbPort), `${id}-to-Influx`);
-    });
+    const influxDbPort = Number(process.env.INFLUXDB_SERVER_PORT!);
 
     const influxDbInstance = new ec2.Instance(this, 'InfluxDbEc2Instance', {
       availabilityZone: 'eu-north-1a', // same as EBS volume

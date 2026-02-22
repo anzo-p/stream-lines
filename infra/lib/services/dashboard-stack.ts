@@ -6,20 +6,21 @@ import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 
+export type DashboardStackProps = cdk.NestedStackProps & {
+  dashboardAlbListener: elbv2.ApplicationListener;
+  ecsCluster: ecs.Cluster;
+  ecsTaskExecRole: iam.Role;
+};
+
 export class DashboardStack extends cdk.NestedStack {
-  constructor(
-    scope: Construct,
-    id: string,
-    ecsCluster: ecs.Cluster,
-    executionRole: iam.Role,
-    dashboardAlbListener: elbv2.ApplicationListener,
-    props?: cdk.StackProps
-  ) {
+  constructor(scope: Construct, id: string, props?: DashboardStackProps) {
     super(scope, id, props);
+
+    const { dashboardAlbListener, ecsCluster, ecsTaskExecRole } = props!;
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'DashboardTaskDefinition', {
       cpu: 256,
-      executionRole,
+      executionRole: ecsTaskExecRole,
       family: 'DashboardTaskDefinition',
       memoryLimitMiB: 512,
       runtimePlatform: {

@@ -11,8 +11,6 @@ import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type GatherStackProps = cdk.NestedStackProps & {
-  bastionSecurityGroup: ec2.SecurityGroup;
-  connectingServiceSGs: { id: string; sg: ec2.SecurityGroup }[];
   desiredCount: number;
   ecsCluster: ecs.Cluster;
   executionRole: iam.Role;
@@ -25,29 +23,14 @@ export class GatherStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: GatherStackProps) {
     super(scope, id, props);
 
-    const {
-      bastionSecurityGroup,
-      connectingServiceSGs,
-      desiredCount,
-      ecsCluster,
-      executionRole,
-      runAsOndemand = false,
-      securityGroup
-    } = props;
-
-    const gatherPort = Number(process.env.GATHER_SERVER_PORT ?? '8080');
-
-    securityGroup.addIngressRule(bastionSecurityGroup, ec2.Port.tcp(gatherPort), 'Allow Jump Bastion access to Gather');
-
-    connectingServiceSGs.forEach(({ sg }) => {
-      securityGroup.addIngressRule(sg, ec2.Port.tcp(gatherPort), 'Allow services to call Gather on its REST API');
-    });
+    const { desiredCount, ecsCluster, executionRole, runAsOndemand = false, securityGroup } = props;
 
     securityGroup.addEgressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), 'Allow HTTPS only');
 
     const taskRole = new iam.Role(this, 'GatherTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
     });
+    taskRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'));
 
     [
       { id: 'AlpacaSecret', name: 'prod/alpaca/api' },
@@ -59,7 +42,6 @@ export class GatherStack extends cdk.NestedStack {
     });
 
     const table = dynamodb.Table.fromTableName(this, 'gather-table', `${process.env.GATHER_DYNAMODB_TABLE_NAME}`);
-
     table.grantReadWriteData(taskRole);
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'GatherTaskDefinition', {
@@ -74,8 +56,6 @@ export class GatherStack extends cdk.NestedStack {
       taskRole
     });
 
-    const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-gather');
-
     const logGroup = new logs.LogGroup(this, 'GatherLogGroup', {
       removalPolicy: RemovalPolicy.DESTROY,
       retention: logs.RetentionDays.ONE_WEEK
@@ -85,6 +65,10 @@ export class GatherStack extends cdk.NestedStack {
       logGroup: logGroup,
       streamPrefix: 'gather'
     });
+
+    const gatherPort = Number(process.env.GATHER_SERVER_PORT ?? '8080');
+
+    const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-gather');
 
     taskDefinition.addContainer('GatherContainer', {
       cpu: 512,
@@ -114,6 +98,7 @@ export class GatherStack extends cdk.NestedStack {
       },
       cluster: ecsCluster,
       desiredCount,
+      enableExecuteCommand: true,
       securityGroups: [securityGroup],
       taskDefinition,
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }

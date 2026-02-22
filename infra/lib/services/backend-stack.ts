@@ -8,21 +8,22 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
+export type BackendStackProps = cdk.NestedStackProps & {
+  backendAlbListener: elbv2.ApplicationListener;
+  ecsCluster: ecs.Cluster;
+  ecsTaskExecRole: iam.Role;
+  securityGroup: ec2.SecurityGroup;
+};
+
 export class BackendStack extends cdk.NestedStack {
-  constructor(
-    scope: Construct,
-    id: string,
-    ecsCluster: ecs.Cluster,
-    executionRole: iam.Role,
-    securityGroup: ec2.SecurityGroup,
-    backendAlbListener: elbv2.ApplicationListener,
-    props?: cdk.StackProps
-  ) {
+  constructor(scope: Construct, id: string, props?: BackendStackProps) {
     super(scope, id, props);
+
+    const { backendAlbListener, ecsCluster, ecsTaskExecRole, securityGroup } = props!;
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'BackendTaskDefinition', {
       cpu: 256,
-      executionRole,
+      executionRole: ecsTaskExecRole,
       family: 'BackendTaskDefinition',
       memoryLimitMiB: 512,
       runtimePlatform: {
@@ -47,9 +48,6 @@ export class BackendStack extends cdk.NestedStack {
 
     taskDefinition.addContainer('BackendContainer', {
       cpu: 256,
-      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      memoryLimitMiB: 512,
-      portMappings: [{ containerPort: parseInt(containerPort), protocol: ecs.Protocol.TCP }],
       environment: {
         GRAPHQL_SERVER_ADDRESS: `${process.env.BACKEND_SERVER_ADDRESS}`,
         GRAPHQL_SERVER_PORT: containerPort,
@@ -58,7 +56,10 @@ export class BackendStack extends cdk.NestedStack {
         INFLUXDB_TOKEN_HISTORICAL_READ: `${process.env.INFLUXDB_TOKEN_HISTORICAL_READ}`,
         INFLUXDB_URL: `${process.env.INFLUXDB_URL}`
       },
-      logging
+      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
+      logging,
+      memoryLimitMiB: 512,
+      portMappings: [{ containerPort: parseInt(containerPort), protocol: ecs.Protocol.TCP }]
     });
 
     const backendService = new ecs.FargateService(this, 'BackendEcsService', {
@@ -67,7 +68,7 @@ export class BackendStack extends cdk.NestedStack {
       desiredCount: 1,
       securityGroups: [securityGroup],
       taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED } // PRIVATE_WITH_EGRESS
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }
     });
 
     backendService.registerLoadBalancerTargets({
