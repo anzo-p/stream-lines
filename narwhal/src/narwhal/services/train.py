@@ -26,10 +26,10 @@ class TrainingService:
 
         try:
             training_data: List[TrainingData] = fetch_raw_data(self.historical_data_handle)
-            # forces to predict over unseen future by omitting 1.5 years worth of tail bank days
-            training_data = list(training_data[:-375])
             write_to_influx(training_data, self.training_data_handle)
-
+            # write it all to influx, but omit 1.5 years worth of tail bank days
+            # in order to force prediction over data yet unseen to the model
+            training_data = list(training_data[:-375])
             content: bytes = to_gzipped_csv(training_data)
             export_training_file(content)
 
