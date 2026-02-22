@@ -19,6 +19,9 @@ flowchart LR
   kinesisUpstream["AWS Kinesis"]
   kinesisDownstream["AWS Kinesis"]
 
+  %% AI
+  sagemaker["AWS SageMaker"]
+
   %% services
   ingest("`**Ingest**
   Rust`")
@@ -40,6 +43,10 @@ flowchart LR
   `")
   classDef dashedBox stroke-dasharray: 5 5;
   class beacons dashedBox;
+
+  narwhal("`**Narwhal**
+  Python
+  Numpy, XGBoost`")
 
   backend("`**Backend**
   Rust
@@ -78,10 +85,19 @@ flowchart LR
   influxdbUpstream --> beacons
   beacons --> influxdbDownstream
 
+  influxdbDownstream --> narwhal
+  narwhal --> sagemaker
+  sagemaker --> narwhal
+  narwhal --> influxdbDownstream
+
   subgraph "analytics"
     ripples
     currents
     beacons
+  end
+
+  subgraph "machine learning"
+    narwhal
   end
 
   subgraph "real-time path"
@@ -120,6 +136,10 @@ Compute analytical results out of data provided by Gather.
 ### Beacons (planned service)
 
 Becons would compute analytical results from company financials themselves and also from interesting relationships between fundamentals and stock price development.
+
+### Narwhal
+
+Narwhal commposes learning data for AWS Sagemaker to calculate a model using XGBoost and then uses that model to run predictions.
 
 ### Backend
 

@@ -8,6 +8,11 @@ Narwhal is a small service in python with brief exposure on xgboost and numpy to
 - Collect and submit training data for AWS Sagemaker
 - Use that model to run predictions
 
+We have chosen XGBoost (Extreme Gradient Boosting) as the machine learning algorithm for these qualities:
+- Fast training and prediction
+- Reasonability
+- Works particularly well for financial data, which is often continuous, 'foggy', and of wide range of magnitudes.
+
 The data is collected from after a grace period (6-12 months) since beginning of historical trading data acquired by [Gather service](https://github.com/anzo-p/stream-lines/tree/main/gather) up to about 1.5 years in the past form today.
 - Initial 6-12 months are omitted for various long running aggregates such as moving averages to establish 
 - Tail 1.5 years are omitted in order to deny model creator to learn over 'recent data' thus forcing true prediction over that period.
