@@ -7,10 +7,12 @@ import { AutoTeardownStack } from './auto-teardown';
 import { BackendStack } from './backend-stack';
 import { CurrentsStack } from './currents-stack';
 // import { DashboardStack } from './dashboard-stack';
+import { DrawdownSagemakerStack } from './drawdown-sagemaker-stack';
 import { EcsTaskExecutionRole } from './ecs-task-exec-role';
 import { GatherStack } from './gather-stack';
 import { IngestStack } from './ingest-stack';
 import { KinesisStreamsStack } from './kinesis-stack';
+import { NarwhalStack } from './narwhal-stack';
 import { NatGatewayStack } from './nat-gateway-stack';
 import { RipplesStack } from './ripples-stack';
 import { WebSocketApiGatewayStack } from './api-gateway-stack';
@@ -37,9 +39,10 @@ export class ServicesStack extends cdk.Stack {
     const currentsSg = new ec2.SecurityGroup(this, 'CurrentsSecurityGroup', { vpc, allowAllOutbound: true });
     const gatherSg = new ec2.SecurityGroup(this, 'GatherSecurityGroup', { vpc, allowAllOutbound: true });
     const ingestSg = new ec2.SecurityGroup(this, 'IngestSecurityGroup', { vpc, allowAllOutbound: true });
+    const narwhalSg = new ec2.SecurityGroup(this, 'NarwhalSecurityGroup', { vpc, allowAllOutbound: true });
     const ripplesSg = new ec2.SecurityGroup(this, 'RipplesSecurityGroup', { vpc, allowAllOutbound: true });
 
-    [currentsSg, gatherSg, ingestSg, ripplesSg].forEach((sg) => {
+    [currentsSg, gatherSg, ingestSg, narwhalSg, ripplesSg].forEach((sg) => {
       influxSg.connections.allowFrom(
         sg,
         ec2.Port.tcp(Number(process.env.INFLUXDB_SERVER_PORT!)),
@@ -125,6 +128,16 @@ export class ServicesStack extends cdk.Stack {
     dashboardStack.addDependency(wsApigatewayStack);
     dashboardStack.addDependency(backendStack);
     */
+
+    new NarwhalStack(this, 'NarwhalStack', {
+      desiredCount: 1,
+      ecsCluster,
+      executionRole: taskExecRoleStack.role,
+      runAsOndemand: runAllServicesOnDemand,
+      securityGroup: narwhalSg
+    });
+
+    new DrawdownSagemakerStack(this, 'SagemakerStack');
 
     if (!autoTeardownDenied) {
       new AutoTeardownStack(this, 'AutoTeardownStack', {

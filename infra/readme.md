@@ -20,7 +20,7 @@ lambdas/
 
 ### 2.2. Required ECR repositories
 
-These are 'backend', 'currents', 'dashboard', 'gather', 'influxdb', 'ingest', 'ripples', and they need to be acuirable from CDK like so
+These are 'backend', 'currents', 'dashboard', 'gather', 'influxdb', 'ingest', 'narwhal', 'ripples', and they need to be acuirable from CDK like so
 
 ```
 ecr.Repository.fromRepositoryName(this, 'EcrRepository', '<repo-name>')
@@ -99,6 +99,26 @@ npm run cdk deploy StreamLines-Services
 # interim deployment
 npm run cdk deploy StreamLines-Services -c AutoTeardown=false
 npm run cdk destroy StreamLines-Services
+```
+
+### 3.1. Accessing the services
+
+Restart a service from a. latest cfn template and b. newest container image
+```
+aws ecs update-service \
+  --cluster <cluster-arn> \
+  --service <service-arn> \
+  --force-new-deployment
+```
+
+Exec into a container
+```
+aws ecs execute-command \
+  --cluster <cluster-arn> \
+  --task <task-arn> \
+  --container <container-name> \
+  --interactive \
+  --command "/bin/sh"
 ```
 
 ### 3.3. InfluxDB tokens
