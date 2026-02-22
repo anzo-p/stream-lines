@@ -2,7 +2,6 @@ package net.anzop.sinks
 
 import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.connector.kinesis.sink.{KinesisStreamsSink, PartitionKeyGenerator}
-import org.apache.flink.streaming.api.functions.sink.SinkFunction
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.Properties
@@ -23,10 +22,4 @@ object KinesisSink {
       .setPartitionKeyGenerator(new SerializablePartitionKeyGenerator[T]())
       .setFailOnError(true)
       .build()
-
-  def loggingKinesisSink[T]: SinkFunction[T] = new SinkFunction[T] {
-    override def invoke(value: T, context: SinkFunction.Context): Unit = {
-      logger.info(s"Successfully storing ${value.getClass.getSimpleName} results to Kinesis")
-    }
-  }
 }

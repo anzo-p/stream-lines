@@ -7,7 +7,7 @@ import net.anzop.helpers.StreamHelpers.nyseOpen
 import net.anzop.processors.{QuotationDeltaProcessor, QuotationWindowProcessor, TradeDeltaProcessor, TradeWindowProcessor}
 import net.anzop.results.WindowedTrades._
 import net.anzop.results.{QuotationDeltas, TradeDeltas, WindowedQuotations, WindowedTrades}
-import net.anzop.sinks.ResultSink
+import net.anzop.sinks.{KinesisSink, ResultSink}
 import net.anzop.types._
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows
@@ -104,17 +104,11 @@ object MarketData {
     tradeDifferences.addSink(new ResultSink[TradeDeltas](influxDetails))
     logger.info("Flink stream results InfluxDB sinks created and connected")
 
-    /*
-    allWindowedQuotations.addSink(loggingKinesisSink[WindowedQuotes])
-    allWindowedQuotations.sinkTo(KinesisSink.make[WindowedQuotes](kinesisProps))
-    allWindowedTrades.addSink(loggingKinesisSink[WindowedTrades])
+    allWindowedQuotations.sinkTo(KinesisSink.make[WindowedQuotations](kinesisProps))
     allWindowedTrades.sinkTo(KinesisSink.make[WindowedTrades](kinesisProps))
-    quoteDifferences.addSink(loggingKinesisSink[QuotationDeltas])
     quoteDifferences.sinkTo(KinesisSink.make[QuotationDeltas](kinesisProps))
-    tradeDifferences.addSink(loggingKinesisSink[TradeDeltas])
     tradeDifferences.sinkTo(KinesisSink.make[TradeDeltas](kinesisProps))
     logger.info("Flink stream results Kinesis sinks created and connected")
-     */
 
     env.execute("Flink Kinesis Example")
   }
