@@ -6,6 +6,11 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
+# safely curl service in private subnet
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
+
 COPY pyproject.toml ./
 
 RUN pip install --no-cache-dir --upgrade pip \
