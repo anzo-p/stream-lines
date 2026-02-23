@@ -5,7 +5,8 @@ import net.anzop.gather.model.marketData.Measurement
 
 data class Vix(
     val date: LocalDate,
-    val value: Double
+    val value: Double,
+    val carryForwardFrom: LocalDate? = null
 ) {
     val measurement = MEASUREMENT
     val ticker = TICKER
