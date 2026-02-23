@@ -1,6 +1,9 @@
 package net.anzop.gather.http.client
 
+import java.io.IOException
 import java.net.URI
+import java.time.Duration
+import java.util.concurrent.TimeoutException
 import org.slf4j.LoggerFactory
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpStatus
@@ -8,6 +11,7 @@ import org.springframework.http.HttpStatusCode
 import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import reactor.util.retry.Retry
 
 object WebFluxExtensions {
     inline fun <reified T> WebClient.getRequest(url: URI): T? =
@@ -17,6 +21,12 @@ object WebFluxExtensions {
             .retrieve()
             .onStatus(HttpStatusCode::isError) { it.handleError() }
             .bodyToMono(object : ParameterizedTypeReference<T>() {})
+            .retryWhen(
+                Retry.backoff(3, Duration.ofMillis(300))
+                    .filter { ex ->
+                        ex is IOException || ex is TimeoutException
+                    }
+            )
             .block()
 
     fun ClientResponse.handleError(): Mono<Throwable> {
