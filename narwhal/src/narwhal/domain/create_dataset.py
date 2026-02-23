@@ -71,13 +71,16 @@ def _index_by_day(rows: Iterable[T], get_day: Callable[[T], date]) -> dict[date,
     return {get_day(r): r for r in rows}
 
 
-def _submit_to_influx(handle, data, batch_size=10):
+def _submit_to_influx(h: InfluxHandle, data: Iterable[Serializable], batch_size: int = 10) -> None:
+    if h.write_api is None:
+        raise RuntimeError("write_api is not initialized")
+
     for batch in _batched(data, batch_size):
         try:
             payload = "\n".join(d.to_line_protocol() for d in batch)
-            handle.write_api.write(
-                bucket=handle.bucket,
-                org=handle.org,
+            h.write_api.write(
+                bucket=h.bucket,
+                org=h.org,
                 record=payload,
             )
         except Exception:
@@ -102,5 +105,5 @@ def fetch_raw_data(h: InfluxHandle) -> list[TrainingData]:
     return _combine_by_day(members, index, volume, drawdown, vix_data)
 
 
-def write_to_influx(data: Iterable[Serializable], handle: InfluxHandle) -> None:
-    _submit_to_influx(handle, data)
+def write_to_influx(h: InfluxHandle, data: Iterable[Serializable]) -> None:
+    _submit_to_influx(h, data)

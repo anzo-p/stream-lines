@@ -14,16 +14,22 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "mypy",
-  "pyright",
+  "ruff",
+]
+
+[tool.mypy]
+exclude = "(^venv/|^\\.venv/)"
+files = ["src"]
+strict = true
+
+[[tool.mypy.overrides]]
+disable_error_code = ["import-untyped"]
+ignore_missing_imports = true
+module = [
+  "influxdb_client.*",
 ]
 
 [tool.ruff]
-line-length = 100
-target-version = "py311"
-
-[tool.pyright]
-typeCheckingMode = "standard"
-include = ["src"]
 exclude = [
   "**/__pycache__",
   "**/*.egg-info",
@@ -36,3 +42,5 @@ exclude = [
   "build",
   "dist",
 ]
+line-length = 100
+target-version = "py311"

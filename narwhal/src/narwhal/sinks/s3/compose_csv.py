@@ -4,7 +4,7 @@ import io
 
 from typing import Iterable
 
-from narwhal.domain.create_dataset import TrainingData
+from narwhal.domain.training_data import TrainingData
 
 
 def to_single_line_csv(row: TrainingData) -> bytes:
@@ -20,6 +20,7 @@ def to_single_line_csv(row: TrainingData) -> bytes:
             row.volume_over_moving_avg,
             row.current_drawdown,
             row.days_since_dip,
+            row.vix,
         ]
     )
     text.flush()
@@ -43,6 +44,7 @@ def to_gzipped_csv(rows: Iterable[TrainingData]) -> bytes:
                     r.volume_over_moving_avg,
                     r.current_drawdown,
                     r.days_since_dip,
+                    r.vix,
                 ]
             )
 

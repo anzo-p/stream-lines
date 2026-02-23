@@ -22,7 +22,7 @@ def _latest() -> str:
     return f"data_latest.csv.gz"
 
 
-def export_training_file(content: bytes):
+def export_training_file(content: bytes) -> None:
     logger = logging.getLogger(__name__)
 
     s3 = boto3.client("s3")

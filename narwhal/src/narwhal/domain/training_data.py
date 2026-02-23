@@ -27,7 +27,7 @@ class TrainingData:
             f"index_over_kaufman_avg={self.index_over_kaufman_avg},"
             f"volume_over_moving_avg={self.volume_over_moving_avg},"
             f"current_drawdown={self.current_drawdown},"
-            f"days_since_dip={self.days_since_dip}i",
-            f"vix={self.vix}",
+            f"days_since_dip={self.days_since_dip}i,"
+            f"vix={self.vix}"
         )
         return f"{self.measurement} {field_str} {to_epoch_ns(self.timestamp)}"

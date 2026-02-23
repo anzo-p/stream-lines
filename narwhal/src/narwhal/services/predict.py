@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class PredictionService:
-    def __init__(self):
+    def __init__(self) -> None:
         self.s3 = boto3.client("s3")
         self.bucket = S3_DATA_BUCKET
         self.training_data_handle = get_training_data_handle()
@@ -67,6 +67,7 @@ class PredictionService:
                             d.volume_over_moving_avg,
                             d.current_drawdown,
                             d.days_since_dip,
+                            d.vix,
                         ]
                         for d in [entry]
                     ],
@@ -88,7 +89,7 @@ class PredictionService:
                     )
                 )
 
-            write_to_influx(results, self.training_data_handle)
+            write_to_influx(self.training_data_handle, results)
             logger.info("Predictions completed successfully")
         except Exception as e:
             logger.error("Prediction failed: %s", e)

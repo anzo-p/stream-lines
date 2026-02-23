@@ -44,7 +44,7 @@ def _add_fwd_max_drawdown(rows: list[DrawdownData], future_window_days: int) -> 
     row_count = len(rows)
     dq: Deque[int] = deque()
 
-    def push(idx: int):
+    def push(idx: int) -> None:
         while dq and levels[dq[-1]] >= levels[idx]:
             dq.pop()
         dq.append(idx)
