@@ -9,6 +9,7 @@ flowchart LR
   alpacaWebSocket[/"Alpaca WebSocket"/]
   alpacaRestApi[/"Alpaca Rest API"/]
   datajockeyRestApi[/"DataJockey Rest API"/]
+  fredRestApi[/"Fred Rest API"/]
 
   %% persistence
   influxdbUpstream[(InfluxDB)]
@@ -66,6 +67,7 @@ flowchart LR
     alpacaWebSocket
     alpacaRestApi
     datajockeyRestApi
+    fredRestApi
   end
 
   alpacaWebSocket --> ingest
@@ -76,6 +78,7 @@ flowchart LR
 
   alpacaRestApi --> gather
   datajockeyRestApi --> gather
+  fredRestApi --> gather
   gather --> influxdbUpstream
   influxdbUpstream --> currents
   currents --> influxdbDownstream
