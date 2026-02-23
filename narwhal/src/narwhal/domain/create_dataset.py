@@ -37,12 +37,12 @@ def _combine_by_day(
     index_data_by_day = _index_by_day(index_data, lambda r: r.day)
     volume_by_day = _index_by_day(volumes, lambda r: r.day)
     drawdown_by_day = _index_by_day(drawdowns, lambda r: r.day)
-    vix_data_by_day = _index_by_day(vix_data, lambda r: r.day)
+    vix_by_day = _index_by_day(vix_data, lambda r: r.day)
 
     common_days = set.intersection(
         *(
             set(d.keys())
-            for d in (members_by_day, index_data_by_day, volume_by_day, drawdown_by_day)
+            for d in (members_by_day, index_data_by_day, volume_by_day, drawdown_by_day, vix_by_day)
         )
     )
 
@@ -58,7 +58,7 @@ def _combine_by_day(
                 volume_over_moving_avg=volume_by_day[day].over_moving_avg,
                 current_drawdown=drawdown_by_day[day].current_drawdown,
                 days_since_dip=drawdown_by_day[day].days_since_dip,
-                vix=vix_data_by_day[day].value,
+                vix=vix_by_day[day].value,
             )
         )
 
@@ -96,13 +96,13 @@ def fetch_raw_data(h: InfluxHandle) -> list[TrainingData]:
     index: List[IndexData] = list(index_query(h, BANK_DAYS_OF_TWO_MONTHS))
     members: List[MemberData] = list(member_query(h))
     volume: List[VolumeData] = list(volume_query(h, BANK_DAYS_OF_TWO_MONTHS))
-    vix_data: List[VixData] = list(vix_query(h))
+    vix: List[VixData] = list(vix_query(h))
 
     logger.debug(
         f"Fetched members: {members}, index: {index}, volume: {volume}, drawdown: {drawdown}"
     )
 
-    return _combine_by_day(members, index, volume, drawdown, vix_data)
+    return _combine_by_day(members, index, volume, drawdown, vix)
 
 
 def write_to_influx(h: InfluxHandle, data: Iterable[Serializable]) -> None:
