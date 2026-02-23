@@ -26,6 +26,10 @@ enum class Measurement(val code: String, val description: String) {
     INDEX_DAILY_CHANGE_EXTENDED_HOURS(
         "index-daily-change-extended-hours",
         "Index using arithmetic mean from daily data including extended hours"
+    ),
+    VIX_DAILY(
+        "vix-daily",
+        "Daily closing value of the volatility index by Chicago Board Options Exchange (^VIX CBOE)"
     );
 
     fun regularHours() =

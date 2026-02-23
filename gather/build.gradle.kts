@@ -19,6 +19,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic")
     implementation("com.influxdb:flux-dsl:7.1.0")
     implementation("com.influxdb:influxdb-client-java:7.1.0")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")

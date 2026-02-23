@@ -2,6 +2,7 @@ package net.anzop.gather.http.client
 
 import java.net.URI
 import org.slf4j.LoggerFactory
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatusCode
 import org.springframework.web.reactive.function.client.ClientResponse
@@ -15,7 +16,7 @@ object WebFluxExtensions {
             .uri(url)
             .retrieve()
             .onStatus(HttpStatusCode::isError) { it.handleError() }
-            .bodyToMono(T::class.java)
+            .bodyToMono(object : ParameterizedTypeReference<T>() {})
             .block()
 
     fun ClientResponse.handleError(): Mono<Throwable> {

@@ -2,6 +2,8 @@ package net.anzop.gather.repository.influxdb.repository
 
 import com.influxdb.client.domain.WritePrecision
 import com.influxdb.client.write.Point
+import net.anzop.gather.helpers.date.toInstant
+import net.anzop.gather.model.economics.Vix
 import net.anzop.gather.model.marketData.BarData
 import net.anzop.gather.model.marketData.MarketData
 import net.anzop.gather.model.marketData.PriceChange
@@ -10,6 +12,7 @@ fun <T> toPoint(entity: T): Point =
     when (entity) {
         is BarData -> (entity as BarData).toPoint()
         is PriceChange -> (entity as PriceChange).toPoint()
+        is Vix -> (entity as Vix).toPoint()
         else -> throw IllegalArgumentException("Unsupported type: $entity")
     }
 
@@ -49,5 +52,20 @@ private fun PriceChange.toPoint(): Point =
                 "priceChangeAvg" to priceChangeAvg,
                 "prevPriceChangeAvg" to prevPriceChangeAvg,
                 "totalTradingValue" to totalTradingValue,
+            )
+        )
+
+private fun Vix.toPoint(): Point =
+    Point
+        .measurement(this.measurement.code)
+        .time(this.date.toInstant().toEpochMilli(), WritePrecision.MS)
+        .addTags(
+            mapOf(
+                "ticker" to this.ticker
+            ),
+        )
+        .addFields(
+            mapOf(
+                "value" to value,
             )
         )

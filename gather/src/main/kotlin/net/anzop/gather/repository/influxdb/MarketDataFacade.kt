@@ -4,6 +4,7 @@ import java.time.Instant
 import java.time.LocalDate
 import net.anzop.gather.helpers.date.nyseTradingHoursOr24h
 import net.anzop.gather.helpers.date.toInstant
+import net.anzop.gather.model.economics.Vix
 import net.anzop.gather.model.marketData.BarData
 import net.anzop.gather.model.marketData.MarketData
 import net.anzop.gather.model.marketData.Measurement
@@ -40,6 +41,12 @@ class MarketDataFacade (
         marketDataRepository.getLatestMeasurementTime(
             measurement = measurement,
             ticker = "INDEX"
+        )
+
+    fun getLatestVixEntry(): Instant? =
+        marketDataRepository.getLatestMeasurementTime(
+            measurement = Vix.MEASUREMENT,
+            ticker = Vix.TICKER
         )
 
     fun getSourceBarData(

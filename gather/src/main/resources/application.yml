@@ -11,6 +11,11 @@ aws:
   dynamodb:
     table_name: ${GATHER_DYNAMODB_TABLE_NAME}
 
+fred:
+  earliest_historical_date: 2016-01-02
+  max_calls_per_minute: 5
+  vix_url: "https://api.stlouisfed.org/fred/series/observations"
+
 datajockey:
   financials_url: "https://api.datajockey.io/v0/company/financials"
   max_calls_per_minute: 5
@@ -28,6 +33,7 @@ spring:
       - "source-data-params.yml"
       - aws-secretsmanager:prod/alpaca/api
       - aws-secretsmanager:prod/datajockey/api
+      - aws-secretsmanager:prod/fred/api
       - aws-secretsmanager:prod/internal/shared-secret
   web:
     resources:

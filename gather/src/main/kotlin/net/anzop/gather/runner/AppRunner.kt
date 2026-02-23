@@ -10,6 +10,7 @@ import net.anzop.gather.config.SourceDataConfig
 import net.anzop.gather.service.BarDataFetcher
 import net.anzop.gather.service.FinancialsFetcher
 import net.anzop.gather.service.IndexProcessor
+import net.anzop.gather.service.VixFetcher
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import kotlin.time.Duration.Companion.minutes
@@ -18,8 +19,9 @@ import kotlin.time.Duration.Companion.minutes
 class AppRunner(
     private val alpacaProps: AlpacaProps,
     private val barDataFetcher: BarDataFetcher,
-    private val indexProcessor: IndexProcessor,
     private val financialsFetcher: FinancialsFetcher,
+    private val indexProcessor: IndexProcessor,
+    private val vixFetcher: VixFetcher,
 ) {
     private val logger = LoggerFactory.getLogger(AppRunner::class.java)
 
@@ -57,6 +59,7 @@ class AppRunner(
                             if (barDataFetcher.run()) {
                                 indexProcessor.run()
                                 //financialsFetcher.run()
+                                vixFetcher.run()
                             } else {
                                 logger.warn("Skipping index processing and fetch for financials.")
                             }
