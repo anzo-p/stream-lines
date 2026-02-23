@@ -1,0 +1,43 @@
+import logging
+from dataclasses import dataclass
+from datetime import date
+from typing import Iterator, List
+
+from narwhal.sources.influx.client import InfluxHandle
+from narwhal.sources.influx.helpers import compose_default_range
+
+
+@dataclass(frozen=True)
+class VixData:
+    day: date
+    value: float
+
+
+def _flux(bucket: str) -> str:
+    return f'''
+from(bucket: "{bucket}")
+  |> {compose_default_range()}
+  |> filter(fn: (r) => r._measurement == "vix-daily")
+  |> filter(fn: (r) => r._field == "value")
+  |> keep(columns: ["_time", "_value"])
+'''.strip()
+
+
+def vix_query(h: InfluxHandle) -> Iterator[VixData]:
+    logger = logging.getLogger(__name__)
+
+    table_list = h.query_api.query(_flux(h.bucket))
+    logger.info(f"Fetched Vix data from InfluxDB, got {len(table_list)} tables")
+
+    out: List[VixData] = []
+    for table in table_list:
+        for record in table.records:
+            t = record.get_time()
+            v = record.get_value()
+
+            if t is None or v is None:
+                continue
+
+            out.append(VixData(day=t.date(), value=v))
+
+    yield from out

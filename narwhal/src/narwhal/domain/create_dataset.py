@@ -11,6 +11,7 @@ from narwhal.sources.influx.index_data import IndexData, index_query
 from narwhal.sources.influx.members import MemberData, member_query
 from narwhal.sources.influx.serializable import Serializable
 from narwhal.sources.influx.training_data import training_data_query
+from narwhal.sources.influx.vix import VixData, vix_query
 from narwhal.sources.influx.volume import VolumeData, volume_query
 
 T = TypeVar("T")
@@ -30,11 +31,13 @@ def _combine_by_day(
     index_data: Iterable[IndexData],
     volumes: Iterable[VolumeData],
     drawdowns: Iterable[DrawdownData],
+    vix_data: Iterable[VixData],
 ) -> list[TrainingData]:
     members_by_day = _index_by_day(members, lambda r: r.day)
     index_data_by_day = _index_by_day(index_data, lambda r: r.day)
     volume_by_day = _index_by_day(volumes, lambda r: r.day)
     drawdown_by_day = _index_by_day(drawdowns, lambda r: r.day)
+    vix_data_by_day = _index_by_day(vix_data, lambda r: r.day)
 
     common_days = set.intersection(
         *(
@@ -55,6 +58,7 @@ def _combine_by_day(
                 volume_over_moving_avg=volume_by_day[day].over_moving_avg,
                 current_drawdown=drawdown_by_day[day].current_drawdown,
                 days_since_dip=drawdown_by_day[day].days_since_dip,
+                vix=vix_data_by_day[day].value,
             )
         )
 
@@ -89,12 +93,13 @@ def fetch_raw_data(h: InfluxHandle) -> list[TrainingData]:
     index: List[IndexData] = list(index_query(h, BANK_DAYS_OF_TWO_MONTHS))
     members: List[MemberData] = list(member_query(h))
     volume: List[VolumeData] = list(volume_query(h, BANK_DAYS_OF_TWO_MONTHS))
+    vix_data: List[VixData] = list(vix_query(h))
 
     logger.debug(
         f"Fetched members: {members}, index: {index}, volume: {volume}, drawdown: {drawdown}"
     )
 
-    return _combine_by_day(members, index, volume, drawdown)
+    return _combine_by_day(members, index, volume, drawdown, vix_data)
 
 
 def write_to_influx(data: Iterable[Serializable], handle: InfluxHandle) -> None:
