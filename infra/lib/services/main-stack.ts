@@ -50,6 +50,8 @@ export class ServicesStack extends cdk.Stack {
       );
     });
 
+    gatherSg.addIngressRule(ingestSg, ec2.Port.tcp(Number(process.env.GATHER_SERVER_PORT!)), 'Ingest to Gather');
+
     const autoTeardownDenied = this.node.tryGetContext('autoTeardown') === 'false';
     const runOnlyOnDemandServices = this.node.tryGetContext('onlyOnDemand') === 'true';
     const runAllServicesOnDemand = this.node.tryGetContext('runAllAsOnDemand') === 'true';

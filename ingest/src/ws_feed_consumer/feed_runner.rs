@@ -15,7 +15,7 @@ use crate::ws_feed_consumer::process_one;
 pub async fn run_one_feed(feed: WebSocketFeed) -> Result<(), ProcessError> {
     let kinesis_client = create_kinesis_client().await?;
 
-    let _ = acquire_websocket_connection(&feed.url).await?;
+    acquire_websocket_connection(&feed.url, &feed.symbols).await?;
 
     if let Err(e) = consume_feed(&feed, &kinesis_client).await {
         log::error!("Error in handle_websocket_stream: {:?}", e);
@@ -26,12 +26,12 @@ pub async fn run_one_feed(feed: WebSocketFeed) -> Result<(), ProcessError> {
     }
 }
 
-async fn consume_feed(config: &WebSocketFeed, kinesis_client: &KinesisClient) -> Result<(), ProcessError> {
+async fn consume_feed(feed: &WebSocketFeed, kinesis_client: &KinesisClient) -> Result<(), ProcessError> {
     let mut counter = 0;
     let mut tally_time = Instant::now() + Duration::from_secs(60);
     loop {
-        match read_from_connection(&config.url).await {
-            Ok(Some(message)) => match process_message(&config, message, kinesis_client).await {
+        match read_from_connection(&feed.url, &feed.symbols).await {
+            Ok(Some(message)) => match process_message(&feed, message, kinesis_client).await {
                 Ok(_) => {
                     counter += 1;
                     let current_time = Instant::now();
@@ -49,7 +49,7 @@ async fn consume_feed(config: &WebSocketFeed, kinesis_client: &KinesisClient) ->
                 return Err(e);
             }
         }
-        sleep(Duration::from_millis(1000 / &config.max_reads_per_sec)).await;
+        sleep(Duration::from_millis(1000 / &feed.max_reads_per_sec)).await;
     }
 }
 

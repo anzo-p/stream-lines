@@ -10,7 +10,6 @@ use url::Url;
 
 use crate::errors::ProcessError;
 use crate::helpers::retry_with_backoff;
-use crate::load_app_config;
 use crate::ws_feed_consumer::{AuthMessage, SubMessage};
 
 type MyWebSocketStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
@@ -20,54 +19,50 @@ lazy_static! {
         Mutex::new(HashMap::new());
 }
 
-pub async fn acquire_websocket_connection(url_str: &str) -> Result<(), ProcessError> {
-    if let Err(e) = retry_with_backoff(
+pub async fn acquire_websocket_connection(url_str: &str, symbols: &[String]) -> Result<(), ProcessError> {
+    retry_with_backoff(
         || connect_to_stream(url_str),
         &format!("connect_to_stream({})", url_str),
     )
-    .await
-    {
-        log::error!("Failed to connect to {}, reason: {}", url_str, e);
-        return Err(e);
-    }
+        .await
+        .map_err(|e| {
+            log::error!("Failed to connect to {}, reason: {}", url_str, e);
+            e
+        })?;
 
-    auth_and_sub_by_url(url_str).await?;
-
+    auth_and_sub(url_str, symbols).await?;
     Ok(())
 }
 
-pub async fn read_from_connection(url_str: &str) -> Result<Option<Message>, ProcessError> {
+pub async fn read_from_connection(url_str: &str, symbols: &[String]) -> Result<Option<Message>, ProcessError> {
     let ws_arc = {
         let connections = WEBSOCKET_CONNECTIONS.lock().await;
         connections
             .get(url_str)
             .cloned()
-            .ok_or(ProcessError::ConnectionNotFound((&*url_str).to_string()))?
+            .ok_or(ProcessError::ConnectionNotFound(url_str.to_string()))?
     };
 
     let mut ws: MutexGuard<_> = ws_arc.lock().await;
     match ws.next().await {
         Some(Ok(message)) => Ok(Some(message)),
-
         other => {
             let error_message = if let Some(Err(e)) = other {
                 format!("Websocket read error: {:?}, ", e)
             } else {
-                String::from("Websocket connection closed, ")
+                "Websocket connection closed, ".to_string()
             };
 
-            log::info!("{} - {}attempting to reconnect...", chrono::Local::now(), error_message,);
+            log::info!("{} - {}attempting to reconnect...", chrono::Local::now(), error_message);
             remove_connection(url_str).await;
-            attempt_reconnect(url_str).await
+            attempt_reconnect(url_str, symbols).await
         }
     }
 }
 
-async fn attempt_reconnect(url_str: &str) -> Result<Option<Message>, ProcessError> {
-    match acquire_websocket_connection(url_str).await {
-        Ok(_) => Ok(None),
-        Err(e) => Err(e),
-    }
+async fn attempt_reconnect(url_str: &str, symbols: &[String]) -> Result<Option<Message>, ProcessError> {
+    acquire_websocket_connection(url_str, symbols).await?;
+    Ok(None)
 }
 
 async fn send_message<T: Serialize>(url_str: &str, message: &T) -> Result<(), ProcessError> {
@@ -104,27 +99,9 @@ async fn connect_to_stream(url_str: &str) -> Result<(), ProcessError> {
     Ok(())
 }
 
-async fn auth_and_sub_by_url(url_str: &str) -> Result<(), ProcessError> {
-    let app_config = load_app_config().await?;
-    if let Some(feed) = app_config.feeds.iter().find(|f| f.url == url_str) {
-        auth_and_sub_by_url_and_symbols(url_str, &feed.symbols).await
-    } else {
-        log::warn!(
-            "{} - No such feed: '{}' to connect to in app config",
-            chrono::Local::now(),
-            url_str
-        );
-        Ok(())
-    }
-}
-
-async fn auth_and_sub_by_url_and_symbols(url_str: &str, trading_symbols: &[String]) -> Result<(), ProcessError> {
-    if let Err(e) = send_auth_message(url_str).await {
-        return Err(e);
-    }
-    if let Err(e) = send_sub_message(url_str, trading_symbols).await {
-        return Err(e);
-    }
+async fn auth_and_sub(url_str: &str, trading_symbols: &[String]) -> Result<(), ProcessError> {
+    send_auth_message(url_str).await?;
+    send_sub_message(url_str, trading_symbols).await?;
     Ok(())
 }
 
