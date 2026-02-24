@@ -6,10 +6,11 @@ from typing import Iterator, List, Deque
 
 from narwhal.sources.influx.client import InfluxHandle
 from narwhal.sources.influx.helpers import compose_default_range
+from narwhal.sources.influx.query_result import QueryResult
 
 
 @dataclass(frozen=True)
-class DrawdownData:
+class DrawdownData(QueryResult):
     day: date
     current_drawdown: float
     days_since_dip: int

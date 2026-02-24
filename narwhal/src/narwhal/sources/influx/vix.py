@@ -5,10 +5,11 @@ from typing import Iterator, List
 
 from narwhal.sources.influx.client import InfluxHandle
 from narwhal.sources.influx.helpers import compose_default_range
+from narwhal.sources.influx.query_result import QueryResult
 
 
 @dataclass(frozen=True)
-class VixData:
+class VixData(QueryResult):
     day: date
     value: float
 

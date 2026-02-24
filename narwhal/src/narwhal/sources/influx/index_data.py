@@ -7,10 +7,11 @@ from influxdb_client.client.flux_table import TableList
 
 from narwhal.sources.influx.client import InfluxHandle
 from narwhal.sources.influx.helpers import compose_default_range
+from narwhal.sources.influx.query_result import QueryResult
 
 
 @dataclass(frozen=True)
-class IndexData:
+class IndexData(QueryResult):
     day: date
     over_moving_avg: float
     over_kaufman_avg: float

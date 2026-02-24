@@ -5,12 +5,13 @@ from typing import Iterator, List
 
 from narwhal.sources.influx.client import InfluxHandle
 from narwhal.sources.influx.helpers import compose_default_range
+from narwhal.sources.influx.query_result import QueryResult
 
 TOP_TICKERS_COUNT = 40
 
 
 @dataclass(frozen=True)
-class MemberData:
+class MemberData(QueryResult):
     day: date
     daily_spread: float
 

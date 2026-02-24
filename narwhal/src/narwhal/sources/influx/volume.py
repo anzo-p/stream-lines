@@ -5,10 +5,11 @@ from typing import Iterator, List
 
 from narwhal.sources.influx.client import InfluxHandle
 from narwhal.sources.influx.helpers import compose_default_range
+from narwhal.sources.influx.query_result import QueryResult
 
 
 @dataclass(frozen=True)
-class VolumeData:
+class VolumeData(QueryResult):
     day: date
     over_moving_avg: float
 

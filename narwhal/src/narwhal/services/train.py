@@ -1,8 +1,9 @@
 import logging
 from typing import List
 
-from narwhal.domain.create_dataset import fetch_raw_data, write_to_influx
+from narwhal.domain.create_dataset import compose_training_data
 from narwhal.domain.training_data import TrainingData
+from narwhal.sinks.influx.write import write_to_influx
 from narwhal.sinks.s3.compose_csv import to_gzipped_csv
 from narwhal.sinks.s3.export_file import export_training_file
 from narwhal.sources.influx.client import (
@@ -25,7 +26,7 @@ class TrainingService:
         logger.info(f"Reading training data")
 
         try:
-            training_data: List[TrainingData] = fetch_raw_data(self.historical_data_handle)
+            training_data: List[TrainingData] = compose_training_data(self.historical_data_handle)
             write_to_influx(self.training_data_handle, training_data)
             # write it all to influx, but omit 1.5 years worth of tail bank days
             # in order to force prediction over data yet unseen to the model

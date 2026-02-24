@@ -1,109 +1,84 @@
 import logging
+from dataclasses import fields
 from datetime import date
-from itertools import islice
-from typing import Iterable, Callable, TypeVar, List
+from typing import Any, Callable, ParamSpec, TypeVar, Iterable
 
 from narwhal.domain.constants import BANK_DAYS_OF_TWO_MONTHS, BANK_DAYS_OF_TWO_WEEKS
+from narwhal.domain.day_bundle import DayBundle
 from narwhal.domain.training_data import TrainingData
 from narwhal.sources.influx.client import InfluxHandle
-from narwhal.sources.influx.drawdown import DrawdownData, drawdown_query
-from narwhal.sources.influx.index_data import IndexData, index_query
-from narwhal.sources.influx.members import MemberData, member_query
-from narwhal.sources.influx.serializable import Serializable
-from narwhal.sources.influx.training_data import training_data_query
-from narwhal.sources.influx.vix import VixData, vix_query
-from narwhal.sources.influx.volume import VolumeData, volume_query
+from narwhal.sources.influx.drawdown import drawdown_query
+from narwhal.sources.influx.index_data import index_query
+from narwhal.sources.influx.members import member_query
+from narwhal.sources.influx.query_result import QueryResult
+from narwhal.sources.influx.vix import vix_query
+from narwhal.sources.influx.volume import volume_query
 
-T = TypeVar("T")
+P = ParamSpec("P")
+R = TypeVar("R", bound=QueryResult)
 
 
 logger = logging.getLogger(__name__)
 
 
-def _batched(iterable: Iterable[T], size: int) -> Iterable[list[T]]:
-    it = iter(iterable)
-    while batch := list(islice(it, size)):
-        yield batch
-
-
-def _combine_by_day(
-    members: Iterable[MemberData],
-    index_data: Iterable[IndexData],
-    volumes: Iterable[VolumeData],
-    drawdowns: Iterable[DrawdownData],
-    vix_data: Iterable[VixData],
-) -> list[TrainingData]:
-    members_by_day = _index_by_day(members, lambda r: r.day)
-    index_data_by_day = _index_by_day(index_data, lambda r: r.day)
-    volume_by_day = _index_by_day(volumes, lambda r: r.day)
-    drawdown_by_day = _index_by_day(drawdowns, lambda r: r.day)
-    vix_by_day = _index_by_day(vix_data, lambda r: r.day)
-
-    common_days = set.intersection(
-        *(
-            set(d.keys())
-            for d in (members_by_day, index_data_by_day, volume_by_day, drawdown_by_day, vix_by_day)
-        )
+FIELD_EXTRACTORS: dict[str, Callable[[DayBundle], Any]] = {
+    "timestamp": lambda d: d.day,
+    "fwd_max_drawdown": lambda d: d.drawdown.fwd_max_drawdown,
+    "members_daily_spread": lambda d: d.members.daily_spread,
+    "index_over_moving_avg": lambda d: d.index.over_moving_avg,
+    "index_over_kaufman_avg": lambda d: d.index.over_kaufman_avg,
+    "volume_over_moving_avg": lambda d: d.volume.over_moving_avg,
+    "current_drawdown": lambda d: d.drawdown.current_drawdown,
+    "days_since_dip": lambda d: d.drawdown.days_since_dip,
+    "vix": lambda d: d.vix.value,
+}
+_expected = {f.name for f in fields(TrainingData)}
+_actual = set(FIELD_EXTRACTORS)
+if _expected != _actual:
+    raise TypeError(
+        f"Extractor schema mismatch. "
+        f"missing={sorted(_expected - _actual)}, "
+        f"extra={sorted(_actual - _expected)}"
     )
 
-    out: list[TrainingData] = []
-    for day in sorted(common_days):
-        out.append(
-            TrainingData(
-                timestamp=day,
-                fwd_max_drawdown=drawdown_by_day[day].fwd_max_drawdown,
-                members_daily_spread=members_by_day[day].daily_spread,
-                index_over_moving_avg=index_data_by_day[day].over_moving_avg,
-                index_over_kaufman_avg=index_data_by_day[day].over_kaufman_avg,
-                volume_over_moving_avg=volume_by_day[day].over_moving_avg,
-                current_drawdown=drawdown_by_day[day].current_drawdown,
-                days_since_dip=drawdown_by_day[day].days_since_dip,
-                vix=vix_by_day[day].value,
+
+def _compose_row(bundle: DayBundle) -> TrainingData:
+    kwargs = {name: fn(bundle) for name, fn in FIELD_EXTRACTORS.items()}
+    return TrainingData(**kwargs)
+
+
+def _index_by_day(rows: Iterable[R]) -> dict[date, R]:
+    return {r.day: r for r in rows}
+
+
+def compose_training_data(h: InfluxHandle) -> list[TrainingData]:
+    drawdown_by_day = _index_by_day(drawdown_query(h, BANK_DAYS_OF_TWO_WEEKS))
+    index_by_day = _index_by_day(index_query(h, BANK_DAYS_OF_TWO_MONTHS))
+    members_by_day = _index_by_day(member_query(h))
+    vix_by_day = _index_by_day(vix_query(h))
+    volume_by_day = _index_by_day(volume_query(h, BANK_DAYS_OF_TWO_MONTHS))
+
+    common_days = (
+        members_by_day.keys()
+        & index_by_day.keys()
+        & volume_by_day.keys()
+        & drawdown_by_day.keys()
+        & vix_by_day.keys()
+    )
+
+    out: list[TrainingData] = [
+        _compose_row(
+            DayBundle(
+                day=day,
+                drawdown=drawdown_by_day[day],
+                index=index_by_day[day],
+                members=members_by_day[day],
+                volume=volume_by_day[day],
+                vix=vix_by_day[day],
             )
         )
+        for day in sorted(common_days)
+    ]
 
-    logger.debug(f"Combined members: {out}")
-
+    logger.debug("Combined members (first 5): %s", out[:5])
     return out
-
-
-def _index_by_day(rows: Iterable[T], get_day: Callable[[T], date]) -> dict[date, T]:
-    return {get_day(r): r for r in rows}
-
-
-def _submit_to_influx(h: InfluxHandle, data: Iterable[Serializable], batch_size: int = 10) -> None:
-    if h.write_api is None:
-        raise RuntimeError("write_api is not initialized")
-
-    for batch in _batched(data, batch_size):
-        try:
-            payload = "\n".join(d.to_line_protocol() for d in batch)
-            h.write_api.write(
-                bucket=h.bucket,
-                org=h.org,
-                record=payload,
-            )
-        except Exception:
-            logger.exception("Failed writing batch to InfluxDB", extra={"batch_size": len(batch)})
-
-
-def fetch_training_data(h: InfluxHandle) -> list[TrainingData]:
-    return list(training_data_query(h))
-
-
-def fetch_raw_data(h: InfluxHandle) -> list[TrainingData]:
-    drawdown: List[DrawdownData] = list(drawdown_query(h, BANK_DAYS_OF_TWO_WEEKS))
-    index: List[IndexData] = list(index_query(h, BANK_DAYS_OF_TWO_MONTHS))
-    members: List[MemberData] = list(member_query(h))
-    volume: List[VolumeData] = list(volume_query(h, BANK_DAYS_OF_TWO_MONTHS))
-    vix: List[VixData] = list(vix_query(h))
-
-    logger.debug(
-        f"Fetched members: {members}, index: {index}, volume: {volume}, drawdown: {drawdown}"
-    )
-
-    return _combine_by_day(members, index, volume, drawdown, vix)
-
-
-def write_to_influx(h: InfluxHandle, data: Iterable[Serializable]) -> None:
-    _submit_to_influx(h, data)
