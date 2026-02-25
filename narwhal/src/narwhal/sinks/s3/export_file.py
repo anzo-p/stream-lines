@@ -11,6 +11,7 @@ S3_DATA_BUCKET = os.environ["S3_DATA_BUCKET"]
 S3_PREDICTION_PREFIX = os.environ["S3_PREDICTION_PREFIX"]
 S3_TRAINING_PREFIX = os.environ["S3_TRAINING_PREFIX"]
 S3_MODEL_PREFIX = os.environ["S3_MODEL_PREFIX"]
+S3_MODEL_FILENAME = "xgboost-model"
 
 
 def _resolve_filename() -> str:

@@ -10,7 +10,6 @@ from narwhal.sources.influx.helpers import to_epoch_ns
 
 @dataclass(frozen=True)
 class TrainingData:
-
     # manage predictive features here to enforce them through rest of code
     FEATURES: ClassVar[Sequence[str]] = (
         "members_daily_spread",

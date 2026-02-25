@@ -1,49 +1,28 @@
 import logging
-import os
-import tarfile
 import tempfile
-from datetime import date, timedelta
 from typing import List, Iterator
 
-import boto3
 import xgboost
 from xgboost import DMatrix, Booster
 
-from narwhal.domain.constants import ALPACA_DATA_DAWN
 from narwhal.domain.schema.prediction_result import PredictionResult
 from narwhal.domain.schema.training_data import TrainingData
 from narwhal.sinks.influx.write import write_to_influx
-from narwhal.sinks.s3.export_file import S3_DATA_BUCKET, S3_MODEL_PREFIX
 from narwhal.sources.influx.client import close_all_influx_clients, get_training_data_handle
 from narwhal.sources.influx.training_data import training_data_query
+from narwhal.sources.s3.import_file import import_model_file
 
 logger = logging.getLogger(__name__)
 
 
 class PredictionService:
     def __init__(self) -> None:
-        self.s3 = boto3.client("s3")
-        self.bucket = S3_DATA_BUCKET
         self.training_data_handle = get_training_data_handle()
-
-    def _all_dates(self) -> Iterator[date]:
-        today = date.today()
-        for i in range((today - ALPACA_DATA_DAWN).days + 1):
-            yield ALPACA_DATA_DAWN + timedelta(days=i)
-
-    def _compose_model_file_name(self, model_id: str) -> str:
-        return f"{S3_MODEL_PREFIX}/{model_id}/output/model.tar.gz"
 
     def _load_model(self, model_id: str) -> xgboost.Booster:
         with tempfile.TemporaryDirectory() as tmpdir:
-            tar_path = os.path.join(tmpdir, "model.tar.gz")
-            self.s3.download_file(self.bucket, self._compose_model_file_name(model_id), tar_path)
-
-            with tarfile.open(tar_path, "r:gz") as tar:
-                tar.extractall(path=tmpdir)
-
+            model_file = import_model_file(tmpdir, model_id)
             model = xgboost.Booster()
-            model_file = os.path.join(tmpdir, "xgboost-model")
             model.load_model(model_file)
             return model
 
@@ -60,9 +39,9 @@ class PredictionService:
             for entry in prediction_data:
                 X = entry.x_vector()
                 logger.debug(f"Running xgboost.DMatrix on X with shape {X.shape}")
-                dmatrix: DMatrix = xgboost.DMatrix(X)
+                d_matrix: DMatrix = xgboost.DMatrix(X)
                 logger.debug(f"Running model.predict")
-                prediction = model.predict(dmatrix)
+                prediction = model.predict(d_matrix)
 
                 if prediction.size == 0:
                     logger.info("No prediction for date %s, skipping", entry.timestamp)
