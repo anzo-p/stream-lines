@@ -1,7 +1,7 @@
 import logging
 from typing import Iterator
 
-from narwhal.domain.training_data import TrainingData
+from narwhal.domain.schema.training_data import TrainingData
 from narwhal.sources.influx.client import InfluxHandle
 from narwhal.sources.influx.helpers import compose_default_range
 

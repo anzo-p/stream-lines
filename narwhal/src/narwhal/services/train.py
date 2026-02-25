@@ -2,7 +2,7 @@ import logging
 from typing import List
 
 from narwhal.domain.create_dataset import compose_training_data
-from narwhal.domain.training_data import TrainingData
+from narwhal.domain.schema.training_data import TrainingData
 from narwhal.sinks.influx.write import write_to_influx
 from narwhal.sinks.s3.compose_csv import to_gzipped_csv
 from narwhal.sinks.s3.export_file import export_training_file

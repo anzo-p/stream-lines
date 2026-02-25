@@ -10,8 +10,8 @@ import xgboost
 from xgboost import DMatrix, Booster
 
 from narwhal.domain.constants import ALPACA_DATA_DAWN
-from narwhal.domain.prediction_result import PredictionResult
-from narwhal.domain.training_data import TrainingData
+from narwhal.domain.schema.prediction_result import PredictionResult
+from narwhal.domain.schema.training_data import TrainingData
 from narwhal.sinks.influx.write import write_to_influx
 from narwhal.sinks.s3.export_file import S3_DATA_BUCKET, S3_MODEL_PREFIX
 from narwhal.sources.influx.client import close_all_influx_clients, get_training_data_handle
@@ -58,7 +58,7 @@ class PredictionService:
             model: Booster = self._load_model(model_id)
 
             for entry in prediction_data:
-                X = entry.x_vector().reshape(1, -1)
+                X = entry.x_vector()
                 logger.debug(f"Running xgboost.DMatrix on X with shape {X.shape}")
                 dmatrix: DMatrix = xgboost.DMatrix(X)
                 logger.debug(f"Running model.predict")

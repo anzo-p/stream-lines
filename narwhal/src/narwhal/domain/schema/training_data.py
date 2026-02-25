@@ -4,11 +4,14 @@ from typing import ClassVar, Sequence, Any
 
 import numpy as np
 
+from narwhal.domain.schema.helpers import check_schema
 from narwhal.sources.influx.helpers import to_epoch_ns
 
 
 @dataclass(frozen=True)
 class TrainingData:
+
+    # manage predictive features here to enforce them through rest of code
     FEATURES: ClassVar[Sequence[str]] = (
         "members_daily_spread",
         "index_over_moving_avg",
@@ -40,15 +43,11 @@ class TrainingData:
         super().__init_subclass__(**kwargs)
 
         field_names = {f.name for f in fields(cls)}
-        expected = set(cls.TRAINING_FIELDS) | {"timestamp", "measurement"}
-
-        missing = set(cls.TRAINING_FIELDS) - field_names
-        if missing:
-            raise TypeError(f"{cls.__name__}.TRAINING_FIELDS has unknown fields: {sorted(missing)}")
-
-        extras = field_names - expected
-        if extras:
-            raise TypeError(f"{cls.__name__} has fields not in TRAINING_FIELDS: {sorted(extras)}")
+        check_schema(
+            entity="FIELD_EXTRACTORS",
+            expected=set(cls.TRAINING_FIELDS) | {"timestamp", "measurement"},
+            actual=field_names | {"timestamp", "measurement"},
+        )
 
     def to_line_protocol(self) -> str:
         fields = []
@@ -62,4 +61,5 @@ class TrainingData:
         return f"{self.measurement} {','.join(fields)} {to_epoch_ns(self.timestamp)}"
 
     def x_vector(self) -> np.ndarray:
-        return np.array([getattr(self, name) for name in self.FEATURES], dtype=float)
+        X = np.array([getattr(self, name) for name in self.FEATURES], dtype=float)
+        return X.reshape(1, -1)

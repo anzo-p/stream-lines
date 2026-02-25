@@ -1,10 +1,4 @@
-import csv
-import gzip
-import io
-
-from typing import Iterable
-
-from narwhal.domain.training_data import TrainingData
+from narwhal.domain.schema.training_data import TrainingData
 
 
 import csv, io, gzip
