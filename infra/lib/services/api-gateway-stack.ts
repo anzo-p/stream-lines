@@ -4,6 +4,7 @@ import * as apigw2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as apigw2_integr from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as s3 from 'aws-cdk-lib/aws-s3';
@@ -53,6 +54,7 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
       },
       functionName: 'ApiGatewayWebSocketHandler',
       handler: 'index.handler',
+      logRetention: logs.RetentionDays.ONE_WEEK,
       role: roleWebSocketHandlerLambda,
       runtime: lambda.Runtime.NODEJS_20_X
     });

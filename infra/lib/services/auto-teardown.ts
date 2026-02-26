@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import * as path from 'path';
 import * as scheduler from 'aws-cdk-lib/aws-scheduler';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -18,6 +19,7 @@ export class AutoTeardownStack extends cdk.NestedStack {
     const teardownFn = new NodejsFunction(this, 'TeardownFn', {
       entry: path.join(__dirname, '../../lambda/teardown.ts'),
       handler: 'handler',
+      logRetention: logs.RetentionDays.ONE_WEEK,
       runtime: lambda.Runtime.NODEJS_20_X,
       timeout: cdk.Duration.seconds(30)
     });

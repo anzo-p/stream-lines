@@ -1,6 +1,7 @@
 import logging
+from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from starlette import status
 
 from narwhal.services.predict import PredictionService
@@ -17,6 +18,6 @@ def get_prediction_service() -> PredictionService:
 def predict(
     background_tasks: BackgroundTasks,
     svc: PredictionService = Depends(get_prediction_service),
-    model: str = Query(..., alias="model-id"),
+    model: Optional[str] = Query(None, alias="model-id"),
 ) -> None:
     background_tasks.add_task(svc.run, model)

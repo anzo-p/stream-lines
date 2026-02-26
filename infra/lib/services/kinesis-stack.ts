@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as kinesis from 'aws-cdk-lib/aws-kinesis';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 import { KinesisEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
@@ -105,6 +106,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
       },
       functionName: 'KinesisResultsStreamPusher',
       handler: 'index.handler',
+      logRetention: logs.RetentionDays.ONE_WEEK,
       runtime: lambda.Runtime.NODEJS_20_X,
       role: roleResultsStreamPusherLambda
     });

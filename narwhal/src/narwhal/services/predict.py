@@ -1,9 +1,9 @@
 import logging
 import tempfile
-from typing import List, Iterator
+from typing import Iterator, List, Optional
 
 import xgboost
-from xgboost import DMatrix, Booster
+from xgboost import Booster, DMatrix
 
 from narwhal.domain.schema.prediction_result import PredictionResult
 from narwhal.domain.schema.training_data import TrainingData
@@ -26,7 +26,8 @@ class PredictionService:
             model.load_model(model_file)
             return model
 
-    def run(self, model_id: str) -> None:
+    def run(self, model_id: Optional[str] = None) -> None:
+        model_id = model_id or "latest"
         results: List[PredictionResult] = []
 
         try:

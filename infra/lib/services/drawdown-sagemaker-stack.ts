@@ -1,11 +1,15 @@
 import * as cdk from 'aws-cdk-lib';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
+import * as path from 'path';
 import { Construct } from 'constructs';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 
 export class DrawdownSagemakerStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props?: cdk.NestedStackProps) {
@@ -81,7 +85,10 @@ export class DrawdownSagemakerStack extends cdk.NestedStack {
       })
     );
 
-    // requires <app bucket> -> props -> Amazon EventBridge -> Send notifs to Amazon EventBridge -> On
+    // EventBridge on S3 buckets below requires:
+    // <app bucket> -> props -> Amazon EventBridge -> Send notifs to Amazon EventBridge -> On
+
+    // start training job on new training data upload
     new events.Rule(this, 'RunTrainingOnLatestDataUpdate', {
       eventPattern: {
         detail: {
@@ -100,6 +107,38 @@ export class DrawdownSagemakerStack extends cdk.NestedStack {
           role: eventRole
         })
       ]
+    });
+
+    const modelFileName = 'model.tar.gz';
+
+    // copy training job output to "latest" for easy discovery by predictor service
+    const mlModelCopyFn = new NodejsFunction(this, 'MlModelCopyFn', {
+      entry: path.join(__dirname, '../../lambda/ml-model-copy.ts'),
+      environment: {
+        FILENAME: modelFileName,
+        LATEST_KEY: `${process.env.NARWHAL_MODELS_PREFIX}/latest/output/${modelFileName}`
+      },
+      handler: 'handler',
+      logRetention: logs.RetentionDays.ONE_WEEK,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      timeout: cdk.Duration.seconds(30)
+    });
+
+    dataBucket.grantRead(mlModelCopyFn, `${process.env.NARWHAL_MODELS_PREFIX}*`);
+    dataBucket.grantPut(mlModelCopyFn, `${process.env.NARWHAL_MODELS_PREFIX}*`);
+
+    new events.Rule(this, 'OnModelArtifactCreated', {
+      eventPattern: {
+        detail: {
+          bucket: { name: [bucketName] },
+          object: {
+            key: [{ prefix: process.env.NARWHAL_MODELS_PREFIX! }]
+          }
+        },
+        detailType: ['Object Created'],
+        source: ['aws.s3']
+      },
+      targets: [new targets.LambdaFunction(mlModelCopyFn)]
     });
   }
 }
