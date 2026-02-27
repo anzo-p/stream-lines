@@ -19,9 +19,7 @@ The data is collected from after a grace period (6-12 months) since beginning of
 
 Both the _training data_ (orange line) and the _prediction_ (purple line) are then stored into influxdb where they can be compared against the _actual drawdown_ (blue line) for a visual validation and inspection of the results. In the image below the training data spans 1 Aug 2016 - 20 Aug 2024, during which the prediction expectably follows the training data 'well' - this is the data the model creation has 'seen' and generalized over. From thereon the prediction necessarily starts to deviate from what would be the training data because these are data that the model creation has not 'seen'. Is that predicted stock market drawdown then 'right' to some useful degree? And so my curiosity was piqued..
 
-<p align="center">
-  <img src="doc/images/prediction.png">
-</p>
+![Prediction chart](doc/images/prediction.png)
 
 
 ## Interacting with the service

@@ -14,7 +14,8 @@ export type NarwhalStackProps = cdk.NestedStackProps & {
   ecsCluster: ecs.Cluster;
   executionRole: iam.Role;
   runAsOndemand: boolean;
-  securityGroup: ec2.SecurityGroup;
+  serviceSecurityGroup: ec2.SecurityGroup;
+  schedulerSecurityGroup: ec2.SecurityGroup;
 };
 
 export class NarwhalStack extends cdk.NestedStack {
@@ -26,7 +27,14 @@ export class NarwhalStack extends cdk.NestedStack {
     });
     taskRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'));
 
-    const { ecsCluster, executionRole, runAsOndemand = false, securityGroup: narwhalSg, desiredCount } = props;
+    const {
+      desiredCount,
+      ecsCluster,
+      executionRole,
+      runAsOndemand = false,
+      serviceSecurityGroup,
+      schedulerSecurityGroup
+    } = props;
 
     const narwhalPort = 8000;
 
@@ -34,11 +42,11 @@ export class NarwhalStack extends cdk.NestedStack {
       cpu: 256,
       executionRole,
       family: 'NarwhalTaskDefinition',
+      memoryLimitMiB: 512,
       runtimePlatform: {
         cpuArchitecture: ecs.CpuArchitecture.ARM64,
         operatingSystemFamily: ecs.OperatingSystemFamily.LINUX
       },
-      memoryLimitMiB: 512,
       taskRole
     });
 
@@ -63,22 +71,24 @@ export class NarwhalStack extends cdk.NestedStack {
       streamPrefix: 'narwhal'
     });
 
+    const environment = {
+      INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL}`,
+      INFLUXDB_BUCKET_MARKET_DATA_REALTIME: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_REALTIME}`,
+      INFLUXDB_BUCKET_TRAINING_DATA: `${process.env.INFLUXDB_BUCKET_TRAINING_DATA}`,
+      INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
+      INFLUXDB_TOKEN_HISTORICAL_READ: `${process.env.INFLUXDB_TOKEN_HISTORICAL_READ}`,
+      INFLUXDB_TOKEN_REALTIME_READ: `${process.env.INFLUXDB_TOKEN_REALTIME_READ}`,
+      INFLUXDB_TOKEN_TRAINING_DATA_READ_WRITE: `${process.env.INFLUXDB_TOKEN_TRAINING_DATA_READ_WRITE}`,
+      INFLUXDB_URL: `${process.env.INFLUXDB_URL}`,
+      S3_DATA_BUCKET: `${process.env.S3_APP_BUCKET}`,
+      S3_MODEL_PREFIX: `${process.env.NARWHAL_MODELS_PREFIX}`,
+      S3_PREDICTION_PREFIX: `${process.env.NARWHAL_PREDICTION_DATA_PREFIX}`,
+      S3_TRAINING_PREFIX: `${process.env.NARWHAL_TRAINING_DATA_PREFIX}`
+    };
+
     taskDefinition.addContainer('NarwhalContainer', {
       cpu: 256,
-      environment: {
-        INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL}`,
-        INFLUXDB_BUCKET_MARKET_DATA_REALTIME: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_REALTIME}`,
-        INFLUXDB_BUCKET_TRAINING_DATA: `${process.env.INFLUXDB_BUCKET_TRAINING_DATA}`,
-        INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
-        INFLUXDB_TOKEN_HISTORICAL_READ: `${process.env.INFLUXDB_TOKEN_HISTORICAL_READ}`,
-        INFLUXDB_TOKEN_REALTIME_READ: `${process.env.INFLUXDB_TOKEN_REALTIME_READ}`,
-        INFLUXDB_TOKEN_TRAINING_DATA_READ_WRITE: `${process.env.INFLUXDB_TOKEN_TRAINING_DATA_READ_WRITE}`,
-        INFLUXDB_URL: `${process.env.INFLUXDB_URL}`,
-        S3_DATA_BUCKET: `${process.env.S3_APP_BUCKET}`,
-        S3_MODEL_PREFIX: `${process.env.NARWHAL_MODELS_PREFIX}`,
-        S3_PREDICTION_PREFIX: `${process.env.NARWHAL_PREDICTION_DATA_PREFIX}`,
-        S3_TRAINING_PREFIX: `${process.env.NARWHAL_TRAINING_DATA_PREFIX}`
-      },
+      environment,
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       logging,
       memoryLimitMiB: 512,
@@ -100,8 +110,53 @@ export class NarwhalStack extends cdk.NestedStack {
       cluster: ecsCluster,
       desiredCount,
       enableExecuteCommand: true,
-      securityGroups: [narwhalSg],
+      securityGroups: [serviceSecurityGroup],
       taskDefinition,
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }
+    });
+
+    // -- scheduler
+
+    const schedulerTaskDefinition = new ecs.FargateTaskDefinition(this, 'NarwhalSchedulerTaskDefinition', {
+      cpu: 256,
+      executionRole,
+      family: 'NarwhalSchedulerTaskDefinition',
+      memoryLimitMiB: 512,
+      runtimePlatform: {
+        cpuArchitecture: ecs.CpuArchitecture.ARM64,
+        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX
+      },
+      taskRole
+    });
+
+    const schedulerLogGroup = new logs.LogGroup(this, 'NarwhalSchedulerLogGroup', {
+      removalPolicy: RemovalPolicy.DESTROY,
+      retention: logs.RetentionDays.ONE_WEEK
+    });
+
+    const schedulerLogging = ecs.LogDrivers.awsLogs({
+      logGroup: schedulerLogGroup,
+      streamPrefix: 'narwhal-scheduler'
+    });
+
+    schedulerTaskDefinition.addContainer('NarwhalSchedulerContainer', {
+      cpu: 256,
+      environment,
+      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
+      logging: schedulerLogging,
+      memoryLimitMiB: 512,
+      command: ['python', '-m', 'narwhal.scheduler.main']
+    });
+
+    new ecs.FargateService(this, 'NarwhalSchedulerEcsService', {
+      assignPublicIp: false,
+      capacityProviderStrategies: runAsOndemand
+        ? [{ capacityProvider: 'FARGATE', weight: 1 }]
+        : [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }],
+      cluster: ecsCluster,
+      desiredCount: 1,
+      securityGroups: [schedulerSecurityGroup],
+      taskDefinition: schedulerTaskDefinition,
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }
     });
   }

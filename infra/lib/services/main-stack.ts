@@ -28,6 +28,10 @@ export class ServicesStack extends cdk.Stack {
 
     const { vpc, ecsCluster } = props;
 
+    const autoTeardownDenied = this.node.tryGetContext('autoTeardown') === 'false';
+    const runOnlyOnDemandServices = this.node.tryGetContext('onlyOnDemand') === 'true';
+    const runAllServicesOnDemand = this.node.tryGetContext('runAllAsOnDemand') === 'true';
+
     const influxSg = ec2.SecurityGroup.fromSecurityGroupId(
       this,
       'ImportedInfluxSg',
@@ -40,9 +44,13 @@ export class ServicesStack extends cdk.Stack {
     const gatherSg = new ec2.SecurityGroup(this, 'GatherSecurityGroup', { vpc, allowAllOutbound: true });
     const ingestSg = new ec2.SecurityGroup(this, 'IngestSecurityGroup', { vpc, allowAllOutbound: true });
     const narwhalSg = new ec2.SecurityGroup(this, 'NarwhalSecurityGroup', { vpc, allowAllOutbound: true });
+    const narwhalSchedulerSg = new ec2.SecurityGroup(this, 'NarwhalSchedulerSecurityGroup', {
+      vpc,
+      allowAllOutbound: true
+    });
     const ripplesSg = new ec2.SecurityGroup(this, 'RipplesSecurityGroup', { vpc, allowAllOutbound: true });
 
-    [currentsSg, gatherSg, ingestSg, narwhalSg, ripplesSg].forEach((sg) => {
+    [currentsSg, gatherSg, ingestSg, narwhalSg, narwhalSchedulerSg, ripplesSg].forEach((sg) => {
       influxSg.connections.allowFrom(
         sg,
         ec2.Port.tcp(Number(process.env.INFLUXDB_SERVER_PORT!)),
@@ -51,10 +59,6 @@ export class ServicesStack extends cdk.Stack {
     });
 
     gatherSg.addIngressRule(ingestSg, ec2.Port.tcp(Number(process.env.GATHER_SERVER_PORT!)), 'Ingest to Gather');
-
-    const autoTeardownDenied = this.node.tryGetContext('autoTeardown') === 'false';
-    const runOnlyOnDemandServices = this.node.tryGetContext('onlyOnDemand') === 'true';
-    const runAllServicesOnDemand = this.node.tryGetContext('runAllAsOnDemand') === 'true';
 
     const wsApigatewayStack = new WebSocketApiGatewayStack(this, 'ApiGatewayStack');
 
@@ -136,7 +140,8 @@ export class ServicesStack extends cdk.Stack {
       ecsCluster,
       executionRole: taskExecRoleStack.role,
       runAsOndemand: runAllServicesOnDemand,
-      securityGroup: narwhalSg
+      serviceSecurityGroup: narwhalSg,
+      schedulerSecurityGroup: narwhalSchedulerSg
     });
 
     new DrawdownSagemakerStack(this, 'SagemakerStack');

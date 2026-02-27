@@ -49,11 +49,11 @@ export class GatherStack extends cdk.NestedStack {
       cpu: 512,
       executionRole,
       family: 'GatherTaskDefinition',
+      memoryLimitMiB: 1024,
       runtimePlatform: {
         cpuArchitecture: ecs.CpuArchitecture.ARM64,
         operatingSystemFamily: ecs.OperatingSystemFamily.LINUX
       },
-      memoryLimitMiB: 1024,
       taskRole
     });
 
