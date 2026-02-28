@@ -4,6 +4,8 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as logs from 'aws-cdk-lib/aws-logs';
+import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type DashboardStackProps = cdk.NestedStackProps & {
@@ -33,10 +35,20 @@ export class DashboardStack extends cdk.NestedStack {
 
     const containerPort = parseInt(process.env.DASHBOARD_SERVER_PORT!);
 
+    const logGroup = new logs.LogGroup(this, 'CurrentsLogGroup', {
+      removalPolicy: RemovalPolicy.DESTROY,
+      retention: logs.RetentionDays.ONE_WEEK
+    });
+
+    const logging = ecs.LogDrivers.awsLogs({
+      logGroup: logGroup,
+      streamPrefix: 'currents'
+    });
+
     taskDefinition.addContainer('DashboardContainer', {
       cpu: 256,
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'dashboard' }),
+      logging,
       memoryLimitMiB: 512,
       portMappings: [{ protocol: ecs.Protocol.TCP, containerPort }]
     });

@@ -1,11 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as kinesis from 'aws-cdk-lib/aws-kinesis';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as logs from 'aws-cdk-lib/aws-logs';
-import * as s3 from 'aws-cdk-lib/aws-s3';
+//import * as lambda from 'aws-cdk-lib/aws-lambda';
+//import * as logs from 'aws-cdk-lib/aws-logs';
+//import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
-import { KinesisEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+//import { KinesisEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 
 export class KinesisStreamsStack extends cdk.NestedStack {
   readonly writeUpstreamPerms: iam.PolicyStatement;
@@ -38,8 +38,8 @@ export class KinesisStreamsStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,
-    wsApiGatewayStageProdArn: string,
-    wsApiGatewayConnectionsUrl: string,
+    //wsApiGatewayStageProdArn: string,
+    //wsApiGatewayConnectionsUrl: string,
     props?: cdk.StackProps
   ) {
     super(scope, id, props);
@@ -51,13 +51,14 @@ export class KinesisStreamsStack extends cdk.NestedStack {
       streamName: 'stream-lines-market-data-upstream'
     });
 
-    const resultsStream = new kinesis.Stream(this, 'ResultsDownStream', {
+    /*const resultsStream =*/ new kinesis.Stream(this, 'ResultsDownStream', {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       retentionPeriod: cdk.Duration.hours(24),
       shardCount: 1,
       streamName: 'stream-lines-results-downstream'
     });
 
+    /*
     const roleResultsStreamPusherLambda = new iam.Role(this, 'KinesisStreamPusherRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
       managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')]
@@ -119,6 +120,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
         retryAttempts: 3
       })
     );
+    */
 
     this.writeUpstreamPerms = this.makeWriteAccessPolicy('stream-lines-market-data-upstream');
     this.readUpstreamPerms = this.makeReadAccessPolicy('stream-lines-market-data-upstream');

@@ -2,9 +2,9 @@ import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import { Construct } from 'constructs';
-import { AlbStack } from './alb-stack';
+//import { AlbStack } from './alb-stack';
 import { AutoTeardownStack } from './auto-teardown';
-import { BackendStack } from './backend-stack';
+//import { BackendStack } from './backend-stack';
 import { CurrentsStack } from './currents-stack';
 // import { DashboardStack } from './dashboard-stack';
 import { DrawdownSagemakerStack } from './drawdown-sagemaker-stack';
@@ -15,7 +15,7 @@ import { KinesisStreamsStack } from './kinesis-stack';
 import { NarwhalStack } from './narwhal-stack';
 import { NatGatewayStack } from './nat-gateway-stack';
 import { RipplesStack } from './ripples-stack';
-import { WebSocketApiGatewayStack } from './api-gateway-stack';
+//import { WebSocketApiGatewayStack } from './api-gateway-stack';
 
 interface ServicesStackProps extends cdk.StackProps {
   vpc: ec2.Vpc;
@@ -39,7 +39,7 @@ export class ServicesStack extends cdk.Stack {
       { mutable: true }
     );
 
-    const backendSg = new ec2.SecurityGroup(this, 'BackendSecurityGroup', { vpc, allowAllOutbound: true });
+    //const backendSg = new ec2.SecurityGroup(this, 'BackendSecurityGroup', { vpc, allowAllOutbound: true });
     const currentsSg = new ec2.SecurityGroup(this, 'CurrentsSecurityGroup', { vpc, allowAllOutbound: true });
     const gatherSg = new ec2.SecurityGroup(this, 'GatherSecurityGroup', { vpc, allowAllOutbound: true });
     const ingestSg = new ec2.SecurityGroup(this, 'IngestSecurityGroup', { vpc, allowAllOutbound: true });
@@ -56,16 +56,16 @@ export class ServicesStack extends cdk.Stack {
 
     gatherSg.addIngressRule(ingestSg, ec2.Port.tcp(Number(process.env.GATHER_SERVER_PORT!)), 'Ingest to Gather');
 
-    const wsApigatewayStack = new WebSocketApiGatewayStack(this, 'ApiGatewayStack');
+    //const wsApigatewayStack = new WebSocketApiGatewayStack(this, 'ApiGatewayStack');
 
     const kinesisStack = new KinesisStreamsStack(
       this,
-      'KinesisStack',
-      wsApigatewayStack.wsApiGatewayStageProdArn,
-      wsApigatewayStack.wsApiGatewayConnectionsUrl
+      'KinesisStack'
+      //wsApigatewayStack.wsApiGatewayStageProdArn,
+      //wsApigatewayStack.wsApiGatewayConnectionsUrl
     );
 
-    const albStack = new AlbStack(this, 'AlbStack', vpc);
+    //const albStack = new AlbStack(this, 'AlbStack', vpc);
 
     const taskExecRoleStack = new EcsTaskExecutionRole(this, 'StreamLinesEcsTaskExecRole');
 
@@ -112,6 +112,7 @@ export class ServicesStack extends cdk.Stack {
     ingestStack.addDependency(kinesisStack);
     if (gatherStack) ingestStack.addDependency(gatherStack);
 
+    /*
     const backendStack = new BackendStack(this, 'BackendStack', {
       backendAlbListener: albStack.backendAlbListener,
       ecsCluster,
@@ -120,7 +121,6 @@ export class ServicesStack extends cdk.Stack {
     });
     backendStack.addDependency(wsApigatewayStack);
 
-    /*
     // should frontend be run out of S3 via CloudFront?
     const dashboardStack = new DashboardStack(this, 'DashboardStack', {
       dashboardAlbListener: albStack.dashboardAlbListener,
@@ -132,10 +132,8 @@ export class ServicesStack extends cdk.Stack {
     */
 
     new NarwhalStack(this, 'NarwhalStack', {
-      desiredCount: 1,
       ecsCluster,
       executionRole: taskExecRoleStack.role,
-      runAsOndemand: runAllServicesOnDemand,
       serviceSecurityGroup: narwhalSg
     });
 
