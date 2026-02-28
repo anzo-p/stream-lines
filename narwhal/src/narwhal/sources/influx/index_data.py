@@ -54,7 +54,6 @@ def index_query(h: InfluxHandle, moving_avg_days: int) -> Iterator[IndexData]:
     logger = logging.getLogger(__name__)
 
     table_ist: TableList = h.query_api.query(_flux(h.bucket, moving_avg_days))
-    logger.info(f"Fetched index data with moving average window of {moving_avg_days} days")
 
     out: List[IndexData] = []
     for table in table_ist:
@@ -69,6 +68,9 @@ def index_query(h: InfluxHandle, moving_avg_days: int) -> Iterator[IndexData]:
 
             out.append(IndexData(day=t.date(), over_moving_avg=v / ma, over_kaufman_avg=v / ka))
 
-    logger.info(f"Parsed {len(out)} index data points from InfluxDB query")
+    logger.info(
+        f"Processed {len(out)} index data records from InfluxDB query, "
+        f"using moving average of {moving_avg_days}"
+    )
 
     yield from out

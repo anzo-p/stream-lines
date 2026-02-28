@@ -37,10 +37,10 @@ def main() -> None:
         service_cls().run()
     except Exception:
         logger.exception("Job failed: %s", job_name)
-        raise  # error code to ECS
+        raise  # error to ECS
     else:
         logger.info("Job succeeded: %s", job_name)
-        return  # tell ECS to teardown
+        return  # tells ECS to teardown
 
 
 if __name__ == "__main__":

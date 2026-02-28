@@ -1,5 +1,5 @@
 import logging
-from typing import Iterator
+from typing import Iterator, List
 
 from narwhal.domain.schema.training_data import TrainingData
 from narwhal.sources.influx.client import InfluxHandle
@@ -23,9 +23,8 @@ def training_data_query(h: InfluxHandle) -> Iterator[TrainingData]:
     logger = logging.getLogger(__name__)
 
     table_list = h.query_api.query(_flux(h.bucket))
-    logger.info(f"Fetched drawdown data from InfluxDB, got {len(table_list)} tables")
 
-    out = []
+    out: List[TrainingData] = []
     for table in table_list:
         for record in table.records:
             out.append(
@@ -41,5 +40,7 @@ def training_data_query(h: InfluxHandle) -> Iterator[TrainingData]:
                     vix=record["vix"],
                 )
             )
+
+    logger.info(f"Processed {len(out)} drawdown training data from InfluxDB")
 
     yield from out

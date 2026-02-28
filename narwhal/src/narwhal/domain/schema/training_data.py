@@ -26,9 +26,9 @@ class TrainingData:
         *FEATURES,
     )
 
+    timestamp: date
     measurement: ClassVar[str] = "drawdown-training-data"
 
-    timestamp: date
     fwd_max_drawdown: float
     members_daily_spread: float
     index_over_moving_avg: float
@@ -43,7 +43,7 @@ class TrainingData:
 
         field_names = {f.name for f in fields(cls)}
         check_schema(
-            entity="FIELD_EXTRACTORS",
+            entity="TrainingData.TRAINING_FIELDS",
             expected=set(cls.TRAINING_FIELDS) | {"timestamp", "measurement"},
             actual=field_names | {"timestamp", "measurement"},
         )

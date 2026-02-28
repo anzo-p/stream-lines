@@ -75,7 +75,6 @@ def drawdown_query(h: InfluxHandle, fwd_bank_days: int) -> Iterator[DrawdownData
     logger = logging.getLogger(__name__)
 
     table_list = h.query_api.query(_flux(h.bucket))
-    logger.info(f"Fetched drawdown data from InfluxDB, got {len(table_list)} tables")
 
     out: List[DrawdownData] = []
     for table in table_list:
@@ -97,5 +96,10 @@ def drawdown_query(h: InfluxHandle, fwd_bank_days: int) -> Iterator[DrawdownData
 
     out = _add_fwd_max_drawdown(out, fwd_bank_days)
     logger.info(f"Applied forward max drawdown")
+
+    logger.info(
+        f"Processed {len(out)} volume data records from InfluxDB query, "
+        f"using forward bank days of {fwd_bank_days}"
+    )
 
     yield from out

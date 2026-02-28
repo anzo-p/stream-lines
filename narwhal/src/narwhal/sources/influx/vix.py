@@ -28,7 +28,6 @@ def vix_query(h: InfluxHandle) -> Iterator[VixData]:
     logger = logging.getLogger(__name__)
 
     table_list = h.query_api.query(_flux(h.bucket))
-    logger.info(f"Fetched Vix data from InfluxDB, got {len(table_list)} tables")
 
     out: List[VixData] = []
     for table in table_list:
@@ -40,5 +39,7 @@ def vix_query(h: InfluxHandle) -> Iterator[VixData]:
                 continue
 
             out.append(VixData(day=t.date(), value=v))
+
+    logger.info(f"Processed {len(out)} Vix records from InfluxDB query")
 
     yield from out

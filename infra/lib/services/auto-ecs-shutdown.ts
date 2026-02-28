@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import * as path from 'path';
 import * as scheduler from 'aws-cdk-lib/aws-scheduler';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -18,26 +19,27 @@ export class AutoShutdownEcsStack extends cdk.NestedStack {
     const shutdownEcsFn = new NodejsFunction(this, 'ShutdownEcsFn', {
       entry: path.join(__dirname, '../../lambda/shutdown.ts'),
       handler: 'handler',
-      runtime: lambda.Runtime.NODEJS_20_X,
-      timeout: cdk.Duration.seconds(60),
+      logRetention: logs.RetentionDays.ONE_WEEK,
       memorySize: 256,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      timeout: cdk.Duration.seconds(60)
     });
 
     const { account, region } = cdk.Stack.of(this);
 
-    shutdownEcsFn.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['ecs:ListClusters'],
-      resources: ['*'],
-    }));
+    shutdownEcsFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['ecs:ListClusters'],
+        resources: ['*']
+      })
+    );
 
-    shutdownEcsFn.addToRolePolicy(new iam.PolicyStatement({
-      actions: [
-        'ecs:ListServices',
-        'ecs:DescribeServices',
-        'ecs:UpdateService'
-      ],
-      resources: [`arn:aws:ecs:${region}:${account}:service/*/*`],
-    }));
+    shutdownEcsFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['ecs:ListServices', 'ecs:DescribeServices', 'ecs:UpdateService'],
+        resources: [`arn:aws:ecs:${region}:${account}:service/*/*`]
+      })
+    );
 
     shutdownEcsFn.role?.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
@@ -54,7 +56,7 @@ export class AutoShutdownEcsStack extends cdk.NestedStack {
       scheduleExpressionTimezone: 'America/New_York',
       target: {
         arn: shutdownEcsFn.functionArn,
-        roleArn: invokeRole.roleArn,
+        roleArn: invokeRole.roleArn
       }
     });
 

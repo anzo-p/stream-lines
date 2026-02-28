@@ -69,9 +69,6 @@ def member_query(h: InfluxHandle) -> Iterator[MemberData]:
     logger = logging.getLogger(__name__)
 
     table_list = h.query_api.query(_flux(h.bucket))
-    logger.info(
-        f"Fetched member data for top {TOP_TICKERS_COUNT} tickers by trading value in the last 15 days"
-    )
 
     out: List[MemberData] = []
     for table in table_list:
@@ -84,6 +81,9 @@ def member_query(h: InfluxHandle) -> Iterator[MemberData]:
 
             out.append(MemberData(day=t.date(), daily_spread=v))
 
-    logger.info(f"Fetched {len(out)} member data from InfluxDB")
+    logger.info(
+        f"Processed {len(out)} member data records from InfluxDB query, "
+        f"using {TOP_TICKERS_COUNT} top tickers"
+    )
 
     yield from out

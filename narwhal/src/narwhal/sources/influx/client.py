@@ -4,6 +4,7 @@ from typing import Dict, Tuple, Optional
 
 from influxdb_client import InfluxDBClient, WriteApi
 from influxdb_client.client.query_api import QueryApi
+from influxdb_client.client.write_api import SYNCHRONOUS
 
 
 @dataclass(frozen=True)
@@ -35,7 +36,10 @@ def _get_query_api(token: str) -> QueryApi:
 
 def _get_write_api(token: str) -> WriteApi:
     client = _get_client(_influx_url, _influx_org, token)
-    return client.write_api(timeout=60_000)
+    return client.write_api(
+        timeout=60_000,
+        write_options=SYNCHRONOUS,  # mostly scheduled tasks, must wait until signaling ready
+    )
 
 
 def _get_handle(bucket: str, token: str, write: bool = False) -> InfluxHandle:

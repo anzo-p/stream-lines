@@ -45,7 +45,6 @@ def volume_query(h: InfluxHandle, moving_avg_days: int) -> Iterator[VolumeData]:
     logger = logging.getLogger(__name__)
 
     table_list = h.query_api.query(_flux(h.bucket, moving_avg_days))
-    logger.info(f"Fetched {len(table_list)} volume data with moving average of {moving_avg_days}")
 
     out: List[VolumeData] = []
     for table in table_list:
@@ -63,6 +62,9 @@ def volume_query(h: InfluxHandle, moving_avg_days: int) -> Iterator[VolumeData]:
                 )
             )
 
-    logger.info(f"Writing {len(out)} volume data to InfluxDB")
+    logger.info(
+        f"Processed {len(out)} volume data records from InfluxDB query, "
+        f"using moving average of {moving_avg_days}"
+    )
 
     yield from out
