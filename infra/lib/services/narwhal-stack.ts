@@ -2,10 +2,12 @@ import * as cdk from 'aws-cdk-lib';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as events from 'aws-cdk-lib/aws-events';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
@@ -15,7 +17,6 @@ export type NarwhalStackProps = cdk.NestedStackProps & {
   executionRole: iam.Role;
   runAsOndemand: boolean;
   serviceSecurityGroup: ec2.SecurityGroup;
-  schedulerSecurityGroup: ec2.SecurityGroup;
 };
 
 export class NarwhalStack extends cdk.NestedStack {
@@ -27,51 +28,22 @@ export class NarwhalStack extends cdk.NestedStack {
     });
     taskRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'));
 
-    const {
-      desiredCount,
-      ecsCluster,
-      executionRole,
-      runAsOndemand = false,
-      serviceSecurityGroup,
-      schedulerSecurityGroup
-    } = props;
+    const { desiredCount, ecsCluster, executionRole, runAsOndemand = false, serviceSecurityGroup } = props;
 
-    const narwhalPort = 8000;
+    const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-narwhal');
 
-    const taskDefinition = new ecs.FargateTaskDefinition(this, 'NarwhalTaskDefinition', {
+    const baseTaskProps: ecs.FargateTaskDefinitionProps = {
       cpu: 256,
       executionRole,
-      family: 'NarwhalTaskDefinition',
       memoryLimitMiB: 512,
       runtimePlatform: {
         cpuArchitecture: ecs.CpuArchitecture.ARM64,
         operatingSystemFamily: ecs.OperatingSystemFamily.LINUX
       },
       taskRole
-    });
+    };
 
-    const dataBucket = s3.Bucket.fromBucketName(this, 'DataBucket', 'anzop-stream-lines');
-    [
-      `${process.env.NARWHAL_MODELS_PREFIX}/*`,
-      `${process.env.NARWHAL_PREDICTION_DATA_PREFIX}/*`,
-      `${process.env.NARWHAL_TRAINING_DATA_PREFIX}/*`
-    ].forEach((path) => {
-      dataBucket.grantReadWrite(taskDefinition.taskRole, path);
-    });
-
-    const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-narwhal');
-
-    const logGroup = new logs.LogGroup(this, 'NarwhalLogGroup', {
-      removalPolicy: RemovalPolicy.DESTROY,
-      retention: logs.RetentionDays.ONE_WEEK
-    });
-
-    const logging = ecs.LogDrivers.awsLogs({
-      logGroup: logGroup,
-      streamPrefix: 'narwhal'
-    });
-
-    const environment = {
+    const baseEnvironment = {
       INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL}`,
       INFLUXDB_BUCKET_MARKET_DATA_REALTIME: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_REALTIME}`,
       INFLUXDB_BUCKET_TRAINING_DATA: `${process.env.INFLUXDB_BUCKET_TRAINING_DATA}`,
@@ -86,12 +58,44 @@ export class NarwhalStack extends cdk.NestedStack {
       S3_TRAINING_PREFIX: `${process.env.NARWHAL_TRAINING_DATA_PREFIX}`
     };
 
-    taskDefinition.addContainer('NarwhalContainer', {
+    const baseContainerProps: ecs.ContainerDefinitionOptions = {
       cpu: 256,
-      environment,
+      environment: baseEnvironment,
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
+      memoryLimitMiB: 512
+    };
+
+    const dataBucket = s3.Bucket.fromBucketName(this, 'DataBucket', 'anzop-stream-lines');
+    [
+      `${process.env.NARWHAL_MODELS_PREFIX}/*`,
+      `${process.env.NARWHAL_PREDICTION_DATA_PREFIX}/*`,
+      `${process.env.NARWHAL_TRAINING_DATA_PREFIX}/*`
+    ].forEach((path) => {
+      dataBucket.grantReadWrite(taskRole, path);
+    });
+
+    // Narwhal service
+
+    const narwhalPort = 8000;
+
+    const taskDefinition = new ecs.FargateTaskDefinition(this, 'NarwhalTaskDefinition', {
+      ...baseTaskProps,
+      family: 'NarwhalTaskDefinition'
+    });
+
+    const logGroup = new logs.LogGroup(this, 'NarwhalLogGroup', {
+      removalPolicy: RemovalPolicy.DESTROY,
+      retention: logs.RetentionDays.ONE_WEEK
+    });
+
+    const logging = ecs.LogDrivers.awsLogs({
+      logGroup: logGroup,
+      streamPrefix: 'narwhal'
+    });
+
+    taskDefinition.addContainer('NarwhalContainer', {
+      ...baseContainerProps,
       logging,
-      memoryLimitMiB: 512,
       portMappings: [{ containerPort: narwhalPort, protocol: ecs.Protocol.TCP }]
     });
 
@@ -115,18 +119,11 @@ export class NarwhalStack extends cdk.NestedStack {
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }
     });
 
-    // -- scheduler
+    // -- Narwhal Scheduled jobs - intention is to eventually drop that services and run only as ECS Tasks
 
     const schedulerTaskDefinition = new ecs.FargateTaskDefinition(this, 'NarwhalSchedulerTaskDefinition', {
-      cpu: 256,
-      executionRole,
-      family: 'NarwhalSchedulerTaskDefinition',
-      memoryLimitMiB: 512,
-      runtimePlatform: {
-        cpuArchitecture: ecs.CpuArchitecture.ARM64,
-        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX
-      },
-      taskRole
+      ...baseTaskProps,
+      family: 'NarwhalSchedulerTaskDefinition'
     });
 
     const schedulerLogGroup = new logs.LogGroup(this, 'NarwhalSchedulerLogGroup', {
@@ -140,24 +137,36 @@ export class NarwhalStack extends cdk.NestedStack {
     });
 
     schedulerTaskDefinition.addContainer('NarwhalSchedulerContainer', {
-      cpu: 256,
-      environment,
-      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
-      logging: schedulerLogging,
-      memoryLimitMiB: 512,
-      command: ['python', '-m', 'narwhal.scheduler.main']
+      ...baseContainerProps,
+      command: ['python', '-m', 'narwhal.scheduler'],
+      logging: schedulerLogging
     });
 
-    new ecs.FargateService(this, 'NarwhalSchedulerEcsService', {
-      assignPublicIp: false,
-      capacityProviderStrategies: runAsOndemand
-        ? [{ capacityProvider: 'FARGATE', weight: 1 }]
-        : [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }],
-      cluster: ecsCluster,
-      desiredCount: 1,
-      securityGroups: [schedulerSecurityGroup],
-      taskDefinition: schedulerTaskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }
-    });
+    const narwhalJobSchedule: Record<string, events.Schedule> = {
+      weekdaily_training_job: events.Schedule.cron({ weekDay: 'MON-FRI', hour: '16', minute: '0' }),
+      weekdaily_intraday_prediction_job: events.Schedule.cron({ weekDay: 'MON-FRI', hour: '16-20/2', minute: '0' })
+    };
+
+    for (const [jobName, schedule] of Object.entries(narwhalJobSchedule)) {
+      const rule = new events.Rule(this, `NarwhalRule-${jobName}`, {
+        ruleName: `narwhal-scheduled-job-${jobName}`,
+        schedule
+      });
+
+      rule.addTarget(
+        new targets.EcsTask({
+          containerOverrides: [
+            {
+              containerName: 'NarwhalSchedulerContainer',
+              environment: [{ name: 'SCHEDULED_JOB_NAME', value: jobName }]
+            }
+          ],
+          cluster: ecsCluster,
+          securityGroups: [serviceSecurityGroup],
+          subnetSelection: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+          taskDefinition: schedulerTaskDefinition
+        })
+      );
+    }
   }
 }

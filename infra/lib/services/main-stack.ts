@@ -44,13 +44,9 @@ export class ServicesStack extends cdk.Stack {
     const gatherSg = new ec2.SecurityGroup(this, 'GatherSecurityGroup', { vpc, allowAllOutbound: true });
     const ingestSg = new ec2.SecurityGroup(this, 'IngestSecurityGroup', { vpc, allowAllOutbound: true });
     const narwhalSg = new ec2.SecurityGroup(this, 'NarwhalSecurityGroup', { vpc, allowAllOutbound: true });
-    const narwhalSchedulerSg = new ec2.SecurityGroup(this, 'NarwhalSchedulerSecurityGroup', {
-      vpc,
-      allowAllOutbound: true
-    });
     const ripplesSg = new ec2.SecurityGroup(this, 'RipplesSecurityGroup', { vpc, allowAllOutbound: true });
 
-    [currentsSg, gatherSg, ingestSg, narwhalSg, narwhalSchedulerSg, ripplesSg].forEach((sg) => {
+    [currentsSg, gatherSg, ingestSg, narwhalSg, ripplesSg].forEach((sg) => {
       influxSg.connections.allowFrom(
         sg,
         ec2.Port.tcp(Number(process.env.INFLUXDB_SERVER_PORT!)),
@@ -140,8 +136,7 @@ export class ServicesStack extends cdk.Stack {
       ecsCluster,
       executionRole: taskExecRoleStack.role,
       runAsOndemand: runAllServicesOnDemand,
-      serviceSecurityGroup: narwhalSg,
-      schedulerSecurityGroup: narwhalSchedulerSg
+      serviceSecurityGroup: narwhalSg
     });
 
     new DrawdownSagemakerStack(this, 'SagemakerStack');
