@@ -15,4 +15,3 @@ class DrawdownDayBundle(DayBundleBase):
     members: MemberData
     vix: VixData
     volume: VolumeData
-
