@@ -24,7 +24,7 @@ def main() -> None:
     job_name = os.getenv("SCHEDULED_JOB_NAME")
     if not job_name:
         logger.error("Missing env var SCHEDULED_JOB_NAME")
-        raise SystemExit(2)
+        raise SystemExit(1)
 
     service_cls = JOB_MAP.get(job_name)
     if not service_cls:

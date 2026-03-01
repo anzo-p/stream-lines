@@ -1,7 +1,7 @@
 import logging
 from typing import Iterator, List
 
-from narwhal.domain.schema.training_data import TrainingData
+from narwhal.domain.schema.drawdown.training_data import DrawdownTrainingData
 from narwhal.sources.influx.client import InfluxHandle
 from narwhal.sources.influx.helpers import compose_default_range
 
@@ -19,16 +19,16 @@ from(bucket: "{bucket}")
 '''.strip()
 
 
-def training_data_query(h: InfluxHandle) -> Iterator[TrainingData]:
+def training_data_query(h: InfluxHandle) -> Iterator[DrawdownTrainingData]:
     logger = logging.getLogger(__name__)
 
     table_list = h.query_api.query(_flux(h.bucket))
 
-    out: List[TrainingData] = []
+    out: List[DrawdownTrainingData] = []
     for table in table_list:
         for record in table.records:
             out.append(
-                TrainingData(
+                DrawdownTrainingData(
                     timestamp=record["_time"].date(),
                     fwd_max_drawdown=record["fwd_max_drawdown"],
                     members_daily_spread=record["members_daily_spread"],

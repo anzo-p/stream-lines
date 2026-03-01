@@ -70,7 +70,8 @@ def index_query(h: InfluxHandle, moving_avg_days: int) -> Iterator[IndexData]:
 
     logger.info(
         f"Processed {len(out)} index data records from InfluxDB query, "
-        f"using moving average of {moving_avg_days}"
+        f"using moving average of {moving_avg_days} bank days "
+        f"({moving_avg_days * 1.4} actual days)"
     )
 
     yield from out

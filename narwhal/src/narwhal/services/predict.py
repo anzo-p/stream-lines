@@ -1,12 +1,11 @@
 import logging
 import tempfile
-from typing import Iterator, List, Optional
+from typing import List, Optional
 
 import xgboost
 from xgboost import Booster, DMatrix
 
 from narwhal.domain.schema.prediction_result import PredictionResult
-from narwhal.domain.schema.training_data import TrainingData
 from narwhal.sinks.influx.write import write_to_influx
 from narwhal.sources.influx.client import close_all_influx_clients, get_training_data_handle
 from narwhal.sources.influx.training_data import training_data_query
@@ -32,7 +31,7 @@ class PredictionService:
 
         try:
             logger.info(f"Loading training data to predict over")
-            prediction_data: Iterator[TrainingData] = training_data_query(self.training_data_handle)
+            prediction_data = training_data_query(self.training_data_handle)
 
             logger.info(f"Loading model {model_id}")
             model: Booster = self._load_model(model_id)
