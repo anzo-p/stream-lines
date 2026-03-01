@@ -36,7 +36,7 @@ join(
 )
   |> map(fn: (r) => ({{
       _time: r._time,
-      _value: r.dollarValue / r.movingAvg
+      _value: r.dollarValue - r.movingAvg
   }}))
 '''.strip()
 
@@ -65,7 +65,7 @@ def volume_query(h: InfluxHandle, moving_avg_days: int) -> Iterator[VolumeData]:
     logger.info(
         f"Processed {len(out)} volume data records from InfluxDB query, "
         f"using moving average of {moving_avg_days} bank days "
-        f"({moving_avg_days * 1.4} actual days)"
+        f"({int(moving_avg_days * 1.44)} actual days)"
     )
 
     yield from out

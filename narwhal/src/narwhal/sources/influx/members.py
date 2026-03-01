@@ -3,11 +3,10 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Iterator, List
 
+from narwhal.domain.constants import TOP_TICKERS_COUNT
 from narwhal.sources.influx.client import InfluxHandle
 from narwhal.sources.influx.helpers import compose_default_range
 from narwhal.sources.influx.query_result import QueryResult
-
-TOP_TICKERS_COUNT = 40
 
 
 @dataclass(frozen=True)

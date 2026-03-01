@@ -18,7 +18,10 @@ class DrawdownTrainingData(TrainingDataBase):
         "index_over_kaufman_avg",
         "volume_over_moving_avg",
         "current_drawdown",
-        "days_since_dip",
+        "days_since_dip_of_3",
+        "days_since_dip_of_5",
+        "days_since_dip_of_8",
+        "days_since_dip_of_13",
         "vix",
     )
 
@@ -36,7 +39,10 @@ class DrawdownTrainingData(TrainingDataBase):
     index_over_kaufman_avg: float
     volume_over_moving_avg: float
     current_drawdown: float
-    days_since_dip: int
+    days_since_dip_of_3: int
+    days_since_dip_of_5: int
+    days_since_dip_of_8: int
+    days_since_dip_of_13: int
     vix: float
 
     FIELD_EXTRACTORS: ClassVar[dict[str, Callable[[DrawdownDayBundle], Any]]] = (
@@ -48,7 +54,10 @@ class DrawdownTrainingData(TrainingDataBase):
             "index_over_kaufman_avg": lambda d: d.index.over_kaufman_avg,
             "volume_over_moving_avg": lambda d: d.volume.over_moving_avg,
             "current_drawdown": lambda d: d.drawdown.current_drawdown,
-            "days_since_dip": lambda d: d.drawdown.days_since_dip,
+            "days_since_dip_of_3": lambda d: d.drawdown.days_since_dip_of_3,
+            "days_since_dip_of_5": lambda d: d.drawdown.days_since_dip_of_5,
+            "days_since_dip_of_8": lambda d: d.drawdown.days_since_dip_of_8,
+            "days_since_dip_of_13": lambda d: d.drawdown.days_since_dip_of_13,
             "vix": lambda d: d.vix.value,
         }
     )

@@ -63,15 +63,15 @@ def index_query(h: InfluxHandle, moving_avg_days: int) -> Iterator[IndexData]:
             ma = record["movingAvg"]
             ka = record["kaufmanAvg"]
 
-            if t is None or ma is None or ka is None:
+            if t is None or v is None or ma is None or ka is None:
                 continue
 
-            out.append(IndexData(day=t.date(), over_moving_avg=v / ma, over_kaufman_avg=v / ka))
+            out.append(IndexData(day=t.date(), over_moving_avg=v - ma, over_kaufman_avg=v - ka))
 
     logger.info(
         f"Processed {len(out)} index data records from InfluxDB query, "
         f"using moving average of {moving_avg_days} bank days "
-        f"({moving_avg_days * 1.4} actual days)"
+        f"({int(moving_avg_days * 1.44)} actual days)"
     )
 
     yield from out

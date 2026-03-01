@@ -36,7 +36,10 @@ def training_data_query(h: InfluxHandle) -> Iterator[DrawdownTrainingData]:
                     index_over_kaufman_avg=record["index_over_kaufman_avg"],
                     volume_over_moving_avg=record["volume_over_moving_avg"],
                     current_drawdown=record["current_drawdown"],
-                    days_since_dip=record["days_since_dip"],
+                    days_since_dip_of_3=record["days_since_dip_of_3"],
+                    days_since_dip_of_5=record["days_since_dip_of_5"],
+                    days_since_dip_of_8=record["days_since_dip_of_8"],
+                    days_since_dip_of_13=record["days_since_dip_of_13"],
                     vix=record["vix"],
                 )
             )

@@ -13,7 +13,10 @@ from narwhal.sources.influx.query_result import QueryResult
 class DrawdownData(QueryResult):
     day: date
     current_drawdown: float
-    days_since_dip: int
+    days_since_dip_of_3: int
+    days_since_dip_of_5: int
+    days_since_dip_of_8: int
+    days_since_dip_of_13: int
     fwd_max_drawdown: float
 
 
@@ -30,11 +33,28 @@ from(bucket: "{bucket}")
 def _add_days_since_dip(rows: list[DrawdownData]) -> list[DrawdownData]:
     rows = sorted(rows, key=lambda r: r.day)
     out: list[DrawdownData] = []
-    days_since_dip = 0
+    days = {
+        3: 0,
+        5: 0,
+        8: 0,
+        13: 0,
+    }
 
     for row in rows:
-        days_since_dip = 0 if row.current_drawdown <= 95 else days_since_dip + 1
-        out.append(replace(row, days_since_dip=days_since_dip))
+        days[3] = 0 if row.current_drawdown <= 97 else days[3] + 1
+        days[5] = 0 if row.current_drawdown <= 95 else days[5] + 1
+        days[8] = 0 if row.current_drawdown <= 92 else days[8] + 1
+        days[13] = 0 if row.current_drawdown <= 87 else days[13] + 1
+
+        out.append(
+            replace(
+                row,
+                days_since_dip_of_3=days[3],
+                days_since_dip_of_5=days[5],
+                days_since_dip_of_8=days[8],
+                days_since_dip_of_13=days[13],
+            )
+        )
 
     return out
 
@@ -87,7 +107,13 @@ def drawdown_query(h: InfluxHandle, fwd_bank_days: int) -> Iterator[DrawdownData
 
             out.append(
                 DrawdownData(
-                    day=t.date(), current_drawdown=float(v), days_since_dip=0, fwd_max_drawdown=0.0
+                    day=t.date(),
+                    current_drawdown=float(v),
+                    days_since_dip_of_3=0,
+                    days_since_dip_of_5=0,
+                    days_since_dip_of_8=0,
+                    days_since_dip_of_13=0,
+                    fwd_max_drawdown=0.0,
                 )
             )
 
@@ -99,7 +125,8 @@ def drawdown_query(h: InfluxHandle, fwd_bank_days: int) -> Iterator[DrawdownData
 
     logger.info(
         f"Processed {len(out)} volume data records from InfluxDB query, "
-        f"using forward bank days of {fwd_bank_days}"
+        f"using forward bank days of {fwd_bank_days} "
+        f"({int(fwd_bank_days * 1.44)} actual days)"
     )
 
     yield from out
