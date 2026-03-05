@@ -1,37 +1,16 @@
 from dataclasses import dataclass
-from datetime import date
-from typing import ClassVar, Sequence, Callable, Any, Self
+from typing import ClassVar, Callable, Any, Self
 
-from narwhal.decorators.validate_training_schema import validate_training_schema
-from narwhal.domain.schema.training_data_base import TrainingDataBase
+from narwhal.decorators.validate_training_data import validate_training_fields
 from narwhal.domain.schema.drawdown.day_bundle import DrawdownDayBundle
+from narwhal.domain.schema.training_fields_base import TrainingFieldsBase
 
 
-@validate_training_schema
+@validate_training_fields
 @dataclass(frozen=True)
-class DrawdownTrainingData(TrainingDataBase):
+class DrawdownTrainingFields(TrainingFieldsBase):
     LABEL = "fwd_max_drawdown"
-
-    FEATURES: ClassVar[Sequence[str]] = (
-        "members_daily_spread",
-        "index_over_moving_avg",
-        "index_over_kaufman_avg",
-        "volume_over_moving_avg",
-        "current_drawdown",
-        "days_since_dip_of_3",
-        "days_since_dip_of_5",
-        "days_since_dip_of_8",
-        "days_since_dip_of_13",
-        "vix",
-    )
-
-    TRAINING_FIELDS: ClassVar[Sequence[str]] = (
-        LABEL,
-        *FEATURES,
-    )
-
-    measurement: ClassVar[str] = "drawdown-training-data"
-    timestamp: date
+    COLLECTION = "drawdown-training-data"
 
     fwd_max_drawdown: float
     members_daily_spread: float
@@ -46,7 +25,7 @@ class DrawdownTrainingData(TrainingDataBase):
     vix: float
 
     FIELD_EXTRACTORS: ClassVar[dict[str, Callable[[DrawdownDayBundle], Any]]] = (
-        TrainingDataBase.FIELD_EXTRACTORS
+        TrainingFieldsBase.FIELD_EXTRACTORS
         | {
             "fwd_max_drawdown": lambda d: d.drawdown.fwd_max_drawdown,
             "members_daily_spread": lambda d: d.members.daily_spread,
@@ -63,6 +42,5 @@ class DrawdownTrainingData(TrainingDataBase):
     )
 
     @classmethod
-    def compose_row(cls, bundle: DrawdownDayBundle) -> Self:
-        kwargs = {name: fn(bundle) for name, fn in cls.FIELD_EXTRACTORS.items()}
-        return cls(**kwargs)
+    def compose(cls, bundle: DrawdownDayBundle, variant: str) -> Self:
+        return super().compose(bundle, variant)

@@ -6,13 +6,25 @@ from narwhal.sources.influx.helpers import to_epoch_ns
 
 
 @dataclass(frozen=True)
-class PredictionResult:
-    measurement: ClassVar[str] = "drawdown-prediction-result"
-
+class PredictionResultBase:
+    COLLECTION: ClassVar[str]
     timestamp: date
-    fwd_max_drawdown: float
+    variant: str
+
+    @property
+    def fields(self) -> str:
+        raise NotImplementedError
 
     def to_line_protocol(self) -> str:
-        field_str = f"fwd_max_drawdown={self.fwd_max_drawdown}"
+        measurement = f"{self.COLLECTION}-{self.variant}" if self.variant else self.COLLECTION
+        return f"{measurement} {self.fields} {to_epoch_ns(self.timestamp)}"
 
-        return f"{self.measurement} {field_str} {to_epoch_ns(self.timestamp)}"
+
+@dataclass(frozen=True)
+class DrawdownPredictionResult(PredictionResultBase):
+    COLLECTION = "drawdown-prediction-results"
+    fwd_max_drawdown: float
+
+    @property
+    def fields(self) -> str:
+        return f"fwd_max_drawdown={self.fwd_max_drawdown}"

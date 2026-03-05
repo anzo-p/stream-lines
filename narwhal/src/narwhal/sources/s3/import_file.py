@@ -3,7 +3,7 @@ import tarfile
 
 import boto3
 
-from narwhal.sinks.s3.export_file import S3_MODEL_PREFIX, S3_DATA_BUCKET, S3_MODEL_FILENAME
+from narwhal.sinks.s3.export_file import S3_DATA_BUCKET, S3_MODEL_FILENAME, S3_MODEL_PREFIX
 
 _s3 = boto3.client("s3")
 

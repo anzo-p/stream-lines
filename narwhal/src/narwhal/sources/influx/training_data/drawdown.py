@@ -1,16 +1,16 @@
 import logging
 from typing import Iterator, List
 
-from narwhal.domain.schema.drawdown.training_data import DrawdownTrainingData
+from narwhal.domain.schema.drawdown.training_fields import DrawdownTrainingFields
 from narwhal.sources.influx.client import InfluxHandle
 from narwhal.sources.influx.helpers import compose_default_range
 
 
-def _flux(bucket: str) -> str:
+def _flux(bucket: str, variant: str) -> str:
     return f'''
 from(bucket: "{bucket}")
   |> {compose_default_range()}
-  |> filter(fn: (r) => r._measurement == "drawdown-training-data")
+  |> filter(fn: (r) => r._measurement == "drawdown-training-data-{variant}")
   |> pivot(
       rowKey:["_time"],
       columnKey: ["_field"],
@@ -19,16 +19,16 @@ from(bucket: "{bucket}")
 '''.strip()
 
 
-def training_data_query(h: InfluxHandle) -> Iterator[DrawdownTrainingData]:
+def query(h: InfluxHandle, variant: str) -> Iterator[DrawdownTrainingFields]:
     logger = logging.getLogger(__name__)
 
-    table_list = h.query_api.query(_flux(h.bucket))
+    table_list = h.query_api.query(_flux(h.bucket, variant))
 
-    out: List[DrawdownTrainingData] = []
+    out: List[DrawdownTrainingFields] = []
     for table in table_list:
         for record in table.records:
             out.append(
-                DrawdownTrainingData(
+                DrawdownTrainingFields(
                     timestamp=record["_time"].date(),
                     fwd_max_drawdown=record["fwd_max_drawdown"],
                     members_daily_spread=record["members_daily_spread"],
@@ -41,6 +41,7 @@ def training_data_query(h: InfluxHandle) -> Iterator[DrawdownTrainingData]:
                     days_since_dip_of_8=record["days_since_dip_of_8"],
                     days_since_dip_of_13=record["days_since_dip_of_13"],
                     vix=record["vix"],
+                    variant="two-weeks",
                 )
             )
 

@@ -1,14 +1,13 @@
 import logging
 import tempfile
+from datetime import date
 from typing import List, Optional
 
 import xgboost
 from xgboost import Booster, DMatrix
 
-from narwhal.domain.schema.prediction_result import PredictionResult
-from narwhal.sinks.influx.write import write_to_influx
+from narwhal.services.runners.drawdown_runner import DRAWDOWN_RUNS
 from narwhal.sources.influx.client import close_all_influx_clients, get_training_data_handle
-from narwhal.sources.influx.training_data import training_data_query
 from narwhal.sources.s3.import_file import import_model_file
 
 logger = logging.getLogger(__name__)
@@ -27,33 +26,33 @@ class PredictionService:
 
     def run(self, model_id: Optional[str] = None) -> None:
         model_id = model_id or "latest"
-        results: List[PredictionResult] = []
 
         try:
-            logger.info(f"Loading training data to predict over")
-            prediction_data = training_data_query(self.training_data_handle)
+            for runner in DRAWDOWN_RUNS:
+                logger.info(f"Loading training data to predict over")
+                prediction_data = runner.query(self.training_data_handle)
 
-            logger.info(f"Loading model {model_id}")
-            model: Booster = self._load_model(model_id)
+                logger.info(f"Loading model {model_id}")
+                model: Booster = self._load_model(f"{runner.program_name}/{model_id}")
 
-            for entry in prediction_data:
-                X = entry.x_vector()
-                logger.debug(f"Running xgboost.DMatrix on X with shape {X.shape}")
-                d_matrix: DMatrix = xgboost.DMatrix(X)
-                logger.debug(f"Running model.predict")
-                prediction = model.predict(d_matrix)
+                results: List[tuple[date, float]] = []
+                for entry in prediction_data:
+                    X = entry.x_vector()
+                    logger.debug(f"Running xgboost.DMatrix on X with shape {X.shape}")
+                    d_matrix: DMatrix = xgboost.DMatrix(X)
+                    logger.debug(f"Running model.predict")
+                    prediction = model.predict(d_matrix)
 
-                if prediction.size == 0:
-                    logger.info("No prediction for date %s, skipping", entry.timestamp)
-                    continue
+                    if prediction.size == 0:
+                        logger.info("No prediction for date %s, skipping", entry.timestamp)
+                        continue
 
-                results.append(
-                    PredictionResult(
-                        timestamp=entry.timestamp, fwd_max_drawdown=float(prediction[0])
+                    results.append(
+                        (entry.timestamp, float(prediction[0])),
                     )
-                )
 
-            write_to_influx(self.training_data_handle, results)
+                runner.store_predictions(self.training_data_handle, runner.map_predictions(results))
+
             logger.info("Predictions completed successfully")
         except Exception as e:
             logger.error("Prediction failed: %s", e)
