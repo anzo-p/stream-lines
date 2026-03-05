@@ -24,7 +24,7 @@ const narwhalJobSchedule: Record<string, events.Schedule> = {
   }),
   weekdaily_intraday_prediction_job: events.Schedule.cron({
     weekDay: 'MON-FRI',
-    hour: '12-20/2',
+    hour: '12-20/4',
     minute: '0'
   })
 };
