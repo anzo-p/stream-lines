@@ -41,13 +41,10 @@ export class NarwhalStack extends cdk.NestedStack {
     const { ecsCluster, executionRole, serviceSecurityGroup } = props;
 
     const dataBucket = s3.Bucket.fromBucketName(this, 'DataBucket', 'anzop-stream-lines');
-    [
-      `${process.env.NARWHAL_MODELS_PREFIX}/*`,
-      `${process.env.NARWHAL_PREDICTION_DATA_PREFIX}/*`,
-      `${process.env.NARWHAL_TRAINING_DATA_PREFIX}/*`
-    ].forEach((path) => {
-      dataBucket.grantReadWrite(taskRole, path);
+    [`${process.env.NARWHAL_MODELS_LATEST_PATH}/*`, `${process.env.NARWHAL_MODELS_RUNS_PATH}/*`].forEach((path) => {
+      dataBucket.grantRead(taskRole, path);
     });
+    dataBucket.grantPut(taskRole, `${process.env.NARWHAL_TRAINING_DATA_PATH}/*`);
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'NarwhalTaskDefinition', {
       cpu: 256,
@@ -86,9 +83,9 @@ export class NarwhalStack extends cdk.NestedStack {
         INFLUXDB_TOKEN_TRAINING_DATA_READ_WRITE: `${process.env.INFLUXDB_TOKEN_TRAINING_DATA_READ_WRITE}`,
         INFLUXDB_URL: `${process.env.INFLUXDB_URL}`,
         S3_DATA_BUCKET: `${process.env.S3_APP_BUCKET}`,
-        S3_MODEL_PREFIX: `${process.env.NARWHAL_MODELS_PREFIX}`,
-        S3_PREDICTION_PREFIX: `${process.env.NARWHAL_PREDICTION_DATA_PREFIX}`,
-        S3_TRAINING_PREFIX: `${process.env.NARWHAL_TRAINING_DATA_PREFIX}`
+        S3_MODELS_LATEST_KEY: `${process.env.NARWHAL_MODELS_LATEST_PATH}`,
+        S3_MODELS_RUNS_KEY: `${process.env.NARWHAL_MODELS_RUNS_PATH}`,
+        S3_TRAINING_KEY: `${process.env.NARWHAL_TRAINING_DATA_PATH}`
       },
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       logging,

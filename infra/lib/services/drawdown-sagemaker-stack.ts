@@ -13,15 +13,16 @@ import { IBucket } from 'aws-cdk-lib/aws-s3';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 
 type TrainPipelineArgs = {
-  id: string;
+  name: string;
   bucket: IBucket;
-  outputPathKey: string;
+  copyTargetDirname: string;
+  modelOutputDirname: string;
   sagemakerRole: iam.IRole;
-  trainingFileKey: string;
+  trainingFileFullPath: string;
 };
 
 function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, eventRole: iam.Role) {
-  const trainJob = new tasks.SageMakerCreateTrainingJob(scope, `TrainXGB-${args.id}`, {
+  const trainJob = new tasks.SageMakerCreateTrainingJob(scope, `TrainXGB-${args.name}`, {
     algorithmSpecification: {
       trainingImage: tasks.DockerImage.fromRegistry(process.env.SAGEMAKER_XGBOOST_IMAGE!),
       trainingInputMode: tasks.InputMode.PIPE
@@ -42,13 +43,13 @@ function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, event
         dataSource: {
           s3DataSource: {
             s3DataType: tasks.S3DataType.S3_PREFIX,
-            s3Location: tasks.S3Location.fromBucket(args.bucket, args.trainingFileKey)
+            s3Location: tasks.S3Location.fromBucket(args.bucket, args.trainingFileFullPath)
           }
         }
       }
     ],
     outputDataConfig: {
-      s3OutputLocation: tasks.S3Location.fromBucket(args.bucket, args.outputPathKey)
+      s3OutputLocation: tasks.S3Location.fromBucket(args.bucket, args.modelOutputDirname)
     },
     resourceConfig: {
       instanceCount: 1,
@@ -62,9 +63,11 @@ function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, event
     trainingJobName: sfn.JsonPath.format('xgb-{}', sfn.JsonPath.uuid())
   });
 
-  const stateMachine = new sfn.StateMachine(scope, `SageMakerStateMachine-${args.id}`, {
+  // start sagemaker job upon training data upload
+
+  const stateMachine = new sfn.StateMachine(scope, `SageMakerStateMachine-${args.name}`, {
     definitionBody: sfn.DefinitionBody.fromChainable(
-      trainJob.next(new sfn.Succeed(scope, `TrainingComplete-${args.id}`))
+      trainJob.next(new sfn.Succeed(scope, `TrainingComplete-${args.name}`))
     )
   });
 
@@ -75,11 +78,11 @@ function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, event
     })
   );
 
-  new events.Rule(scope, `EventBridgeRule-${args.id}`, {
+  new events.Rule(scope, `EventBridgeRule-${args.name}`, {
     eventPattern: {
       detail: {
         bucket: { name: [process.env.S3_APP_BUCKET!] },
-        object: { key: [args.trainingFileKey] }
+        object: { key: [args.trainingFileFullPath] }
       },
       detailType: ['Object Created'],
       source: ['aws.s3']
@@ -88,7 +91,7 @@ function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, event
       new targets.SfnStateMachine(stateMachine, {
         input: events.RuleTargetInput.fromObject({
           s3Bucket: process.env.S3_APP_BUCKET!,
-          s3Key: args.trainingFileKey
+          s3Key: args.trainingFileFullPath
         }),
         role: eventRole
       })
@@ -96,11 +99,15 @@ function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, event
   });
 
   // copy training job output to "latest" for easy discovery by predictor service
-  const mlModelCopyFn = new NodejsFunction(scope, `MlModelCopyFn-${args.id}`, {
+
+  errorOnPathOverlap(args.modelOutputDirname, args.copyTargetDirname);
+
+  const mlModelCopyFn = new NodejsFunction(scope, `MlModelCopyFn-${args.name}`, {
     entry: path.join(__dirname, '../../lambda/ml-model-copy.ts'),
     environment: {
       FILENAME: 'model.tar.gz',
-      LATEST_KEY: `${args.outputPathKey}latest/output/${'model.tar.gz'}`
+      SOURCE_PATH: args.modelOutputDirname,
+      TARGET_PATH: args.copyTargetDirname
     },
     handler: 'handler',
     logRetention: logs.RetentionDays.ONE_WEEK,
@@ -108,14 +115,14 @@ function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, event
     timeout: cdk.Duration.seconds(30)
   });
 
-  args.bucket.grantRead(mlModelCopyFn, `${args.outputPathKey}*`);
-  args.bucket.grantPut(mlModelCopyFn, `${args.outputPathKey}*`);
+  args.bucket.grantRead(mlModelCopyFn, `${args.modelOutputDirname}*`);
+  args.bucket.grantPut(mlModelCopyFn, `${args.copyTargetDirname}*`);
 
-  new events.Rule(scope, `OnModelArtifactCreated-${args.id}`, {
+  new events.Rule(scope, `OnModelArtifactCreated-${args.name}`, {
     eventPattern: {
       detail: {
         bucket: { name: [process.env.S3_APP_BUCKET!] },
-        object: { key: [{ prefix: args.outputPathKey }] }
+        object: { key: [{ prefix: args.modelOutputDirname }] }
       },
       detailType: ['Object Created'],
       source: ['aws.s3']
@@ -146,23 +153,26 @@ export class DrawdownSagemakerStack extends cdk.NestedStack {
       assumedBy: new iam.ServicePrincipal('events.amazonaws.com')
     });
 
-    const trainPipelineArgs: TrainPipelineArgs[] = [
-      {
-        id: 'drawdown-two-weeks',
-        bucket: dataBucket,
-        outputPathKey: `${process.env.NARWHAL_MODELS_PREFIX!}/drawdown-two-weeks/`,
-        sagemakerRole,
-        trainingFileKey: `${process.env.NARWHAL_TRAINING_DATA_PREFIX!}/drawdown-training-data-two-weeks/latest.csv.gz`
-      },
-      {
-        id: 'drawdown-two-months',
-        bucket: dataBucket,
-        outputPathKey: `${process.env.NARWHAL_MODELS_PREFIX!}/drawdown-two-months/`,
-        sagemakerRole,
-        trainingFileKey: `${process.env.NARWHAL_TRAINING_DATA_PREFIX!}/drawdown-training-data-two-months/latest.csv.gz`
-      }
-    ];
+    const trainPipelineArgs: TrainPipelineArgs[] = ['drawdown-two-weeks', 'drawdown-five-weeks'].map((name) => ({
+      bucket: dataBucket,
+      copyTargetDirname: `${process.env.NARWHAL_MODELS_LATEST_PATH!}/${name}/`,
+      modelOutputDirname: `${process.env.NARWHAL_MODELS_RUNS_PATH!}/${name}/`,
+      name,
+      sagemakerRole,
+      trainingFileFullPath: `${process.env.NARWHAL_TRAINING_DATA_PATH!}/${name}/latest.csv.gz`
+    }));
 
     trainPipelineArgs.forEach((args) => defineTrainingPipeline(this, args, eventRole));
   }
+}
+
+function errorOnPathOverlap(sourcePath: string, targetPath: string) {
+  if (normalizePrefix(targetPath).startsWith(normalizePrefix(sourcePath))) {
+    throw new Error(`sourcePath "${sourcePath}" and targetPath "${targetPath}" must not overlap.`);
+  }
+}
+
+function normalizePrefix(prefix: string): string {
+  const trimmed = prefix.trim().replace(/^\/+|\/+$/g, '');
+  return trimmed === '' ? '' : `${trimmed}/`;
 }
