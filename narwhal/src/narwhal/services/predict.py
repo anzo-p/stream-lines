@@ -17,43 +17,28 @@ class PredictionService:
     def __init__(self) -> None:
         self.training_data_handle = get_training_data_handle()
 
-    def _load_model(self, model_id: str) -> xgboost.Booster:
+    def _load_model(self, program_name: str, model_id: Optional[str] = None) -> xgboost.Booster:
         with tempfile.TemporaryDirectory() as tmpdir:
-            model_file = import_model_file(tmpdir, model_id)
+            model_file = import_model_file(tmpdir, program_name, model_id)
             model = xgboost.Booster()
             model.load_model(model_file)
             return model
 
-    def run(self, model_id: Optional[str] = None) -> None:
-        model_id = model_id or "latest"
-
+    def run(self, program: Optional[str] = None, model_id: Optional[str] = None) -> None:
         try:
-            for runner in DRAWDOWN_RUNS:
-                logger.info(f"Loading training data to predict over")
-                prediction_data = runner.query(self.training_data_handle)
+            filtered_runners = (
+                r for r in DRAWDOWN_RUNS if not program or r.program_name == program
+            )
+
+            for runner in filtered_runners:
+                logger.info("Starting drawdown prediction run for variant: %s", runner.variant)
 
                 logger.info(f"Loading model {model_id}")
-                model: Booster = self._load_model(f"{runner.program_name}/{model_id}")
+                model: Booster = self._load_model(runner.program_name, model_id)
 
-                results: List[tuple[date, float]] = []
-                for entry in prediction_data:
-                    X = entry.x_vector()
-                    logger.debug(f"Running xgboost.DMatrix on X with shape {X.shape}")
-                    d_matrix: DMatrix = xgboost.DMatrix(X)
-                    logger.debug(f"Running model.predict")
-                    prediction = model.predict(d_matrix)
+                runner.predict(source=self.training_data_handle, model=model)
+                logger.info("Finished drawdown prediction run for variant: %s", runner.variant)
 
-                    if prediction.size == 0:
-                        logger.info("No prediction for date %s, skipping", entry.timestamp)
-                        continue
-
-                    results.append(
-                        (entry.timestamp, float(prediction[0])),
-                    )
-
-                runner.store_predictions(self.training_data_handle, runner.map_predictions(results))
-
-            logger.info("Predictions completed successfully")
         except Exception as e:
             logger.error("Prediction failed: %s", e)
 

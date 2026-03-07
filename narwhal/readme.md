@@ -44,3 +44,11 @@ curl localhost:8000/health
 curl -o /dev/null -s -w "%{http_code}\n" -X POST http://localhost:8000/train
 curl -o /dev/null -s -w "%{http_code}\n" -X POST http://localhost:8000/predict?model-id=<model-id>
 ```
+
+## Local development
+```
+brew install python@3.11
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```

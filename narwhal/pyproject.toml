@@ -13,7 +13,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "boto3-stubs[essential]",
   "mypy",
+  "pandas-stubs",
   "ruff",
 ]
 
@@ -21,6 +23,10 @@ dev = [
 exclude = ["(^venv/|^\\.venv/)", "build/", "dist/"]
 files = ["src"]
 strict = true
+
+[[tool.mypy.overrides]]
+module = "boto3.*"
+ignore_missing_imports = false
 
 [[tool.mypy.overrides]]
 disable_error_code = ["import-untyped"]

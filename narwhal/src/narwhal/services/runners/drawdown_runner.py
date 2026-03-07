@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 from dataclasses import dataclass
 from datetime import date
@@ -9,6 +7,7 @@ from narwhal.domain.constants import (
     BANK_DAYS_OF_TWO_WEEKS,
     BANK_DAYS_OF_TWO_MONTHS,
     BANK_DAYS_OF_FOUR_MONTHS,
+    BANK_DAYS_OF_FIVE_WEEKS,
 )
 from narwhal.domain.schema.drawdown.day_bundle import DrawdownDayBundle
 from narwhal.domain.schema.drawdown.training_fields import DrawdownTrainingFields
@@ -36,10 +35,6 @@ class DrawdownRunner(
     program_name: str
     volume_days: int
     variant: str
-
-    @property
-    def program(self) -> str:
-        return f"{DrawdownTrainingFields.COLLECTION}-{self.variant}"
 
     def bundles(self, h: InfluxHandle) -> Iterable[DrawdownDayBundle]:
         return DrawdownDayBundle.daily_generator(
@@ -74,9 +69,9 @@ DRAWDOWN_RUNS: set[DrawdownRunner] = {
         volume_days=BANK_DAYS_OF_TWO_MONTHS,
     ),
     DrawdownRunner(
-        program_name="drawdown-two-months",
-        variant="two-months",
-        drawdown_days=BANK_DAYS_OF_TWO_MONTHS,
+        program_name="drawdown-five-weeks",
+        variant="five-weeks",
+        drawdown_days=BANK_DAYS_OF_FIVE_WEEKS,
         index_days=BANK_DAYS_OF_FOUR_MONTHS,
         volume_days=BANK_DAYS_OF_FOUR_MONTHS,
     ),
