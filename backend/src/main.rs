@@ -1,4 +1,4 @@
-//mod errors;
+mod errors;
 mod config;
 mod graphql_schema;
 mod graphql_server;

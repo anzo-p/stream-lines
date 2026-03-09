@@ -5,6 +5,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
 import { RemovalPolicy } from 'aws-cdk-lib';
@@ -17,8 +18,8 @@ export type NarwhalStackProps = cdk.NestedStackProps & {
   drawdownTrainingDataDirname: string;
   ecsCluster: ecs.ICluster;
   executionRole: iam.IRole;
-  influxBucketHistorical: string;
-  influxBucketRealtime: string;
+  influxBucketMarketDataHistorical: string;
+  influxBucketMarketDataRealtime: string;
   influxBucketTrainingData: string;
   influxOrg: string;
   influxUrl: string;
@@ -54,8 +55,8 @@ export class NarwhalStack extends cdk.NestedStack {
       drawdownTrainingDataDirname,
       ecsCluster,
       executionRole,
-      influxBucketHistorical,
-      influxBucketRealtime,
+      influxBucketMarketDataHistorical,
+      influxBucketMarketDataRealtime,
       influxBucketTrainingData,
       influxOrg,
       influxUrl,
@@ -66,6 +67,15 @@ export class NarwhalStack extends cdk.NestedStack {
       appBucket.grantRead(taskRole, path);
     });
     appBucket.grantPut(taskRole, `${drawdownTrainingDataDirname}/*`);
+
+    [
+      { id: 'InfluxHistoricalRead', name: 'prod/influxdb/market-data-historical/read' },
+      { id: 'InfluxRealtimeRead', name: 'prod/influxdb/market-data-realtime/read' },
+      { id: 'InfluxTrainingWrite', name: 'prod/influxdb/training-data/read-write' }
+    ].forEach(({ id, name }) => {
+      const secret = secretsmanager.Secret.fromSecretNameV2(this, 'Narwhal' + id, name);
+      secret.grantRead(taskRole);
+    });
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'NarwhalTaskDefinition', {
       cpu: 256,
@@ -94,13 +104,11 @@ export class NarwhalStack extends cdk.NestedStack {
       command: ['python', '-m', 'narwhal.scheduler'],
       cpu: 256,
       environment: {
-        INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: influxBucketHistorical,
-        INFLUXDB_BUCKET_MARKET_DATA_REALTIME: influxBucketRealtime,
+        AWS_REGION: cdk.Stack.of(this).region,
+        INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: influxBucketMarketDataHistorical,
+        INFLUXDB_BUCKET_MARKET_DATA_REALTIME: influxBucketMarketDataRealtime,
         INFLUXDB_BUCKET_TRAINING_DATA: influxBucketTrainingData,
         INFLUXDB_ORG: influxOrg,
-        INFLUXDB_TOKEN_HISTORICAL_READ: `${process.env.INFLUXDB_TOKEN_HISTORICAL_READ}`,
-        INFLUXDB_TOKEN_REALTIME_READ: `${process.env.INFLUXDB_TOKEN_REALTIME_READ}`,
-        INFLUXDB_TOKEN_TRAINING_DATA_READ_WRITE: `${process.env.INFLUXDB_TOKEN_TRAINING_DATA_READ_WRITE}`,
         INFLUXDB_URL: influxUrl,
         S3_DATA_BUCKET: appBucket.bucketName,
         S3_MODELS_LATEST_KEY: `${drawdownModelsLatestDirname}`,

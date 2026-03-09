@@ -5,6 +5,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as kinesis from 'aws-cdk-lib/aws-kinesis';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
@@ -14,7 +15,7 @@ export type RipplesStackProps = cdk.StackProps & {
   ecsCluster: ecs.ICluster;
   executionRole: iam.IRole;
   flinkBucketName: string;
-  influxBucket: string;
+  influxBucketMarketDataRealtime: string;
   influxOrg: string;
   influxUrl: string;
   kinesisMarketDataUpstream: kinesis.IStream;
@@ -32,7 +33,7 @@ export class RipplesStack extends cdk.NestedStack {
       ecsCluster,
       executionRole,
       flinkBucketName,
-      influxBucket,
+      influxBucketMarketDataRealtime,
       influxOrg,
       influxUrl,
       kinesisMarketDataUpstream,
@@ -44,6 +45,13 @@ export class RipplesStack extends cdk.NestedStack {
     const taskRole = new iam.Role(this, 'RipplesTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
     });
+
+    const secret = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      'RipplesInfluxRealtimeWrite',
+      'prod/influxdb/market-data-realtime/write'
+    );
+    secret.grantRead(taskRole);
 
     const ripplesBucket = s3.Bucket.fromBucketName(this, 'RipplesFlinkBucket', flinkBucketName);
     ripplesBucket.grantReadWrite(taskRole);
@@ -78,9 +86,8 @@ export class RipplesStack extends cdk.NestedStack {
       cpu: 512,
       environment: {
         CHECKPOINT_PATH: `s3://${flinkBucketName}/checkpoints`,
-        INFLUXDB_BUCKET_MARKET_DATA_REALTIME: influxBucket,
+        INFLUXDB_BUCKET_MARKET_DATA_REALTIME: influxBucketMarketDataRealtime,
         INFLUXDB_ORG: influxOrg,
-        INFLUXDB_TOKEN_REALTIME_WRITE: `${process.env.INFLUXDB_TOKEN_REALTIME_WRITE}`,
         INFLUXDB_URL: influxUrl,
         KINESIS_DOWNSTREAM_NAME: kinesisResultsDownStream.streamName,
         KINESIS_UPSTREAM_NAME: kinesisMarketDataUpstream.streamName,

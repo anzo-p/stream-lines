@@ -5,6 +5,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
@@ -13,6 +14,7 @@ export type BackendStackProps = cdk.NestedStackProps & {
   albListener: elbv2.ApplicationListener;
   ecsCluster: ecs.ICluster;
   executionRole: iam.IRole;
+  influxBucketMarketDataHistorical: string;
   influxOrg: string;
   influxUrl: string;
   port: number;
@@ -23,7 +25,28 @@ export class BackendStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: BackendStackProps) {
     super(scope, id, props);
 
-    const { address, albListener, ecsCluster, executionRole, influxOrg, influxUrl, port, securityGroup } = props;
+    const {
+      address,
+      albListener,
+      ecsCluster,
+      executionRole,
+      influxBucketMarketDataHistorical,
+      influxOrg,
+      influxUrl,
+      port,
+      securityGroup
+    } = props;
+
+    const taskRole = new iam.Role(this, 'BackendTaskRole', {
+      assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
+    });
+
+    const secret = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      'BackendInfluxHistoricalRead',
+      'prod/influxdb/market-data-historical/read'
+    );
+    secret.grantRead(taskRole);
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'BackendTaskDefinition', {
       cpu: 256,
@@ -33,7 +56,8 @@ export class BackendStack extends cdk.NestedStack {
       runtimePlatform: {
         operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
         cpuArchitecture: ecs.CpuArchitecture.X86_64
-      }
+      },
+      taskRole
     });
 
     const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-backend');
@@ -53,8 +77,7 @@ export class BackendStack extends cdk.NestedStack {
         GRAPHQL_SERVER_ADDRESS: address,
         GRAPHQL_SERVER_PORT: port.toString(),
         INFLUXDB_ORG: influxOrg,
-        INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL}`,
-        INFLUXDB_TOKEN_HISTORICAL_READ: `${process.env.INFLUXDB_TOKEN_HISTORICAL_READ}`,
+        INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: influxBucketMarketDataHistorical,
         INFLUXDB_URL: influxUrl
       },
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),

@@ -72,6 +72,8 @@ export class ServicesStack extends cdk.Stack {
 
     const kinesisStack = new KinesisStreamsStack(this, 'KinesisStack', {
       appBucket,
+      marketDataUpstreamName: process.env.KINESIS_MARKET_DATA_UPSTREAM!,
+      resultsDownStreamName: process.env.KINESIS_RESULTS_DOWNSTREAM!,
       resultsPusherLambdaFullPath: process.env.S3_KEY_RESULTS_PUSHER!,
       // wsApiGatewayConnectionsUrl: wsApigatewayStack.wsApiGatewayConnectionsUrl,
       // wsApiGatewayStageProdArn: wsApigatewayStack.wsApiGatewayStageProdArn,
@@ -88,6 +90,8 @@ export class ServicesStack extends cdk.Stack {
     const executionRole = taskExecRoleStack.role;
     const influxOrg = process.env.INFLUXDB_INIT_ORG!;
     const influxUrl = process.env.INFLUXDB_URL!;
+    const influxBucketMarketDataHistorical = process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL!;
+    const influxBucketMarketDataRealtime = process.env.INFLUXDB_BUCKET_MARKET_DATA_REALTIME!;
 
     let gatherStack: GatherStack | undefined;
     if (!runOnlyOnDemandServices || runAllServicesOnDemand) {
@@ -96,6 +100,7 @@ export class ServicesStack extends cdk.Stack {
         ecsCluster,
         executionRole,
         gatherDynamoDbTable: process.env.GATHER_DYNAMODB_TABLE_NAME!,
+        influxBucketMarketDataHistorical,
         influxOrg,
         influxUrl,
         port: Number(process.env.GATHER_SERVER_PORT!),
@@ -110,7 +115,7 @@ export class ServicesStack extends cdk.Stack {
         ecsCluster,
         executionRole,
         flinkBucketName: process.env.S3_CURRENTS_BUCKET!,
-        influxBucket: process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL!,
+        influxBucketMarketDataHistorical,
         influxMeasurement: process.env.CURRENTS_INFLUXDB_SOURCE_MEASURE!,
         influxOrg,
         influxUrl,
@@ -124,7 +129,7 @@ export class ServicesStack extends cdk.Stack {
       ecsCluster,
       executionRole,
       flinkBucketName: process.env.S3_RIPPLES_BUCKET!,
-      influxBucket: process.env.INFLUXDB_BUCKET_MARKET_DATA_REALTIME!,
+      influxBucketMarketDataRealtime,
       influxOrg,
       influxUrl,
       kinesisMarketDataUpstream: kinesisStack.marketDataUpstream,
@@ -155,6 +160,7 @@ export class ServicesStack extends cdk.Stack {
       albListener: albStack.backendAlbListener,
       ecsCluster,
       executionRole,
+      influxBucketMarketDataHistorical,
       influxOrg,
       influxUrl,
       port: Number(process.env.BACKEND_SERVER_PORT!),
@@ -179,8 +185,8 @@ export class ServicesStack extends cdk.Stack {
       drawdownModelsLatestDirname: process.env.NARWHAL_MODELS_LATEST_PATH!,
       drawdownModelsRunsDirname: process.env.NARWHAL_MODELS_RUNS_PATH!,
       drawdownTrainingDataDirname: process.env.NARWHAL_TRAINING_DATA_PATH!,
-      influxBucketHistorical: process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL!,
-      influxBucketRealtime: process.env.INFLUXDB_BUCKET_MARKET_DATA_REALTIME!,
+      influxBucketMarketDataHistorical,
+      influxBucketMarketDataRealtime,
       influxBucketTrainingData: process.env.INFLUXDB_BUCKET_TRAINING_DATA!,
       influxOrg,
       influxUrl,

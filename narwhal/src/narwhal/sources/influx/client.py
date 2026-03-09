@@ -1,10 +1,13 @@
+import json
 import os
 from dataclasses import dataclass
 from typing import Dict, Tuple, Optional
 
+import boto3
 from influxdb_client import InfluxDBClient, WriteApi
 from influxdb_client.client.query_api import QueryApi
 from influxdb_client.client.write_api import SYNCHRONOUS
+from mypy_boto3_secretsmanager.client import SecretsManagerClient
 
 
 @dataclass(frozen=True)
@@ -34,6 +37,17 @@ def _get_query_api(token: str) -> QueryApi:
     return client.query_api()
 
 
+def _get_token(secret_name: str, key: str) -> str:
+    client: SecretsManagerClient = boto3.client("secretsmanager", os.environ["AWS_REGION"])
+    response = client.get_secret_value(SecretId=secret_name)
+    secret: dict[str, str] = json.loads(response["SecretString"] or "{}")
+
+    if key not in secret:
+        raise KeyError(f"Key '{key}' not found in secret '{secret_name}'")
+
+    return secret[key]
+
+
 def _get_write_api(token: str) -> WriteApi:
     client = _get_client(_influx_url, _influx_org, token)
     return client.write_api(
@@ -55,21 +69,21 @@ def _get_handle(bucket: str, token: str, write: bool = False) -> InfluxHandle:
 def get_historical_data_handle() -> InfluxHandle:
     return _get_handle(
         bucket=os.environ["INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL"],
-        token=os.environ["INFLUXDB_TOKEN_HISTORICAL_READ"],
+        token=_get_token("prod/influxdb/market-data-historical/read", "influxdb.token"),
     )
 
 
 def get_realtime_data_handle() -> InfluxHandle:
     return _get_handle(
         bucket=os.environ["INFLUXDB_BUCKET_MARKET_DATA_REALTIME"],
-        token=os.environ["INFLUXDB_TOKEN_REALTIME_READ"],
+        token=_get_token("prod/influxdb/market-data-realtime/read", "influxdb.token"),
     )
 
 
 def get_training_data_handle() -> InfluxHandle:
     return _get_handle(
         bucket=os.environ["INFLUXDB_BUCKET_TRAINING_DATA"],
-        token=os.environ["INFLUXDB_TOKEN_TRAINING_DATA_READ_WRITE"],
+        token=_get_token("prod/influxdb/training-data/read-write", "influxdb.token"),
         write=True,
     )
 

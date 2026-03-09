@@ -1,3 +1,4 @@
+use crate::config::secrets_manager::get_influxdb_token;
 use influxdb2::Client;
 use std::env;
 
@@ -10,10 +11,7 @@ pub async fn create_influxdb_client() -> Result<Client, String> {
     let organization =
         env::var("INFLUXDB_ORG").map_err(|_| "INFLUXDB_ORG environment variable not found".to_string())?;
 
-    let token = env::var("INFLUXDB_TOKEN_HISTORICAL_READ")
-        .map_err(|_| "INFLUXDB_TOKEN_HISTORICAL_READ environment variable not found".to_string())?
-        .trim_matches('"')
-        .to_string();
+    let token = get_influxdb_token().await.map_err(|_| "Unable to retrieve InfluxDB token from Secrets Manager".to_string())?;
 
     let client = Client::new(influxdb_url, organization, token);
 

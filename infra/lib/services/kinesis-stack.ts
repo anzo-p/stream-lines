@@ -10,6 +10,8 @@ import { KinesisEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 
 export type KinesisStreamsStackProps = cdk.NestedStackProps & {
   appBucket: s3.IBucket;
+  marketDataUpstreamName: string;
+  resultsDownStreamName: string;
   resultsPusherLambdaFullPath: string;
   wsApiGatewayConnectionsUrl?: string;
   wsApiGatewayStageProdArn?: string;
@@ -26,6 +28,8 @@ export class KinesisStreamsStack extends cdk.NestedStack {
 
     const {
       appBucket,
+      marketDataUpstreamName,
+      resultsDownStreamName,
       resultsPusherLambdaFullPath,
       wsApiGatewayConnectionsUrl,
       wsApiGatewayStageProdArn,
@@ -37,14 +41,14 @@ export class KinesisStreamsStack extends cdk.NestedStack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       retentionPeriod: cdk.Duration.hours(24),
       shardCount: 1,
-      streamName: 'stream-lines-market-data-upstream'
+      streamName: marketDataUpstreamName
     });
 
     this.resultsDownStream = new kinesis.Stream(this, 'ResultsDownStream', {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       retentionPeriod: cdk.Duration.hours(24),
       shardCount: 1,
-      streamName: 'stream-lines-results-downstream'
+      streamName: resultsDownStreamName
     });
 
     if (wsApiGatewayConnectionsUrl && wsApiGatewayStageProdArn) {

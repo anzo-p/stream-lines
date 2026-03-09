@@ -11,16 +11,18 @@ lazy val root = (project in file("."))
   .enablePlugins(JavaAppPackaging)
 //.enablePlugins(DockerPlugin)
 
-val apacheFlinkVersion = "1.17.2"
-val apacheHttpVersion  = "4.5.14"
-val awsSdkVersion      = "2.20.0"
-val influxDbVersion    = "6.9.0"
-val jacksonVersion     = "2.13.4"
-val logbackVersion     = "1.4.12"
-val slf4jVersion       = "2.0.5"
-val typesafeVersion    = "1.4.2"
+val apacheFlinkVersion    = "1.17.2"
+val apacheHttpVersion     = "4.5.14"
+val awsSdkVersion         = "2.20.0"
+val influxDbVersion       = "6.9.0"
+val jacksonVersion        = "2.13.4"
+val logbackVersion        = "1.4.12"
+val secretsManagerVersion = "2.40.16"
+val slf4jVersion          = "2.0.5"
+val typesafeVersion       = "1.4.2"
 
 libraryDependencies ++= Seq(
+  "software.amazon.awssdk"         % "secretsmanager"             % secretsManagerVersion,
   "org.apache.flink"               % "flink-clients"              % apacheFlinkVersion,
   "org.apache.flink"               % "flink-statebackend-rocksdb" % apacheFlinkVersion,
   "org.apache.flink"               % "flink-s3-fs-hadoop"         % apacheFlinkVersion,

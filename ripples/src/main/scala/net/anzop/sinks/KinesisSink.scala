@@ -20,6 +20,6 @@ object KinesisSink {
       .setStreamName(producerConfig.getProperty("streamName"))
       .setSerializationSchema(serializationSchema)
       .setPartitionKeyGenerator(new SerializablePartitionKeyGenerator[T]())
-      .setFailOnError(true)
+      .setFailOnError(false)
       .build()
 }

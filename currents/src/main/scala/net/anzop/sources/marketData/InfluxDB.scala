@@ -11,7 +11,7 @@ class InfluxDB(influxDetails: InfluxConfig) extends Serializable {
 
   private val client: InfluxDBClient = InfluxDBClientFactory.create(
     influxDetails.sourceUrl.toString,
-    influxDetails.readToken.toCharArray,
+    influxDetails.readWriteToken.toCharArray,
     influxDetails.org
   )
 

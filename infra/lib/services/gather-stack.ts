@@ -15,6 +15,7 @@ export type GatherStackProps = cdk.NestedStackProps & {
   ecsCluster: ecs.ICluster;
   executionRole: iam.IRole;
   gatherDynamoDbTable: string;
+  influxBucketMarketDataHistorical: string;
   influxOrg: string;
   influxUrl: string;
   port: number;
@@ -32,6 +33,7 @@ export class GatherStack extends cdk.NestedStack {
       ecsCluster,
       executionRole,
       gatherDynamoDbTable,
+      influxBucketMarketDataHistorical,
       influxOrg,
       influxUrl,
       port,
@@ -51,7 +53,8 @@ export class GatherStack extends cdk.NestedStack {
       { id: 'AlpacaSecret', name: 'prod/alpaca/api' },
       { id: 'DatajockeySecret', name: 'prod/datajockey/api' },
       { id: 'FredSecret', name: 'prod/fred/api' },
-      { id: 'GatherSharedSecret', name: 'prod/internal/shared-secret' }
+      { id: 'GatherSharedSecret', name: 'prod/internal/shared-secret' },
+      { id: 'InfluxHistoricalReadWrite', name: 'prod/influxdb/market-data-historical/read-write' }
     ].forEach(({ id, name }) => {
       const secret = secretsmanager.Secret.fromSecretNameV2(this, 'Gather' + id, name);
       secret.grantRead(taskRole);
@@ -88,9 +91,8 @@ export class GatherStack extends cdk.NestedStack {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       environment: {
         GATHER_DYNAMODB_TABLE_NAME: gatherDynamoDbTable,
+        INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: influxBucketMarketDataHistorical,
         INFLUXDB_ORG: influxOrg,
-        INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL}`,
-        INFLUXDB_TOKEN_HISTORICAL_WRITE: `${process.env.INFLUXDB_TOKEN_HISTORICAL_READ_WRITE}`,
         INFLUXDB_URL: influxUrl,
         SPRING_PROFILES_ACTIVE: springProfile
       },

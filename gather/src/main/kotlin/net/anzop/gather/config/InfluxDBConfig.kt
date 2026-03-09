@@ -14,11 +14,10 @@ import org.springframework.validation.annotation.Validated
 @Validated
 class InfluxDBConfig {
 
-    @NotBlank
-    lateinit var url: String
+    var token: String = ""
 
     @NotBlank
-    lateinit var token: String
+    lateinit var url: String
 
     @NotBlank
     lateinit var organization: String

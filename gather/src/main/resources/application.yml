@@ -24,7 +24,6 @@ datajockey:
 influxdb:
   bucket: ${INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL}
   organization: ${INFLUXDB_ORG}
-  token: ${INFLUXDB_TOKEN_HISTORICAL_WRITE}
   url: ${INFLUXDB_URL}
 
 spring:
@@ -35,6 +34,7 @@ spring:
       - aws-secretsmanager:prod/datajockey/api
       - aws-secretsmanager:prod/fred/api
       - aws-secretsmanager:prod/internal/shared-secret
+      - aws-secretsmanager:prod/influxdb/market-data-historical/read-write
   web:
     resources:
       add-mappings: false

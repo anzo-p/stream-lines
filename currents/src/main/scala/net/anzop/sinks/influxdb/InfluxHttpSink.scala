@@ -12,7 +12,7 @@ class InfluxHttpSink[T <: InfluxSerializable](val influxDetails: InfluxConfig) e
   private lazy val httpClient: CloseableHttpClient = HttpClients.createDefault()
 
   private val baseUri: String = s"${influxDetails.sinkUrl.toString}&bucket="
-  private val token: String   = influxDetails.writeToken
+  private val token: String   = influxDetails.readWriteToken
 
   override def send(serialized: String): Unit = {
     val httpPost = new HttpPost(baseUri + influxDetails.bucket)
