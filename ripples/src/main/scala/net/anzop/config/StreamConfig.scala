@@ -19,7 +19,7 @@ object StreamConfig {
     cfg.set(CheckpointingOptions.CHECKPOINTS_DIRECTORY, checkpointPath)
     cfg.setString("fs.s3a.directory.marker.retention", "keep")
     env.configure(cfg)
-    env.enableCheckpointing(60 * 1000L)
+    env.enableCheckpointing(2 * 60 * 1000L)
     env.setParallelism(1)
   }
 
