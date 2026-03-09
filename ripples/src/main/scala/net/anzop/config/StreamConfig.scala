@@ -17,6 +17,7 @@ object StreamConfig {
     cfg.set(StateBackendOptions.STATE_BACKEND, "rocksdb")
     cfg.set(CheckpointingOptions.CHECKPOINT_STORAGE, "filesystem")
     cfg.set(CheckpointingOptions.CHECKPOINTS_DIRECTORY, checkpointPath)
+    cfg.setString("fs.s3a.directory.marker.retention", "keep")
     env.configure(cfg)
     env.enableCheckpointing(60 * 1000L)
     env.setParallelism(1)

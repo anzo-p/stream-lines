@@ -20,6 +20,7 @@ object StreamConfig {
   def createExecutionEnvironment(): StreamExecutionEnvironment = {
     val config = new Configuration()
     config.set(TaskManagerOptions.MANAGED_MEMORY_SIZE, MemorySize.parse("256mb"))
+    config.setString("fs.s3a.directory.marker.retention", "keep")
     val env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(config)
     StreamConfig.configureExecutionEnvironment(env)
     env
