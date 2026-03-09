@@ -1,17 +1,27 @@
-import * as cloudmap from 'aws-cdk-lib/aws-servicediscovery';
 import * as cdk from 'aws-cdk-lib';
+import * as cloudmap from 'aws-cdk-lib/aws-servicediscovery';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type InfluxDbStackProps = cdk.NestedStackProps & {
+  keyPairName: string;
   ecsCluster: ecs.Cluster;
+  initBucket: string;
+  initMode: string;
+  initOrg: string;
+  initPassword: string;
+  initRetention: string;
+  initUsername: string;
+  port: number;
   securityGroup: ec2.SecurityGroup;
   ssmRole: iam.Role;
+  volumeId: string;
   vpc: ec2.Vpc;
 };
 
@@ -19,14 +29,31 @@ export class InfluxDbStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: InfluxDbStackProps) {
     super(scope, id, props);
 
-    const { ecsCluster, securityGroup, ssmRole, vpc } = props;
+    const {
+      keyPairName,
+      ecsCluster,
+      initBucket,
+      initMode,
+      initOrg,
+      initPassword,
+      initRetention,
+      initUsername,
+      port,
+      securityGroup,
+      ssmRole,
+      volumeId,
+      vpc
+    } = props;
 
-    const influxDbPort = Number(process.env.INFLUXDB_SERVER_PORT!);
+    const accountId = cdk.Stack.of(this).account;
+    const region = cdk.Stack.of(this).region;
+
+    const keyPair = ec2.KeyPair.fromKeyPairName(this, 'InfluxKeyPair', keyPairName);
 
     const influxDbInstance = new ec2.Instance(this, 'InfluxDbEc2Instance', {
       availabilityZone: 'eu-north-1a', // same as EBS volume
       instanceType: new ec2.InstanceType('t4g.medium'),
-      keyName: process.env.KEY_NAME_INFLUXDB,
+      keyPair,
       machineImage: ec2.MachineImage.latestAmazonLinux2023({
         cpuType: ec2.AmazonLinuxCpuType.ARM_64
       }),
@@ -45,7 +72,7 @@ export class InfluxDbStack extends cdk.NestedStack {
     new ec2.CfnVolumeAttachment(this, 'InfluxDataAttachment', {
       device: '/dev/xvdf',
       instanceId: influxDbInstance.instanceId,
-      volumeId: `${process.env.INFLUXDB_FILE_SYSTEM_ID}`
+      volumeId
     });
 
     const namespace = ecsCluster.defaultCloudMapNamespace;
@@ -62,7 +89,7 @@ export class InfluxDbStack extends cdk.NestedStack {
 
     new cloudmap.IpInstance(this, 'InfluxDbInstance', {
       ipv4: influxDbInstance.instancePrivateIp,
-      port: influxDbPort,
+      port,
       service: influxDiscoveryService
     });
 
@@ -124,6 +151,13 @@ export class InfluxDbStack extends cdk.NestedStack {
       'grep -q "$MOUNT_POINT" /etc/fstab || echo "UUID=${UUID} ${MOUNT_POINT} xfs defaults,nofail 0 2" >> /etc/fstab'
     );
 
+    const influxInitAdminToken = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      'InfluxToken',
+      'prod/influxdb/admin-token/init'
+    );
+    influxInitAdminToken.grantRead(influxDbInstance.role);
+
     influxDbInstance.addUserData(
       'set -xe',
 
@@ -136,23 +170,31 @@ export class InfluxDbStack extends cdk.NestedStack {
       '  sleep 5',
       'done',
 
-      `aws ecr get-login-password --region ${cdk.Stack.of(this).region} \
-        | docker login --username AWS --password-stdin ${process.env.AWS_ACCOUNT_ID}.dkr.ecr.${cdk.Stack.of(this).region}.amazonaws.com`,
+      `aws ecr get-login-password --region ${region} \
+        | docker login --username AWS --password-stdin ${accountId}.dkr.ecr.${region}.amazonaws.com`,
 
-      `docker pull ${process.env.AWS_ACCOUNT_ID}.dkr.ecr.${cdk.Stack.of(this).region}.amazonaws.com/stream-lines-influxdb:latest`,
+      `docker pull ${accountId}.dkr.ecr.${region}.amazonaws.com/stream-lines-influxdb:latest`,
       'set +xe',
 
+      `INIT_ADMIN_TOKEN="$(aws secretsmanager get-secret-value \
+        --secret-id ${influxInitAdminToken.secretArn} \
+        --query SecretString \
+        --output text \
+        --region ${region})"`,
+
       `docker run -d --restart=always --name influxdb \
-        -p ${influxDbPort}:8086 \
+        -p ${port}:8086 \
         -v /mnt/influxdb-data:/var/lib/influxdb2 \
-        -e DOCKER_INFLUXDB_INIT_MODE=${process.env.INFLUXDB_INIT_MODE} \
-        -e DOCKER_INFLUXDB_INIT_USERNAME=${process.env.INFLUXDB_INIT_USERNAME} \
-        -e DOCKER_INFLUXDB_INIT_PASSWORD=${process.env.INFLUXDB_INIT_PASSWORD} \
-        -e DOCKER_INFLUXDB_INIT_ORG=${process.env.INFLUXDB_INIT_ORG} \
-        -e DOCKER_INFLUXDB_INIT_BUCKET=${process.env.INFLUXDB_INIT_BUCKET} \
-        -e DOCKER_INFLUXDB_INIT_RETENTION=${process.env.INFLUXDB_INIT_RETENTION} \
-        -e DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${process.env.INFLUXDB_INIT_ADMIN_TOKEN} \
-        ${process.env.AWS_ACCOUNT_ID}.dkr.ecr.${cdk.Stack.of(this).region}.amazonaws.com/stream-lines-influxdb:latest`
+        -e DOCKER_INFLUXDB_INIT_MODE=${initMode} \
+        -e DOCKER_INFLUXDB_INIT_USERNAME=${initUsername} \
+        -e DOCKER_INFLUXDB_INIT_PASSWORD=${initPassword} \
+        -e DOCKER_INFLUXDB_INIT_ORG=${initOrg} \
+        -e DOCKER_INFLUXDB_INIT_BUCKET=${initBucket} \
+        -e DOCKER_INFLUXDB_INIT_RETENTION=${initRetention} \
+        -e DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=$INIT_ADMIN_TOKEN \
+        ${accountId}.dkr.ecr.${region}.amazonaws.com/stream-lines-influxdb:latest`,
+
+      `unset INIT_ADMIN_TOKEN`
     );
 
     // local watchdog
@@ -161,7 +203,7 @@ export class InfluxDbStack extends cdk.NestedStack {
       'NAME = "influxdb"',
       'while true; do',
       '  if !curl - sf "$URL" > /dev/null; then',
-      '    docker restart "$NAME" > /dev/null 2 >& 1',
+      '    docker restart "$NAME" > /dev/null 2>&1',
       '  fi',
       '  sleep 60',
       'done'

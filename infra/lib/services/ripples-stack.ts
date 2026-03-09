@@ -3,18 +3,24 @@ import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as kinesis from 'aws-cdk-lib/aws-kinesis';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type RipplesStackProps = cdk.StackProps & {
   desiredCount: number;
-  ecsCluster: ecs.Cluster;
-  executionRole: iam.Role;
-  readKinesisUpstreamPerms: iam.PolicyStatement;
+  ecsCluster: ecs.ICluster;
+  executionRole: iam.IRole;
+  flinkBucketName: string;
+  influxBucket: string;
+  influxOrg: string;
+  influxUrl: string;
+  kinesisMarketDataUpstream: kinesis.IStream;
+  kinesisResultsDownStream: kinesis.IStream;
   runAsOndemand?: boolean;
-  securityGroup: ec2.SecurityGroup;
-  writeKinesisDownStreamPerms: iam.PolicyStatement;
+  securityGroup: ec2.ISecurityGroup;
 };
 
 export class RipplesStack extends cdk.NestedStack {
@@ -25,26 +31,25 @@ export class RipplesStack extends cdk.NestedStack {
       desiredCount,
       ecsCluster,
       executionRole,
-      readKinesisUpstreamPerms,
+      flinkBucketName,
+      influxBucket,
+      influxOrg,
+      influxUrl,
+      kinesisMarketDataUpstream,
+      kinesisResultsDownStream,
       runAsOndemand = false,
-      securityGroup,
-      writeKinesisDownStreamPerms
+      securityGroup
     } = props;
 
-    const taskRole = new iam.Role(this, 'TaskRole', {
+    const taskRole = new iam.Role(this, 'RipplesTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
     });
 
-    taskRole.addToPolicy(readKinesisUpstreamPerms);
-    taskRole.addToPolicy(writeKinesisDownStreamPerms);
+    const ripplesBucket = s3.Bucket.fromBucketName(this, 'RipplesFlinkBucket', flinkBucketName);
+    ripplesBucket.grantReadWrite(taskRole);
 
-    taskRole.addToPolicy(
-      new iam.PolicyStatement({
-        actions: ['s3:DeleteObject', 's3:GetObject', 's3:ListBucket', 's3:PutObject'],
-        effect: iam.Effect.ALLOW,
-        resources: [`arn:aws:s3:::${process.env.S3_APP_BUCKET}`, `arn:aws:s3:::${process.env.S3_APP_BUCKET}/*`]
-      })
-    );
+    kinesisMarketDataUpstream.grantRead(taskRole);
+    kinesisResultsDownStream.grantReadWrite(taskRole);
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'RipplesTaskDefinition', {
       cpu: 512,
@@ -64,7 +69,6 @@ export class RipplesStack extends cdk.NestedStack {
       removalPolicy: RemovalPolicy.DESTROY,
       retention: logs.RetentionDays.ONE_WEEK
     });
-
     const logging = ecs.LogDrivers.awsLogs({
       logGroup: logGroup,
       streamPrefix: 'ripples'
@@ -73,13 +77,13 @@ export class RipplesStack extends cdk.NestedStack {
     taskDefinition.addContainer('RipplesContainer', {
       cpu: 512,
       environment: {
-        CHECKPOINT_PATH: `${process.env.FLINK_CHECKPOINTS_RIPPLES},`,
-        INFLUXDB_BUCKET_MARKET_DATA_REALTIME: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_REALTIME}`,
-        INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
+        CHECKPOINT_PATH: `s3://${flinkBucketName}/checkpoints`,
+        INFLUXDB_BUCKET_MARKET_DATA_REALTIME: influxBucket,
+        INFLUXDB_ORG: influxOrg,
         INFLUXDB_TOKEN_REALTIME_WRITE: `${process.env.INFLUXDB_TOKEN_REALTIME_WRITE}`,
-        INFLUXDB_URL: `${process.env.INFLUXDB_URL}`,
-        KINESIS_DOWNSTREAM_NAME: `${process.env.KINESIS_RESULTS_DOWNSTREAM}`,
-        KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`,
+        INFLUXDB_URL: influxUrl,
+        KINESIS_DOWNSTREAM_NAME: kinesisResultsDownStream.streamName,
+        KINESIS_UPSTREAM_NAME: kinesisMarketDataUpstream.streamName,
         JAVA_TOOL_OPTIONS: [
           '--add-opens=java.base/java.lang=ALL-UNNAMED',
           '--add-opens=java.base/java.math=ALL-UNNAMED',

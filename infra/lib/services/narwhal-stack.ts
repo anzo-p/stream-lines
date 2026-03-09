@@ -11,9 +11,18 @@ import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type NarwhalStackProps = cdk.NestedStackProps & {
-  ecsCluster: ecs.Cluster;
-  executionRole: iam.Role;
-  serviceSecurityGroup: ec2.SecurityGroup;
+  appBucket: s3.IBucket;
+  drawdownModelsLatestDirname: string;
+  drawdownModelsRunsDirname: string;
+  drawdownTrainingDataDirname: string;
+  ecsCluster: ecs.ICluster;
+  executionRole: iam.IRole;
+  influxBucketHistorical: string;
+  influxBucketRealtime: string;
+  influxBucketTrainingData: string;
+  influxOrg: string;
+  influxUrl: string;
+  serviceSecurityGroup: ec2.ISecurityGroup;
 };
 
 const narwhalJobSchedule: Record<string, events.Schedule> = {
@@ -38,13 +47,25 @@ export class NarwhalStack extends cdk.NestedStack {
     });
     taskRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'));
 
-    const { ecsCluster, executionRole, serviceSecurityGroup } = props;
+    const {
+      appBucket,
+      drawdownModelsLatestDirname,
+      drawdownModelsRunsDirname,
+      drawdownTrainingDataDirname,
+      ecsCluster,
+      executionRole,
+      influxBucketHistorical,
+      influxBucketRealtime,
+      influxBucketTrainingData,
+      influxOrg,
+      influxUrl,
+      serviceSecurityGroup
+    } = props;
 
-    const dataBucket = s3.Bucket.fromBucketName(this, 'DataBucket', 'anzop-stream-lines');
-    [`${process.env.NARWHAL_MODELS_LATEST_PATH}/*`, `${process.env.NARWHAL_MODELS_RUNS_PATH}/*`].forEach((path) => {
-      dataBucket.grantRead(taskRole, path);
+    [`${drawdownModelsLatestDirname}/*`, `${drawdownModelsRunsDirname}/*`].forEach((path) => {
+      appBucket.grantRead(taskRole, path);
     });
-    dataBucket.grantPut(taskRole, `${process.env.NARWHAL_TRAINING_DATA_PATH}/*`);
+    appBucket.grantPut(taskRole, `${drawdownTrainingDataDirname}/*`);
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'NarwhalTaskDefinition', {
       cpu: 256,
@@ -62,7 +83,6 @@ export class NarwhalStack extends cdk.NestedStack {
       removalPolicy: RemovalPolicy.DESTROY,
       retention: logs.RetentionDays.ONE_WEEK
     });
-
     const logging = ecs.LogDrivers.awsLogs({
       logGroup: logGroup,
       streamPrefix: 'narwhal'
@@ -74,18 +94,18 @@ export class NarwhalStack extends cdk.NestedStack {
       command: ['python', '-m', 'narwhal.scheduler'],
       cpu: 256,
       environment: {
-        INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL}`,
-        INFLUXDB_BUCKET_MARKET_DATA_REALTIME: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_REALTIME}`,
-        INFLUXDB_BUCKET_TRAINING_DATA: `${process.env.INFLUXDB_BUCKET_TRAINING_DATA}`,
-        INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
+        INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: influxBucketHistorical,
+        INFLUXDB_BUCKET_MARKET_DATA_REALTIME: influxBucketRealtime,
+        INFLUXDB_BUCKET_TRAINING_DATA: influxBucketTrainingData,
+        INFLUXDB_ORG: influxOrg,
         INFLUXDB_TOKEN_HISTORICAL_READ: `${process.env.INFLUXDB_TOKEN_HISTORICAL_READ}`,
         INFLUXDB_TOKEN_REALTIME_READ: `${process.env.INFLUXDB_TOKEN_REALTIME_READ}`,
         INFLUXDB_TOKEN_TRAINING_DATA_READ_WRITE: `${process.env.INFLUXDB_TOKEN_TRAINING_DATA_READ_WRITE}`,
-        INFLUXDB_URL: `${process.env.INFLUXDB_URL}`,
-        S3_DATA_BUCKET: `${process.env.S3_APP_BUCKET}`,
-        S3_MODELS_LATEST_KEY: `${process.env.NARWHAL_MODELS_LATEST_PATH}`,
-        S3_MODELS_RUNS_KEY: `${process.env.NARWHAL_MODELS_RUNS_PATH}`,
-        S3_TRAINING_KEY: `${process.env.NARWHAL_TRAINING_DATA_PATH}`
+        INFLUXDB_URL: influxUrl,
+        S3_DATA_BUCKET: appBucket.bucketName,
+        S3_MODELS_LATEST_KEY: `${drawdownModelsLatestDirname}`,
+        S3_MODELS_RUNS_KEY: `${drawdownModelsRunsDirname}`,
+        S3_TRAINING_KEY: `${drawdownTrainingDataDirname}`
       },
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       logging,

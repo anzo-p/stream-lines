@@ -12,20 +12,35 @@ import { Construct } from 'constructs';
 
 export type GatherStackProps = cdk.NestedStackProps & {
   desiredCount: number;
-  ecsCluster: ecs.Cluster;
-  executionRole: iam.Role;
+  ecsCluster: ecs.ICluster;
+  executionRole: iam.IRole;
+  gatherDynamoDbTable: string;
+  influxOrg: string;
+  influxUrl: string;
+  port: number;
   runAsOndemand: boolean;
-  securityGroup: ec2.SecurityGroup;
-  teardownTag?: string;
+  securityGroup: ec2.ISecurityGroup;
+  springProfile: string;
 };
 
 export class GatherStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: GatherStackProps) {
     super(scope, id, props);
 
-    const { desiredCount, ecsCluster, executionRole, runAsOndemand = false, securityGroup } = props;
+    const {
+      desiredCount,
+      ecsCluster,
+      executionRole,
+      gatherDynamoDbTable,
+      influxOrg,
+      influxUrl,
+      port,
+      runAsOndemand = false,
+      securityGroup,
+      springProfile
+    } = props;
 
-    securityGroup.addEgressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), 'Allow HTTPS only');
+    securityGroup.connections.allowToAnyIpv4(ec2.Port.tcp(443), 'Allow outgoing into HTTPS only');
 
     const taskRole = new iam.Role(this, 'GatherTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
@@ -42,7 +57,7 @@ export class GatherStack extends cdk.NestedStack {
       secret.grantRead(taskRole);
     });
 
-    const table = dynamodb.Table.fromTableName(this, 'gather-table', `${process.env.GATHER_DYNAMODB_TABLE_NAME}`);
+    const table = dynamodb.Table.fromTableName(this, 'GatherTable', gatherDynamoDbTable);
     table.grantReadWriteData(taskRole);
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'GatherTaskDefinition', {
@@ -57,34 +72,31 @@ export class GatherStack extends cdk.NestedStack {
       taskRole
     });
 
+    const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-gather');
+
     const logGroup = new logs.LogGroup(this, 'GatherLogGroup', {
       removalPolicy: RemovalPolicy.DESTROY,
       retention: logs.RetentionDays.ONE_WEEK
     });
-
     const logging = ecs.LogDrivers.awsLogs({
       logGroup: logGroup,
       streamPrefix: 'gather'
     });
 
-    const gatherPort = Number(process.env.GATHER_SERVER_PORT ?? '8080');
-
-    const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-gather');
-
     taskDefinition.addContainer('GatherContainer', {
       cpu: 512,
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       environment: {
-        GATHER_DYNAMODB_TABLE_NAME: `${process.env.GATHER_DYNAMODB_TABLE_NAME}`,
-        INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
+        GATHER_DYNAMODB_TABLE_NAME: gatherDynamoDbTable,
+        INFLUXDB_ORG: influxOrg,
         INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL}`,
         INFLUXDB_TOKEN_HISTORICAL_WRITE: `${process.env.INFLUXDB_TOKEN_HISTORICAL_READ_WRITE}`,
-        INFLUXDB_URL: `${process.env.INFLUXDB_URL}`,
-        SPRING_PROFILES_ACTIVE: `${process.env.GATHER_SPRING_PROFILES_ACTIVE}`
+        INFLUXDB_URL: influxUrl,
+        SPRING_PROFILES_ACTIVE: springProfile
       },
       logging,
       memoryLimitMiB: 1024,
-      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: gatherPort }]
+      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: port }]
     });
 
     new ecs.FargateService(this, 'GatherEcsService', {

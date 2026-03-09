@@ -18,6 +18,6 @@ const infra = new InfraCoreStack(app, 'StreamLines-Infra', { env });
 
 new ServicesStack(app, 'StreamLines-Services', {
   env,
-  vpc: infra.vpc,
-  ecsCluster: infra.ecsCluster
+  ecsCluster: infra.ecsCluster,
+  vpc: infra.vpc
 });

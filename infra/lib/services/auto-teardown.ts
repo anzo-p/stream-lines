@@ -16,10 +16,15 @@ export class AutoTeardownStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: AutoTeardownStackProps) {
     super(scope, id, props);
 
+    const logGroup = new logs.LogGroup(this, 'TeardownFnLogGroup', {
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      retention: logs.RetentionDays.ONE_WEEK
+    });
+
     const teardownFn = new NodejsFunction(this, 'TeardownFn', {
       entry: path.join(__dirname, '../../lambda/teardown.ts'),
       handler: 'handler',
-      logRetention: logs.RetentionDays.ONE_WEEK,
+      logGroup,
       runtime: lambda.Runtime.NODEJS_20_X,
       timeout: cdk.Duration.seconds(30)
     });

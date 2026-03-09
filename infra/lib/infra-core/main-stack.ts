@@ -1,17 +1,17 @@
 import * as cdk from 'aws-cdk-lib';
-import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
+import { BastionStack } from './bastion-stack';
 import { EcsClusterStack } from './ecs-cluster-stack';
 import { InfluxDbStack } from './influxdb-stack';
-import { BastionStack } from './bastion-stack';
 import { InterfaceEndpointsStack } from './endpoints-stack';
 import { VpcStack } from './vpc-stack';
 
 export class InfraCoreStack extends cdk.Stack {
-  readonly vpc: ec2.Vpc;
   readonly ecsCluster: ecs.Cluster;
+  readonly vpc: ec2.Vpc;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -53,15 +53,25 @@ export class InfraCoreStack extends cdk.Stack {
     );
 
     new BastionStack(this, 'BastionStack', {
+      keyPairName: process.env.KEY_NAME_BASTION!,
       securityGroup: bastionSg,
       ssmRole,
       vpc: this.vpc
     });
 
     new InfluxDbStack(this, 'InfluxDbStack', {
+      keyPairName: process.env.KEY_NAME_INFLUXDB!,
       ecsCluster: this.ecsCluster,
+      initBucket: process.env.INFLUXDB_INIT_BUCKET!,
+      initMode: process.env.INFLUXDB_INIT_MODE!,
+      initOrg: process.env.INFLUXDB_INIT_ORG!,
+      initPassword: process.env.INFLUXDB_INIT_PASSWORD!,
+      initRetention: process.env.INFLUXDB_INIT_RETENTION!,
+      initUsername: process.env.INFLUXDB_INIT_USERNAME!,
+      port: Number(process.env.INFLUXDB_SERVER_PORT!),
       securityGroup: influxSg,
       ssmRole,
+      volumeId: process.env.INFLUXDB_FILE_SYSTEM_ID!,
       vpc: this.vpc
     });
 

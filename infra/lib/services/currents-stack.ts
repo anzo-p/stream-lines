@@ -5,37 +5,50 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type CurrentsStackProps = cdk.NestedStackProps & {
+  currentsDynamoDbTable: string;
   desiredCount: number;
-  ecsCluster: ecs.Cluster;
-  executionRole: iam.Role;
-  securityGroup: ec2.SecurityGroup;
+  ecsCluster: ecs.ICluster;
+  executionRole: iam.IRole;
+  flinkBucketName: string;
+  influxBucket: string;
+  influxMeasurement: string;
+  influxOrg: string;
+  influxUrl: string;
   runAsOndemand: boolean;
+  securityGroup: ec2.ISecurityGroup;
 };
 
 export class CurrentsStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: CurrentsStackProps) {
     super(scope, id, props);
 
-    const { desiredCount, ecsCluster, executionRole, securityGroup, runAsOndemand = false } = props;
+    const {
+      currentsDynamoDbTable,
+      desiredCount,
+      ecsCluster,
+      executionRole,
+      flinkBucketName,
+      influxBucket,
+      influxMeasurement,
+      influxOrg,
+      influxUrl,
+      runAsOndemand = false,
+      securityGroup
+    } = props;
 
     const taskRole = new iam.Role(this, 'CurrentsTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
     });
 
-    taskRole.addToPolicy(
-      new iam.PolicyStatement({
-        actions: ['s3:DeleteObject', 's3:GetObject', 's3:ListBucket', 's3:PutObject'],
-        effect: iam.Effect.ALLOW,
-        resources: [`arn:aws:s3:::${process.env.S3_APP_BUCKET}`, `arn:aws:s3:::${process.env.S3_APP_BUCKET}/*`]
-      })
-    );
+    const currentsBucket = s3.Bucket.fromBucketName(this, 'CurrentsFlinkBucket', flinkBucketName);
+    currentsBucket.grantReadWrite(taskRole);
 
-    const table = dynamodb.Table.fromTableName(this, 'currents-table', `${process.env.CURRENTS_DYNAMODB_TABLE_NAME}`);
-
+    const table = dynamodb.Table.fromTableName(this, 'CurrentsTable', currentsDynamoDbTable);
     table.grantReadWriteData(taskRole);
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'CurrentsTaskDefinition', {
@@ -56,7 +69,6 @@ export class CurrentsStack extends cdk.NestedStack {
       removalPolicy: RemovalPolicy.DESTROY,
       retention: logs.RetentionDays.ONE_WEEK
     });
-
     const logging = ecs.LogDrivers.awsLogs({
       logGroup: logGroup,
       streamPrefix: 'currents'
@@ -66,14 +78,14 @@ export class CurrentsStack extends cdk.NestedStack {
       cpu: 512,
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       environment: {
-        CHECKPOINT_PATH: `${process.env.FLINK_CHECKPOINTS_CURRENTS},`,
-        CURRENTS_DYNAMODB_TABLE_NAME: `${process.env.CURRENTS_DYNAMODB_TABLE_NAME}`,
-        INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL}`,
+        CHECKPOINT_PATH: `s3://${flinkBucketName}/checkpoints`,
+        CURRENTS_DYNAMODB_TABLE_NAME: currentsDynamoDbTable,
+        INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: influxBucket,
         INFLUXDB_TOKEN_HISTORICAL_READ: `${process.env.INFLUXDB_TOKEN_HISTORICAL_READ}`,
         INFLUXDB_TOKEN_HISTORICAL_WRITE: `${process.env.INFLUXDB_TOKEN_HISTORICAL_WRITE}`,
-        INFLUXDB_CONSUME_MEASURE: `${process.env.CURRENTS_INFLUXDB_SOURCE_MEASURE}`,
-        INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
-        INFLUXDB_URL: `${process.env.INFLUXDB_URL}`,
+        INFLUXDB_CONSUME_MEASURE: influxMeasurement,
+        INFLUXDB_ORG: influxOrg,
+        INFLUXDB_URL: influxUrl,
         JAVA_TOOL_OPTIONS: [
           '--add-opens=java.base/java.lang=ALL-UNNAMED',
           '--add-opens=java.base/java.math=ALL-UNNAMED',
@@ -85,7 +97,7 @@ export class CurrentsStack extends cdk.NestedStack {
       memoryLimitMiB: 1024
     });
 
-    new ecs.FargateService(this, 'CCurrentsEcsService', {
+    new ecs.FargateService(this, 'CurrentsEcsService', {
       assignPublicIp: false,
       capacityProviderStrategies: runAsOndemand
         ? [{ capacityProvider: 'FARGATE', weight: 1 }]

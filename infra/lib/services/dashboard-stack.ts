@@ -10,8 +10,8 @@ import { Construct } from 'constructs';
 
 export type DashboardStackProps = cdk.NestedStackProps & {
   dashboardAlbListener: elbv2.ApplicationListener;
-  ecsCluster: ecs.Cluster;
-  ecsTaskExecRole: iam.Role;
+  ecsCluster: ecs.ICluster;
+  ecsTaskExecRole: iam.IRole;
 };
 
 export class DashboardStack extends cdk.NestedStack {

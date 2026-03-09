@@ -9,17 +9,16 @@ export class EcsTaskExecutionRole extends cdk.NestedStack {
     super(scope, id, props);
 
     const ecsTaskExecutionRole = new iam.Role(this, 'StreamLinesEcsTaskExecRole', {
-      assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
-      path: '/',
-      roleName: 'ECSTaskExecutionRole'
+      assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
     });
+
+    ecsTaskExecutionRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonECSTaskExecutionRolePolicy')
+    );
 
     ecsTaskExecutionRole.addToPolicy(
       new iam.PolicyStatement({
         actions: [
-          'logs:CreateLogGroup',
-          'logs:CreateLogStream',
-          'logs:PutLogEvents',
           'ssmmessages:CreateControlChannel',
           'ssmmessages:CreateDataChannel',
           'ssmmessages:OpenControlChannel',

@@ -3,6 +3,7 @@ import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as kinesis from 'aws-cdk-lib/aws-kinesis';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { RemovalPolicy } from 'aws-cdk-lib';
@@ -10,11 +11,15 @@ import { Construct } from 'constructs';
 
 export type IngestStackProps = cdk.NestedStackProps & {
   desiredCount: number;
-  ecsCluster: ecs.Cluster;
-  executionRole: iam.Role;
-  securityGroup: ec2.SecurityGroup;
+  ecsCluster: ecs.ICluster;
+  executionRole: iam.IRole;
+  kinesisMarketDataUpstream: kinesis.IStream;
+  maxTickerCount: string;
+  maxWebsocketReadsPerSec: string;
   runAsOndemand?: boolean;
-  writeKinesisUpstreamPerms: iam.PolicyStatement;
+  securityGroup: ec2.ISecurityGroup;
+  tickersOverride: string;
+  topTickersApi: string;
 };
 
 export class IngestStack extends cdk.NestedStack {
@@ -25,18 +30,20 @@ export class IngestStack extends cdk.NestedStack {
       desiredCount,
       ecsCluster,
       executionRole,
+      kinesisMarketDataUpstream,
+      maxTickerCount,
+      maxWebsocketReadsPerSec,
+      runAsOndemand = false,
       securityGroup,
-      writeKinesisUpstreamPerms,
-      runAsOndemand = false
+      tickersOverride,
+      topTickersApi
     } = props;
 
-    securityGroup.addEgressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), 'Allow HTTPS only');
+    securityGroup.connections.allowToAnyIpv4(ec2.Port.tcp(443), 'Allow outgoing into HTTPS only');
 
     const taskRole = new iam.Role(this, 'IngestTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
     });
-
-    taskRole.addToPolicy(writeKinesisUpstreamPerms);
 
     [
       { id: 'AlpacaSecret', name: 'prod/alpaca/api' },
@@ -45,6 +52,8 @@ export class IngestStack extends cdk.NestedStack {
       const secret = secretsmanager.Secret.fromSecretNameV2(this, 'Ingest' + id, name);
       secret.grantRead(taskRole);
     });
+
+    kinesisMarketDataUpstream.grantReadWrite(taskRole);
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'IngestTaskDefinition', {
       cpu: 256,
@@ -64,7 +73,6 @@ export class IngestStack extends cdk.NestedStack {
       removalPolicy: RemovalPolicy.DESTROY,
       retention: logs.RetentionDays.ONE_WEEK
     });
-
     const logging = ecs.LogDrivers.awsLogs({
       logGroup: logGroup,
       streamPrefix: 'ingest'
@@ -73,11 +81,11 @@ export class IngestStack extends cdk.NestedStack {
     taskDefinition.addContainer('IngestContainer', {
       cpu: 256,
       environment: {
-        KINESIS_UPSTREAM_NAME: `${process.env.KINESIS_MARKET_DATA_UPSTREAM}`,
-        MAX_WS_READS_PER_SEC: `${process.env.INGEST_MAX_WS_READS_PER_SEC}`,
-        MAX_TICKER_COUNT: `${process.env.INGEST_MAX_TICKER_COUNT}`,
-        TICKERS_OVERRIDE: `${process.env.INGEST_TICKERS_OVERRIDE}`,
-        TOP_TICKERS_API: `${process.env.INGEST_TOP_TICKERS_API}`
+        KINESIS_UPSTREAM_NAME: kinesisMarketDataUpstream.streamName,
+        MAX_TICKER_COUNT: maxTickerCount,
+        MAX_WS_READS_PER_SEC: maxWebsocketReadsPerSec,
+        TICKERS_OVERRIDE: tickersOverride,
+        TOP_TICKERS_API: topTickersApi
       },
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       logging,

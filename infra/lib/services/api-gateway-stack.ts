@@ -1,60 +1,65 @@
-import * as cdk from 'aws-cdk-lib';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as apigw2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as apigw2_integr from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import * as cdk from 'aws-cdk-lib';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
-import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import { Construct } from 'constructs';
+
+export type WebSocketApiGatewayStackProps = cdk.NestedStackProps & {
+  appBucket: s3.IBucket;
+  acmApigwCertId: string;
+  wsApiDomainName: string;
+  wsApiSubdomain: string;
+  wsConnsHandlerLambdaFullPath: string;
+  wsConnsTableName: string;
+};
 
 export class WebSocketApiGatewayStack extends cdk.NestedStack {
   readonly wsApiGatewayStageProdArn: string;
   readonly wsApiGatewayConnectionsUrl: string;
 
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: WebSocketApiGatewayStackProps) {
     super(scope, id, props);
+
+    const {
+      appBucket,
+      acmApigwCertId,
+      wsApiDomainName,
+      wsApiSubdomain,
+      wsConnsHandlerLambdaFullPath,
+      wsConnsTableName
+    } = props;
+
+    const accountId = cdk.Stack.of(this).account;
+    const region = cdk.Stack.of(this).region;
 
     const roleWebSocketHandlerLambda = new iam.Role(this, 'WebSocketHandlerLambdaRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
       managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')]
     });
 
-    roleWebSocketHandlerLambda.addToPolicy(
-      new iam.PolicyStatement({
-        actions: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents'],
-        effect: iam.Effect.ALLOW,
-        resources: ['arn:aws:logs:*:*:*']
-      })
-    );
+    const table = dynamodb.Table.fromTableName(this, 'WsConnectionsTable', wsConnsTableName);
+    table.grantWriteData(roleWebSocketHandlerLambda);
 
-    roleWebSocketHandlerLambda.addToPolicy(
-      new iam.PolicyStatement({
-        actions: ['dynamodb:PutItem', 'dynamodb:DeleteItem'],
-        effect: iam.Effect.ALLOW,
-        resources: [
-          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:table/${process.env.WS_CONNS_TABLE_NAME}`,
-          `arn:aws:dynamodb:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:table/${process.env.WS_CONNS_BY_SYMBOL_INDEX}/index`
-        ]
-      })
-    );
-
-    const bucketWebSocketHandlerLambda = s3.Bucket.fromBucketName(
-      this,
-      'LambdaSourceBucket',
-      `${process.env.S3_APP_BUCKET}`
-    );
+    const logGroup = new logs.LogGroup(this, 'WebSocketHandlerLogGroup', {
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      retention: logs.RetentionDays.ONE_WEEK
+    });
 
     const webSocketHandlerLambda = new lambda.Function(this, 'WebSocketHandlerLambda', {
-      code: lambda.Code.fromBucket(bucketWebSocketHandlerLambda, `${process.env.S3_KEY_WS_CONN_HANDLER}`),
+      code: lambda.Code.fromBucket(appBucket, wsConnsHandlerLambdaFullPath),
       environment: {
-        WS_CONNS_TABLE_NAME: `${process.env.WS_CONNS_TABLE_NAME}`
+        WS_CONNS_TABLE_NAME: wsConnsTableName
       },
       functionName: 'ApiGatewayWebSocketHandler',
       handler: 'index.handler',
-      logRetention: logs.RetentionDays.ONE_WEEK,
+      logGroup,
       role: roleWebSocketHandlerLambda,
       runtime: lambda.Runtime.NODEJS_20_X
     });
@@ -90,10 +95,7 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
       })
     );
 
-    this.wsApiGatewayConnectionsUrl =
-      `https://${webSocketApiGateway.apiId}.execute-api.` +
-      `${process.env.AWS_REGION}.amazonaws.com/` +
-      `${stageProd.stageName}`;
+    this.wsApiGatewayConnectionsUrl = `https://${webSocketApiGateway.apiId}.execute-api.${region}.amazonaws.com/${stageProd.stageName}`;
 
     /*
       Handler lambda must exist before api gateway to handle its routes
@@ -101,15 +103,15 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
       The event.requestContext, that the lambda will receive, cannot be used
       because it is now overridden with a custom domain over secured wss protocol.
     */
-    webSocketHandlerLambda.addEnvironment('API_GW_CONNECTIONS_URL', `${this.wsApiGatewayConnectionsUrl}`);
+    webSocketHandlerLambda.addEnvironment('API_GW_CONNECTIONS_URL', this.wsApiGatewayConnectionsUrl);
 
     const apigwCustomDomain = new apigw2.DomainName(this, 'CustomDomainName', {
       certificate: acm.Certificate.fromCertificateArn(
         this,
         'Certificate',
-        `arn:aws:acm:${process.env.AWS_REGION}:${process.env.AWS_ACCOUNT_ID}:certificate/${process.env.ACM_APIGW_CERT}`
+        `arn:aws:acm:${region}:${accountId}:certificate/${acmApigwCertId}`
       ),
-      domainName: `${process.env.WS_API_DOMAIN_NAME}`
+      domainName: wsApiDomainName
     });
 
     new apigw2.ApiMapping(this, 'ApiMapping', {
@@ -119,7 +121,7 @@ export class WebSocketApiGatewayStack extends cdk.NestedStack {
     });
 
     new route53.ARecord(this, 'WebSocketApiGatewayAliasRecord', {
-      recordName: `${process.env.WS_API_SUBDOMAIN}`,
+      recordName: wsApiSubdomain,
       target: route53.RecordTarget.fromAlias(
         new targets.ApiGatewayv2DomainProperties(
           apigwCustomDomain.regionalDomainName,

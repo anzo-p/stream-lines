@@ -4,22 +4,25 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 
 export type BastionStackProps = cdk.NestedStackProps & {
-  securityGroup: ec2.SecurityGroup;
+  keyPairName: string;
+  securityGroup: ec2.ISecurityGroup;
   ssmRole: iam.Role;
-  vpc: ec2.Vpc;
+  vpc: ec2.IVpc;
 };
 
 export class BastionStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: BastionStackProps) {
     super(scope, id, props);
 
-    const { vpc, securityGroup, ssmRole } = props;
+    const { keyPairName, securityGroup, ssmRole, vpc } = props;
 
-    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22), 'SSH access into Bastion');
+    securityGroup.connections.allowFromAnyIpv4(ec2.Port.tcp(22), 'SSH access into Bastion');
+
+    const keyPair = ec2.KeyPair.fromKeyPairName(this, 'BastionKeyPair', keyPairName);
 
     const bastionInstance = new ec2.Instance(this, 'BastionHost', {
       instanceType: new ec2.InstanceType('t4g.nano'),
-      keyName: process.env.KEY_NAME_BASTION,
+      keyPair,
       machineImage: ec2.MachineImage.latestAmazonLinux2023({
         cpuType: ec2.AmazonLinuxCpuType.ARM_64
       }),

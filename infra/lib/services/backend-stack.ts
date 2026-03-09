@@ -9,21 +9,25 @@ import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type BackendStackProps = cdk.NestedStackProps & {
-  backendAlbListener: elbv2.ApplicationListener;
-  ecsCluster: ecs.Cluster;
-  ecsTaskExecRole: iam.Role;
-  securityGroup: ec2.SecurityGroup;
+  address: string;
+  albListener: elbv2.ApplicationListener;
+  ecsCluster: ecs.ICluster;
+  executionRole: iam.IRole;
+  influxOrg: string;
+  influxUrl: string;
+  port: number;
+  securityGroup: ec2.ISecurityGroup;
 };
 
 export class BackendStack extends cdk.NestedStack {
-  constructor(scope: Construct, id: string, props?: BackendStackProps) {
+  constructor(scope: Construct, id: string, props: BackendStackProps) {
     super(scope, id, props);
 
-    const { backendAlbListener, ecsCluster, ecsTaskExecRole, securityGroup } = props!;
+    const { address, albListener, ecsCluster, executionRole, influxOrg, influxUrl, port, securityGroup } = props;
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'BackendTaskDefinition', {
       cpu: 256,
-      executionRole: ecsTaskExecRole,
+      executionRole,
       family: 'BackendTaskDefinition',
       memoryLimitMiB: 512,
       runtimePlatform: {
@@ -38,28 +42,25 @@ export class BackendStack extends cdk.NestedStack {
       removalPolicy: RemovalPolicy.DESTROY,
       retention: logs.RetentionDays.ONE_WEEK
     });
-
     const logging = ecs.LogDrivers.awsLogs({
       logGroup: logGroup,
       streamPrefix: 'backend'
     });
 
-    const containerPort = process.env.BACKEND_SERVER_PORT!;
-
     taskDefinition.addContainer('BackendContainer', {
       cpu: 256,
       environment: {
-        GRAPHQL_SERVER_ADDRESS: `${process.env.BACKEND_SERVER_ADDRESS}`,
-        GRAPHQL_SERVER_PORT: containerPort,
-        INFLUXDB_ORG: `${process.env.INFLUXDB_INIT_ORG}`,
+        GRAPHQL_SERVER_ADDRESS: address,
+        GRAPHQL_SERVER_PORT: port.toString(),
+        INFLUXDB_ORG: influxOrg,
         INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: `${process.env.INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL}`,
         INFLUXDB_TOKEN_HISTORICAL_READ: `${process.env.INFLUXDB_TOKEN_HISTORICAL_READ}`,
-        INFLUXDB_URL: `${process.env.INFLUXDB_URL}`
+        INFLUXDB_URL: influxUrl
       },
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       logging,
       memoryLimitMiB: 512,
-      portMappings: [{ containerPort: parseInt(containerPort), protocol: ecs.Protocol.TCP }]
+      portMappings: [{ containerPort: port, protocol: ecs.Protocol.TCP }]
     });
 
     const backendService = new ecs.FargateService(this, 'BackendEcsService', {
@@ -73,8 +74,8 @@ export class BackendStack extends cdk.NestedStack {
 
     backendService.registerLoadBalancerTargets({
       containerName: 'BackendContainer',
-      containerPort: parseInt(containerPort),
-      listener: ecs.ListenerConfig.applicationListener(backendAlbListener, {
+      containerPort: port,
+      listener: ecs.ListenerConfig.applicationListener(albListener, {
         healthCheck: {
           healthyHttpCodes: '200',
           healthyThresholdCount: 3,

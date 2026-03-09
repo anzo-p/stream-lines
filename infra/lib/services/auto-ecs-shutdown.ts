@@ -16,10 +16,15 @@ export class AutoShutdownEcsStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: AutoShutdownEcsStackProps) {
     super(scope, id, props);
 
+    const logGroup = new logs.LogGroup(this, 'ShutdownEcsFnLogGroup', {
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      retention: logs.RetentionDays.ONE_WEEK
+    });
+
     const shutdownEcsFn = new NodejsFunction(this, 'ShutdownEcsFn', {
       entry: path.join(__dirname, '../../lambda/shutdown.ts'),
       handler: 'handler',
-      logRetention: logs.RetentionDays.ONE_WEEK,
+      logGroup,
       memorySize: 256,
       runtime: lambda.Runtime.NODEJS_20_X,
       timeout: cdk.Duration.seconds(60)

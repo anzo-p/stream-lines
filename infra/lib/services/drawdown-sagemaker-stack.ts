@@ -9,22 +9,34 @@ import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import * as path from 'path';
 import { Construct } from 'constructs';
-import { IBucket } from 'aws-cdk-lib/aws-s3';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 
+export type DrawdownSagemakerStackProps = cdk.StackProps & {
+  appBucket: s3.IBucket;
+  modelsLatestDirname: string;
+  modelsRunsDirname: string;
+  trainingDirname: string;
+  xgboostImage: string;
+};
+
 type TrainPipelineArgs = {
-  name: string;
-  bucket: IBucket;
+  bucket: s3.IBucket;
   copyTargetDirname: string;
   modelOutputDirname: string;
-  sagemakerRole: iam.IRole;
+  name: string;
   trainingFileFullPath: string;
 };
 
-function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, eventRole: iam.Role) {
+function provisionTrainingPipeline(
+  scope: Construct,
+  args: TrainPipelineArgs,
+  eventRole: iam.IRole,
+  sagemakerRole: iam.IRole,
+  xgboostImage: string
+) {
   const trainJob = new tasks.SageMakerCreateTrainingJob(scope, `TrainXGB-${args.name}`, {
     algorithmSpecification: {
-      trainingImage: tasks.DockerImage.fromRegistry(process.env.SAGEMAKER_XGBOOST_IMAGE!),
+      trainingImage: tasks.DockerImage.fromRegistry(xgboostImage),
       trainingInputMode: tasks.InputMode.PIPE
     },
     hyperparameters: {
@@ -56,7 +68,7 @@ function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, event
       instanceType: new cdk.aws_ec2.InstanceType('m5.large'),
       volumeSize: cdk.Size.gibibytes(30)
     },
-    role: args.sagemakerRole,
+    role: sagemakerRole,
     stoppingCondition: {
       maxRuntime: cdk.Duration.minutes(15)
     },
@@ -70,18 +82,12 @@ function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, event
       trainJob.next(new sfn.Succeed(scope, `TrainingComplete-${args.name}`))
     )
   });
-
-  eventRole.addToPolicy(
-    new iam.PolicyStatement({
-      actions: ['states:StartExecution'],
-      resources: [stateMachine.stateMachineArn]
-    })
-  );
+  stateMachine.grantStartExecution(eventRole);
 
   new events.Rule(scope, `EventBridgeRule-${args.name}`, {
     eventPattern: {
       detail: {
-        bucket: { name: [process.env.S3_APP_BUCKET!] },
+        bucket: { name: [args.bucket.bucketName] },
         object: { key: [args.trainingFileFullPath] }
       },
       detailType: ['Object Created'],
@@ -90,7 +96,7 @@ function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, event
     targets: [
       new targets.SfnStateMachine(stateMachine, {
         input: events.RuleTargetInput.fromObject({
-          s3Bucket: process.env.S3_APP_BUCKET!,
+          s3Bucket: args.bucket.bucketName,
           s3Key: args.trainingFileFullPath
         }),
         role: eventRole
@@ -102,6 +108,11 @@ function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, event
 
   errorOnPathOverlap(args.modelOutputDirname, args.copyTargetDirname);
 
+  const logGroup = new logs.LogGroup(scope, `MlModelCopyFn-${args.name}LogGroup`, {
+    removalPolicy: cdk.RemovalPolicy.DESTROY,
+    retention: logs.RetentionDays.ONE_WEEK
+  });
+
   const mlModelCopyFn = new NodejsFunction(scope, `MlModelCopyFn-${args.name}`, {
     entry: path.join(__dirname, '../../lambda/ml-model-copy.ts'),
     environment: {
@@ -110,7 +121,7 @@ function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, event
       TARGET_PATH: args.copyTargetDirname
     },
     handler: 'handler',
-    logRetention: logs.RetentionDays.ONE_WEEK,
+    logGroup,
     runtime: lambda.Runtime.NODEJS_20_X,
     timeout: cdk.Duration.seconds(30)
   });
@@ -121,7 +132,7 @@ function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, event
   new events.Rule(scope, `OnModelArtifactCreated-${args.name}`, {
     eventPattern: {
       detail: {
-        bucket: { name: [process.env.S3_APP_BUCKET!] },
+        bucket: { name: [args.bucket.bucketName] },
         object: { key: [{ prefix: args.modelOutputDirname }] }
       },
       detailType: ['Object Created'],
@@ -132,37 +143,30 @@ function defineTrainingPipeline(scope: Construct, args: TrainPipelineArgs, event
 }
 
 export class DrawdownSagemakerStack extends cdk.NestedStack {
-  constructor(scope: Construct, id: string, props?: cdk.NestedStackProps) {
+  constructor(scope: Construct, id: string, props: DrawdownSagemakerStackProps) {
     super(scope, id, props);
 
-    // EventBridge requires: <bucket> -> props -> EventBridge -> Send notifs EventBridge -> On
-    const bucketName = process.env.S3_APP_BUCKET!;
-    const dataBucket = s3.Bucket.fromBucketName(this, 'AppBucket', bucketName);
+    const { appBucket, modelsLatestDirname, modelsRunsDirname, trainingDirname, xgboostImage } = props;
 
     const sagemakerRole = new iam.Role(this, 'SageMakerTrainingRole', {
       assumedBy: new iam.ServicePrincipal('sagemaker.amazonaws.com')
     });
-    sagemakerRole.addToPolicy(
-      new iam.PolicyStatement({
-        actions: ['s3:GetObject', 's3:ListBucket', 's3:PutObject'],
-        resources: [`arn:aws:s3:::${bucketName}`, `arn:aws:s3:::${bucketName}/*`]
-      })
-    );
+    appBucket.grantRead(sagemakerRole, `${trainingDirname}/*`);
+    appBucket.grantWrite(sagemakerRole, `${modelsRunsDirname}/*`);
 
     const eventRole = new iam.Role(this, 'EventBridgeStartSfnRole', {
       assumedBy: new iam.ServicePrincipal('events.amazonaws.com')
     });
 
     const trainPipelineArgs: TrainPipelineArgs[] = ['drawdown-two-weeks', 'drawdown-five-weeks'].map((name) => ({
-      bucket: dataBucket,
-      copyTargetDirname: `${process.env.NARWHAL_MODELS_LATEST_PATH!}/${name}/`,
-      modelOutputDirname: `${process.env.NARWHAL_MODELS_RUNS_PATH!}/${name}/`,
+      bucket: appBucket,
+      copyTargetDirname: `${modelsLatestDirname}/${name}/`,
+      modelOutputDirname: `${modelsRunsDirname}/${name}/`,
       name,
-      sagemakerRole,
-      trainingFileFullPath: `${process.env.NARWHAL_TRAINING_DATA_PATH!}/${name}/latest.csv.gz`
+      trainingFileFullPath: `${trainingDirname}/${name}/latest.csv.gz`
     }));
 
-    trainPipelineArgs.forEach((args) => defineTrainingPipeline(this, args, eventRole));
+    trainPipelineArgs.forEach((args) => provisionTrainingPipeline(this, args, eventRole, sagemakerRole, xgboostImage));
   }
 }
 
