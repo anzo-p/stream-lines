@@ -18,3 +18,8 @@ url = "2.5.0"
 warp = "0.3"
 serde = { version = "1.0.195", features = ["derive"] }
 serde_json = "1.0"
+
+# force the old time line that works with older Cargo/Rust
+time = "=0.3.36"
+time-core = "=0.1.2"
+time-macros = "=0.2.18"
