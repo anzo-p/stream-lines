@@ -7,7 +7,7 @@ import net.anzop.helpers.StreamHelpers.nyseOpen
 import net.anzop.processors.{QuotationDeltaProcessor, QuotationWindowProcessor, TradeDeltaProcessor, TradeWindowProcessor}
 import net.anzop.results.WindowedTrades._
 import net.anzop.results.{QuotationDeltas, TradeDeltas, WindowedQuotations, WindowedTrades}
-import net.anzop.sinks.{KinesisSink, ResultSink}
+import net.anzop.sinks.{InfluxSink, KinesisSink}
 import net.anzop.types._
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows
@@ -98,10 +98,10 @@ object MarketData {
       .keyBy[String]((x: WindowedTrades) => x.ticker)
       .process(new TradeDeltaProcessor())
 
-    allWindowedQuotations.addSink(new ResultSink[WindowedQuotations](influxDetails))
-    allWindowedTrades.addSink(new ResultSink[WindowedTrades](influxDetails))
-    quoteDifferences.addSink(new ResultSink[QuotationDeltas](influxDetails))
-    tradeDifferences.addSink(new ResultSink[TradeDeltas](influxDetails))
+    allWindowedQuotations.addSink(new InfluxSink[WindowedQuotations](influxDetails))
+    allWindowedTrades.addSink(new InfluxSink[WindowedTrades](influxDetails))
+    quoteDifferences.addSink(new InfluxSink[QuotationDeltas](influxDetails))
+    tradeDifferences.addSink(new InfluxSink[TradeDeltas](influxDetails))
     logger.info("Flink stream results InfluxDB sinks created and connected")
 
     allWindowedQuotations.sinkTo(KinesisSink.make[WindowedQuotations](kinesisProps))
