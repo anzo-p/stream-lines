@@ -74,7 +74,9 @@ class MarketDataRepository (
             measurement = measurement,
             ticker = ticker,
             start = since
-        ).min("_time")
+        )
+            .group()
+            .min("_time")
 
         return queryForTimestamp(q)
     }
@@ -83,14 +85,17 @@ class MarketDataRepository (
         measurement: Measurement,
         ticker: String,
         earlierThan: Instant? = null,
-    ): Instant? =
-        queryForTimestamp(
-            baseFlux(
-                measurement = measurement,
-                ticker = ticker,
-                stop = earlierThan
-            ).max("_time")
+    ): Instant? {
+        val q = baseFlux(
+            measurement = measurement,
+            ticker = ticker,
+            stop = earlierThan
         )
+            .group()
+            .max("_time")
+
+        return queryForTimestamp(q)
+    }
 
     fun <T> save(entities: List<T>) =
         influxDBClient.takeIf { entities.isNotEmpty() }

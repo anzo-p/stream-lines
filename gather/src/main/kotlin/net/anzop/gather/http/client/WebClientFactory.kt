@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.ExchangeStrategies
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.netty.http.client.HttpClient
+import reactor.netty.resources.ConnectionProvider
 
 @Component
 class WebClientFactory {
@@ -25,7 +26,7 @@ class WebClientFactory {
     private val json = Json { ignoreUnknownKeys = true }
 
     fun builder(): WebClient.Builder {
-        val httpClient = HttpClient.create()
+        val httpClient = HttpClient.create(ConnectionProvider.newConnection())
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout.toMillis().toInt())
             .responseTimeout(responseTimeout)
             .doOnConnected { conn ->

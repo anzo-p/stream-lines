@@ -48,7 +48,7 @@ class IndexMemberCreator(
 
     private fun validateIndexMember(ticker: String, date: LocalDate) =
         marketDataFacade
-            .getEarliestSourceBarDataEntry(ticker)
+            .getEarliestBarDataEntry(ticker)
             ?.toLocalDate()
             ?.let { firstEntry ->
                 require(firstEntry == date) {

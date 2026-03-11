@@ -72,7 +72,7 @@ class BarDataFetcher(
     private fun resolveStartDate(ticker: String): OffsetDateTime {
         val startDate = marketDataFacade
             // re-fetching latest bar reveals that the ticker in url param still valid
-            .getLatestSourceBarDataEntry(ticker)
+            .getLatestBarDataEntry(ticker)
             .also { logger.info("Last known marketTimestamp for $ticker is $it") }
             ?: alpacaProps
                 .earliestHistoricalDate

@@ -25,13 +25,13 @@ class MarketDataFacade (
     fun <T> saveAsync(entities: List<T>) =
         marketDataRepository.saveAsync(entities)
 
-    fun getEarliestSourceBarDataEntry(ticker: String): Instant? =
+    fun getEarliestBarDataEntry(ticker: String): Instant? =
         marketDataRepository.getFirstMeasurementTime(
             measurement = Measurement.SECURITIES_SEMI_HOURLY_BARS_RAW,
             ticker = ticker
         )
 
-    fun getLatestSourceBarDataEntry(ticker: String): Instant? =
+    fun getLatestBarDataEntry(ticker: String): Instant? =
         marketDataRepository.getLatestMeasurementTime(
             measurement = Measurement.SECURITIES_SEMI_HOURLY_BARS_RAW,
             ticker = ticker,

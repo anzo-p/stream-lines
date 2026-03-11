@@ -39,7 +39,10 @@ class VixFetcher(
                 .also { logger.info("No db entry for Vix, defaulting to: $it") }
 
     private fun process(start: LocalDate) =
-        fetch(start)?.let { handleResponse(it) }
+        fetch(start)?.let {
+            handleResponse(it)
+            logger.info("processed ${it.observations.size} Vix entries")
+        }
 
     private fun fetch(
         start: LocalDate,
@@ -49,7 +52,14 @@ class VixFetcher(
             apiKey = fredProps.authentication.apiKey,
             startDate = start
         )
-        return fetch { fredWebClient.getRequest<VixResponse>(uri) }
+
+        return runCatching {
+            fetch { fredWebClient.getRequest<VixResponse>(uri) }
+        }.onFailure { ex ->
+            logger.warn("Failed to fetch VIX data for uri: $uri: ${ex.message}")
+        }.getOrElse { _ ->
+            null
+        }
     }
 
     private fun handleResponse(response: VixResponse) =
