@@ -37,9 +37,18 @@ class BarDataFetcher(
 
         val earliestMarketTimestamp: OffsetDateTime = sourceDataConfig
             .params
-            .mapNotNull { params ->
+            .minOf { params ->
                 val startDateTime = resolveStartDate(params.marketData.ticker)
-                val earliestTsForTicker = processTicker(params, startDateTime)
+                val latestTsForTicker = processTicker(params, startDateTime)
+
+                latestTsForTicker
+                    ?.takeIf { it < OffsetDateTime.now().minusWeeks(1L) }
+                    ?.also {
+                        logger.warn(
+                            "Latest marketTimestamp for ${params.marketData.ticker}: $it " +
+                                    "is older than a week. Check if ticker was changed."
+                        )
+                    }
 
                 if (Duration.between(start, Instant.now()) > maxDuration) {
                     logger.warn(
@@ -48,10 +57,9 @@ class BarDataFetcher(
                     )
                     return false
                 } else {
-                    earliestTsForTicker
+                    startDateTime
                 }
             }
-            .min()
 
         logger.info("The earliest processed marketTimestamp was $earliestMarketTimestamp")
         earliestMarketTimestamp.let {
@@ -80,7 +88,7 @@ class BarDataFetcher(
         params: SourceDataParams,
         startDateTime: OffsetDateTime,
         pageToken: String = "",
-        accFirstEntry: OffsetDateTime? = null
+        accLatestEntry: OffsetDateTime? = null
     ): OffsetDateTime? {
         val uri = buildGetHistoricalBarsUri(
             baseUrl = URI.create(alpacaProps.dailyBarsUrl),
@@ -91,18 +99,18 @@ class BarDataFetcher(
             pageToken = pageToken
         )
         val response = fetch { alpacaWebClient.getRequest<BarsResponse>(uri) }
-        val firstEntry = handleResponse(params, response)
+        val lastEntry = handleResponse(params, response)
 
-        val newFirstEntry = if (accFirstEntry == null || (firstEntry != null && firstEntry < accFirstEntry)) {
-            firstEntry
+        val newLatestEntry = if (accLatestEntry == null || (lastEntry != null && lastEntry > accLatestEntry)) {
+            lastEntry
         } else {
-            accFirstEntry
+            accLatestEntry
         }
 
         return if (response?.nextPageToken?.isNotEmpty() == true) {
-            processTicker(params, startDateTime, response.nextPageToken!!, newFirstEntry)
+            processTicker(params, startDateTime, response.nextPageToken!!, newLatestEntry)
         } else {
-            newFirstEntry
+            newLatestEntry
         }
     }
 
@@ -138,7 +146,7 @@ class BarDataFetcher(
         marketDataFacade.save(bars)
 
         return bars
-            .minOf { it.marketTimestamp }
+            .maxOf { it.marketTimestamp }
             .toOffsetDateTime()
     }
 }

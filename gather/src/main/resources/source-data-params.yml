@@ -617,11 +617,6 @@ source-data:
         start-date: 2022-06-09
 
     - market-data:
-        ticker: MMC
-        company-name: "Marsh & McLennan Companies, Inc."
-        start-date: 1996-01-02
-
-    - market-data:
         ticker: MMM
         company-name: "3M Company"
         start-date: 1996-01-02
@@ -644,6 +639,11 @@ source-data:
     - market-data:
         ticker: MRK
         company-name: "Merck & Co., Inc."
+        start-date: 1996-01-02
+
+    - market-data:
+        ticker: MRSH
+        company-name: "Marsh & McLennan Companies, Inc."
         start-date: 1996-01-02
 
     - market-data:
