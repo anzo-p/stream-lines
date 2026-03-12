@@ -36,6 +36,7 @@ object KinesisSink {
       .setKinesisClientProperties(producerConfig)
       .setStreamName(producerConfig.getProperty("streamName"))
       .setSerializationSchema(loggingSchema)
+      //.setSerializationSchema(serializationSchema)
       .setPartitionKeyGenerator(new SerializablePartitionKeyGenerator[T]())
       .setFailOnError(false)
       .build()

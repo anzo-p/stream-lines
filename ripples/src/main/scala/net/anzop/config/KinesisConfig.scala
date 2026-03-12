@@ -15,6 +15,8 @@ object KinesisConfig {
     consumerConfig.setProperty("aws.region", sys.env.getOrThrow("AWS_REGION", "AWS_REGION is not set"))
     consumerConfig.setProperty(
       ConsumerConfigConstants.STREAM_INITIAL_POSITION,
+      // Redo all for now, as default retain of 1 day means max 8 hours of todays extended hours.
+      // Will become the same windows and thus records downstream, naturally mergeable to persistence.
       ConsumerConfigConstants.InitialPosition.TRIM_HORIZON.name()
     )
 
