@@ -15,7 +15,7 @@ object KinesisConfig {
     consumerConfig.setProperty("aws.region", sys.env.getOrThrow("AWS_REGION", "AWS_REGION is not set"))
     consumerConfig.setProperty(
       ConsumerConfigConstants.STREAM_INITIAL_POSITION,
-      ConsumerConfigConstants.InitialPosition.LATEST.name()
+      ConsumerConfigConstants.InitialPosition.TRIM_HORIZON.name()
     )
 
     new FlinkKinesisConsumer[MarketDataMessage](

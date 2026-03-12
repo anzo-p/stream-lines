@@ -13,14 +13,14 @@ lazy val root = (project in file("."))
 
 val apacheFlinkVersion    = "1.17.2"
 val awsSdkVersion         = "1.12.429"
-val awsKinesisVersion     = "4.0.0-1.16"
+val awsKinesisVersion     = "4.2.0-1.17"
 val logbackVersion        = "1.4.12"
 val secretsManagerVersion = "2.40.16"
 val slf4jVersion          = "2.0.5"
 val typesafeVersion       = "1.4.2"
 
 libraryDependencies ++= Seq(
-  "com.amazonaws"          % "aws-java-sdk-kinesis"                % awsSdkVersion,
+  "software.amazon.awssdk" % "kinesis"                             % "2.39.6",
   "software.amazon.awssdk" % "secretsmanager"                      % secretsManagerVersion,
   "org.apache.flink"       % "flink-clients"                       % apacheFlinkVersion,
   "org.apache.flink"       % "flink-connector-base"                % apacheFlinkVersion,
