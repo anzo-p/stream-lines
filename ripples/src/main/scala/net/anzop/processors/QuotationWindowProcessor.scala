@@ -1,17 +1,18 @@
 package net.anzop.processors
 
-import net.anzop.Ripples.logger
 import net.anzop.helpers.MathHelper
 import net.anzop.results.WindowedQuotations
 import net.anzop.types.{Quotation, TradeUnit}
 import org.apache.flink.streaming.api.scala.function.WindowFunction
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
 class QuotationWindowProcessor[IN <: Quotation] extends WindowFunction[IN, WindowedQuotations, String, TimeWindow] {
+  val logger: Logger = LoggerFactory.getLogger(getClass)
 
   private def filterMad(xs: Seq[TradeUnit], z: BigDecimal = BigDecimal(4)): Seq[TradeUnit] = {
     require(xs.nonEmpty, "filterMad of empty sequence")

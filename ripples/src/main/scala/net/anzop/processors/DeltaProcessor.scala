@@ -1,6 +1,5 @@
 package net.anzop.processors
 
-import net.anzop.Ripples.logger
 import net.anzop.results.{BaseDelta, BaseWindow}
 import org.apache.flink.api.common.state.{StateTtlConfig, ValueState, ValueStateDescriptor}
 import org.apache.flink.api.common.time.Time
@@ -8,8 +7,10 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction
 import org.apache.flink.util.Collector
+import org.slf4j.{Logger, LoggerFactory}
 
 trait DeltaProcessor[IN <: BaseWindow, OUT <: BaseDelta] extends KeyedProcessFunction[String, IN, OUT] {
+  val logger: Logger = LoggerFactory.getLogger(getClass)
 
   implicit val typeInfoT: TypeInformation[IN]
 

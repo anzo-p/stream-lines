@@ -1,6 +1,6 @@
 package net.anzop.sinks
 
-import net.anzop.config.InfluxDetails
+import net.anzop.config.InfluxDbConfig
 import net.anzop.serdes.DataSerializer
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunction}
@@ -22,7 +22,7 @@ trait BaseInfluxSink[T] extends RichSinkFunction[T] {
 
   lazy val httpClient: CloseableHttpClient = HttpClients.createDefault()
 
-  def influxDetails: InfluxDetails
+  def influxDetails: InfluxDbConfig
   val baseUri: String = s"${influxDetails.uri.toString}&bucket="
   val token: String   = influxDetails.token
 
@@ -34,7 +34,7 @@ trait BaseInfluxSink[T] extends RichSinkFunction[T] {
   }
 }
 
-class InfluxSink[T](val influxDetails: InfluxDetails)(implicit val influxSerializer: DataSerializer[T]) extends BaseInfluxSink[T] {
+class InfluxSink[T](val influxDetails: InfluxDbConfig)(implicit val influxSerializer: DataSerializer[T]) extends BaseInfluxSink[T] {
   @transient private var scheduler: ScheduledExecutorService                     = Executors.newSingleThreadScheduledExecutor()
   @transient private var measurementCounts: ConcurrentHashMap[String, LongAdder] = new ConcurrentHashMap[String, LongAdder]()
   @transient @volatile private var scheduledFlush: ScheduledFuture[_]            = _

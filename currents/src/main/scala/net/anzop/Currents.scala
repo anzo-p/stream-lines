@@ -52,6 +52,6 @@ object Currents {
 
     drawDownStream.addSink(new InfluxHttpSink[Drawdown](influxDetails))
 
-    env.execute("InfluxDB Source Example")
+    env.execute("Currents flink app")
   }
 }

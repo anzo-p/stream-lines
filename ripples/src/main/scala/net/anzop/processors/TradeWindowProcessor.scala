@@ -1,16 +1,17 @@
 package net.anzop.processors
 
-import net.anzop.Ripples.logger
 import net.anzop.results.WindowedTrades
 import net.anzop.types.Trade
 import org.apache.flink.streaming.api.scala.function.WindowFunction
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
 class TradeWindowProcessor[IN <: Trade] extends WindowFunction[IN, WindowedTrades, String, TimeWindow] {
+  val logger: Logger = LoggerFactory.getLogger(getClass)
 
   override def apply(
       key: String,

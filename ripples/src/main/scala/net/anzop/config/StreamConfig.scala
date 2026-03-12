@@ -1,13 +1,8 @@
 package net.anzop.config
 
 import net.anzop.helpers.MapExtensions.EnvOps
-import net.anzop.types.{MarketDataDeserializer, MarketDataMessage}
 import org.apache.flink.configuration._
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer
-import org.apache.flink.streaming.connectors.kinesis.config.ConsumerConfigConstants
-
-import java.util.Properties
 
 object StreamConfig {
   private def configureExecutionEnvironment(env: StreamExecutionEnvironment): Unit = {
@@ -29,20 +24,5 @@ object StreamConfig {
     val env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(config)
     StreamConfig.configureExecutionEnvironment(env)
     env
-  }
-
-  def buildConsumer(): FlinkKinesisConsumer[MarketDataMessage] = {
-    val consumerConfig = new Properties()
-    consumerConfig.setProperty("aws.region", sys.env.getOrThrow("AWS_REGION", "AWS_REGION is not set"))
-    consumerConfig.setProperty(
-      ConsumerConfigConstants.STREAM_INITIAL_POSITION,
-      ConsumerConfigConstants.InitialPosition.TRIM_HORIZON.name()
-    )
-
-    new FlinkKinesisConsumer[MarketDataMessage](
-      sys.env.getOrThrow("KINESIS_UPSTREAM_NAME", "KINESIS_UPSTREAM_NAME is not set"),
-      new MarketDataDeserializer(),
-      consumerConfig
-    )
   }
 }
