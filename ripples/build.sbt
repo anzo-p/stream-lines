@@ -20,21 +20,24 @@ val slf4jVersion          = "2.0.5"
 val typesafeVersion       = "1.4.2"
 
 libraryDependencies ++= Seq(
-  "software.amazon.awssdk" % "kinesis"                             % "2.39.6",
-  "software.amazon.awssdk" % "secretsmanager"                      % secretsManagerVersion,
-  "org.apache.flink"       % "flink-clients"                       % apacheFlinkVersion,
-  "org.apache.flink"       % "flink-connector-base"                % apacheFlinkVersion,
-  "org.apache.flink"       % "flink-connector-kinesis"             % awsKinesisVersion,
-  "org.apache.flink"       % "flink-connector-aws-kinesis-streams" % awsKinesisVersion,
-  "org.apache.flink"       % "flink-statebackend-rocksdb"          % apacheFlinkVersion,
-  "org.apache.flink"       % "flink-s3-fs-hadoop"                  % apacheFlinkVersion,
-  "org.apache.flink"       %% "flink-streaming-scala"              % apacheFlinkVersion,
-  "org.apache.flink"       %% "flink-scala"                        % apacheFlinkVersion % Provided,
-  "org.apache.flink"       % "flink-streaming-java"                % apacheFlinkVersion % Provided,
-  "org.slf4j"              % "slf4j-api"                           % slf4jVersion,
-  "ch.qos.logback"         % "logback-classic"                     % logbackVersion,
-  "com.typesafe"           % "config"                              % typesafeVersion,
-  "com.thesamet.scalapb"   %% "scalapb-runtime"                    % scalapb.compiler.Version.scalapbVersion % "protobuf"
+  "software.amazon.awssdk"         % "kinesis"                             % "2.39.6",
+  "software.amazon.awssdk"         % "secretsmanager"                      % secretsManagerVersion,
+  "org.apache.flink"               % "flink-clients"                       % apacheFlinkVersion,
+  "org.apache.flink"               % "flink-connector-base"                % apacheFlinkVersion,
+  "org.apache.flink"               % "flink-connector-kinesis"             % awsKinesisVersion,
+  "org.apache.flink"               % "flink-connector-aws-kinesis-streams" % awsKinesisVersion,
+  "org.apache.flink"               % "flink-statebackend-rocksdb"          % apacheFlinkVersion,
+  "org.apache.flink"               % "flink-s3-fs-hadoop"                  % apacheFlinkVersion,
+  "org.apache.flink"               %% "flink-streaming-scala"              % apacheFlinkVersion,
+  "org.apache.flink"               %% "flink-scala"                        % apacheFlinkVersion % Provided,
+  "org.apache.flink"               % "flink-streaming-java"                % apacheFlinkVersion % Provided,
+  "com.fasterxml.jackson.core"     % "jackson-databind"                    % "2.15.2",
+  "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310"             % "2.15.2",
+  "com.fasterxml.jackson.module"   %% "jackson-module-scala"               % "2.15.2",
+  "org.slf4j"                      % "slf4j-api"                           % slf4jVersion,
+  "ch.qos.logback"                 % "logback-classic"                     % logbackVersion,
+  "com.typesafe"                   % "config"                              % typesafeVersion,
+  "com.thesamet.scalapb"           %% "scalapb-runtime"                    % scalapb.compiler.Version.scalapbVersion % "protobuf"
 )
 
 libraryDependencies ++= Seq(

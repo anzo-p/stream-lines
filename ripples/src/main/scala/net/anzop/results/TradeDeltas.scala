@@ -1,8 +1,11 @@
 package net.anzop.results
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import net.anzop.processors.{InfluxMeasurement, TradesDeltaMeasurement}
-import net.anzop.serdes.{DataSerializer, LocalJsonSerializer}
+import net.anzop.serdes.DataSerializer
 import org.apache.flink.api.common.serialization.SerializationSchema
 
 import java.nio.charset.StandardCharsets
@@ -47,24 +50,15 @@ object TradeDeltas {
     }
   }
 
-  private class JsonSerializerSchema extends SerializationSchema[TradeDeltas] with Serializable with LocalJsonSerializer {
-    override def serialize(data: TradeDeltas): Array[Byte] = {
-      val json =
-        s"""{
-           |"measure_id":"${data.measureId}",
-           |"measurement":"${measurement.value}",
-           |"ticker":"${data.ticker}",
-           |"timestamp":"${data.timestamp}",
-           |"record_count_delta":${data.recordCountDelta},
-           |"min_price_delta":${data.minPriceDelta},
-           |"max_price_delta":${data.maxPriceDelta},
-           |"sum_quantity_delta":${data.sumQuantityDelta},
-           |"sum_notional_delta":${data.sumNotionalDelta},
-           |"volume_weighted_avg_price_delta":${data.volumeWeightedAvgPriceDelta},
-           |"tags": ${tagsJson(data.tags)}
-           |}""".stripMargin
+  private class JsonSerializerSchema extends SerializationSchema[TradeDeltas] with Serializable {
 
-      json.getBytes(StandardCharsets.UTF_8)
-    }
+    @transient private lazy val mapper =
+      new ObjectMapper()
+        .registerModule(DefaultScalaModule)
+        .registerModule(new JavaTimeModule())
+        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+
+    override def serialize(data: TradeDeltas): Array[Byte] =
+      mapper.writeValueAsString(data).getBytes(StandardCharsets.UTF_8)
   }
 }

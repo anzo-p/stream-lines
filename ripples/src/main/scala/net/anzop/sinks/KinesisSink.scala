@@ -2,7 +2,7 @@ package net.anzop.sinks
 
 import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.connector.kinesis.sink.{KinesisStreamsSink, PartitionKeyGenerator}
-import org.slf4j.{Logger, LoggerFactory}
+import org.slf4j.LoggerFactory
 
 import java.util.Properties
 
@@ -25,7 +25,6 @@ class SerializablePartitionKeyGenerator[T <: Serializable] extends PartitionKeyG
 }
 
 object KinesisSink {
-  val logger: Logger = LoggerFactory.getLogger(getClass)
 
   def make[T <: Serializable](producerConfig: Properties)(implicit serializationSchema: SerializationSchema[T]): KinesisStreamsSink[T] = {
 

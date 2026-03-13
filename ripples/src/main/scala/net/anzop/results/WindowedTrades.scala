@@ -1,8 +1,11 @@
 package net.anzop.results
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import net.anzop.processors.{InfluxMeasurement, WindowedTradesMeasurement}
-import net.anzop.serdes.{DataSerializer, LocalJsonSerializer}
+import net.anzop.serdes.DataSerializer
 import org.apache.flink.api.common.serialization.SerializationSchema
 
 import java.nio.charset.StandardCharsets
@@ -54,27 +57,15 @@ object WindowedTrades {
     }
   }
 
-  private class JsonSerializerSchema extends SerializationSchema[WindowedTrades] with Serializable with LocalJsonSerializer {
-    override def serialize(data: WindowedTrades): Array[Byte] = {
-      val json =
-        s"""{
-           |"measure_id": ${jsString(data.measureId.toString)},
-           |"measurement": ${jsString(measurement.value)},
-           |"ticker": ${jsString(data.ticker)},
-           |"window_start_time": ${jsString(data.windowStartTime.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME))},
-           |"window_end_time": ${jsString(data.timestamp.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME))},
-           |"record_count": ${data.recordCount},
-           |"price_at_window_start": ${data.priceAtWindowStart},
-           |"min_price": ${data.minPrice},
-           |"max_price": ${data.maxPrice},
-           |"price_at_window_end": ${data.priceAtWindowEnd},
-           |"sum_quantity": ${data.sumQuantity},
-           |"sum_notional": ${data.sumNotional},
-           |"volume_weighted_avg_price": ${data.volumeWeightedAvgPrice},
-           |"tags": ${tagsJson(data.tags)}
-           |}""".stripMargin
+  private class JsonSerializerSchema extends SerializationSchema[WindowedTrades] with Serializable {
 
-      json.getBytes(StandardCharsets.UTF_8)
-    }
+    @transient private lazy val mapper =
+      new ObjectMapper()
+        .registerModule(DefaultScalaModule)
+        .registerModule(new JavaTimeModule())
+        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+
+    override def serialize(data: WindowedTrades): Array[Byte] =
+      mapper.writeValueAsString(data).getBytes(StandardCharsets.UTF_8)
   }
 }
