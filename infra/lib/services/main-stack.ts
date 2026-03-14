@@ -110,7 +110,6 @@ export class ServicesStack extends cdk.Stack {
       });
 
       new CurrentsStack(this, 'CurrentsStack', {
-        currentsDynamoDbTable: process.env.CURRENTS_DYNAMODB_TABLE_NAME!,
         desiredCount: 1,
         ecsCluster,
         executionRole,

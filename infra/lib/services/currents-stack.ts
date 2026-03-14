@@ -1,5 +1,4 @@
 import * as cdk from 'aws-cdk-lib';
-import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
@@ -11,7 +10,6 @@ import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type CurrentsStackProps = cdk.NestedStackProps & {
-  currentsDynamoDbTable: string;
   desiredCount: number;
   ecsCluster: ecs.ICluster;
   executionRole: iam.IRole;
@@ -29,7 +27,6 @@ export class CurrentsStack extends cdk.NestedStack {
     super(scope, id, props);
 
     const {
-      currentsDynamoDbTable,
       desiredCount,
       ecsCluster,
       executionRole,
@@ -55,9 +52,6 @@ export class CurrentsStack extends cdk.NestedStack {
 
     const currentsBucket = s3.Bucket.fromBucketName(this, 'CurrentsFlinkBucket', flinkBucketName);
     currentsBucket.grantReadWrite(taskRole);
-
-    const table = dynamodb.Table.fromTableName(this, 'CurrentsTable', currentsDynamoDbTable);
-    table.grantReadWriteData(taskRole);
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'CurrentsTaskDefinition', {
       cpu: 512,
@@ -87,7 +81,6 @@ export class CurrentsStack extends cdk.NestedStack {
       image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       environment: {
         CHECKPOINT_PATH: `s3://${flinkBucketName}/checkpoints`,
-        CURRENTS_DYNAMODB_TABLE_NAME: currentsDynamoDbTable,
         INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: influxBucketMarketDataHistorical,
         INFLUXDB_CONSUME_MEASURE: influxMeasurement,
         INFLUXDB_ORG: influxOrg,

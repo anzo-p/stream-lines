@@ -3,8 +3,7 @@ package net.anzop.processors.Drawdown
 import net.anzop.helpers.DateAndTimeHelpers.isBeforeToday
 import net.anzop.models.MarketData
 import net.anzop.processors.AutoResettingProcessor
-import net.anzop.processors.Drawdown.DynamoDbMapper._
-import net.anzop.repository.dynamodb.DynamoDb
+import net.anzop.processors.Drawdown.models.{Drawdown, DrawdownState}
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction
@@ -12,13 +11,6 @@ import org.apache.flink.util.Collector
 import org.slf4j.Logger
 
 import scala.util.chaining._
-
-case class DrawdownState(
-    timestamp: Long,
-    drawdownLow: Double,
-    drawdownAvg: Double,
-    drawdownHigh: Double
-  )
 
 class DrawdownProcessor(config: DrawdownConfig)
     extends KeyedProcessFunction[String, MarketData, Drawdown]
@@ -34,16 +26,7 @@ class DrawdownProcessor(config: DrawdownConfig)
   private def resolveState(): DrawdownState =
     Option(maxValuesState.value()) match {
       case Some(state) => state
-      case None =>
-        DynamoDb.getSingle match {
-          // TODO check if rocksdb already maintains this and the whole manual DynamoDB persistence is redundant
-          case Some(state) =>
-            logger.info(s"Drawdown - Restoring state from DynamoDB: $state")
-            state
-          case _ =>
-            logger.info("Drawdown - No state found, even in DynamoDB")
-            initState
-        }
+      case None        => initState
     }
 
   override val earliestExpectedElemTimestamp: Long = config.earliestHistoricalDate.toEpochMilli
@@ -115,9 +98,6 @@ class DrawdownProcessor(config: DrawdownConfig)
     ): Unit =
     maxValuesState.value() match {
       case null =>
-      case state =>
-        logger.info(s"Drawdown - Timer to save state: $state to DynamoDB fired at $timestamp")
-        DynamoDb.save(state)
-        timerState.clear()
+      case _    => timerState.clear()
     }
 }

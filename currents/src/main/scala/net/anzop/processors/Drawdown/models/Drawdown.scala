@@ -1,4 +1,4 @@
-package net.anzop.processors.Drawdown
+package net.anzop.processors.Drawdown.models
 
 import net.anzop.helpers.DateAndTimeHelpers.epochToStringDate
 import net.anzop.sinks.influxdb.InfluxSerializable
