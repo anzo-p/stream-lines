@@ -10,13 +10,17 @@ On stack destroy some resources might fail to teardown completely. _AWS recommen
 
 The app needs the following resource that must live and persist outside the apps Vpc and scope.
 
-### 2.1. Add an S3 bucket
+### 2.1. Add 3 S3 buckets
 
-With following structure
+With following structures
 ```
-flink/
-lambdas/
+<app bucket>lambdas/
+<app bucket>ml/
+
+<bucket for currents>/checkpoints/
+<bucket for ripples>/checkpoints/
 ```
+The servises currents and ripples use flink-s3-fs-hadoop for state management and these will do better with dedicated buckets.
 
 ### 2.2. Required ECR repositories
 
@@ -45,12 +49,6 @@ ecr.Repository.fromRepositoryName(this, 'EcrRepository', '<repo-name>')
     <td>StreamLinesWebsocketGetConnectionsBySymbolIndex</td>
     <td>symbol: S</td>
     <td>-</td>
-  </tr>
-  <tr>
-    <td>Table</td>
-    <td>StreamLinesCurrentsTable</td>
-    <td>pk: S</td>
-    <td>sk: S</td>
   </tr>
   <tr>
     <td>Table</td>
