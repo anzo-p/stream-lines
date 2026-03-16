@@ -2,12 +2,12 @@ import * as cdk from 'aws-cdk-lib';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import * as events from 'aws-cdk-lib/aws-events';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as scheduler from 'aws-cdk-lib/aws-scheduler';
+import * as schedulerTargets from 'aws-cdk-lib/aws-scheduler-targets';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as targets from 'aws-cdk-lib/aws-events-targets';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
@@ -26,16 +26,18 @@ export type NarwhalStackProps = cdk.NestedStackProps & {
   serviceSecurityGroup: ec2.ISecurityGroup;
 };
 
-const narwhalJobSchedule: Record<string, events.Schedule> = {
-  weekdaily_training_job: events.Schedule.cron({
+const narwhalJobSchedule: Record<string, scheduler.ScheduleExpression> = {
+  weekdaily_training_job: scheduler.ScheduleExpression.cron({
     weekDay: 'MON-FRI',
-    hour: '12',
-    minute: '30'
+    hour: '10',
+    minute: '30',
+    timeZone: cdk.TimeZone.AMERICA_NEW_YORK
   }),
-  weekdaily_intraday_prediction_job: events.Schedule.cron({
+  weekdaily_intraday_prediction_job: scheduler.ScheduleExpression.cron({
     weekDay: 'MON-FRI',
-    hour: '12-20/4',
-    minute: '0'
+    hour: '10-16/3',
+    minute: '0',
+    timeZone: cdk.TimeZone.AMERICA_NEW_YORK
   })
 };
 
@@ -121,25 +123,22 @@ export class NarwhalStack extends cdk.NestedStack {
     });
 
     for (const [jobName, schedule] of Object.entries(narwhalJobSchedule)) {
-      const rule = new events.Rule(this, `NarwhalRule-${jobName}`, {
-        ruleName: `narwhal-scheduled-job-${jobName}`,
+      new scheduler.Schedule(this, `NarwhalSchedule-${jobName}`, {
+        target: new schedulerTargets.EcsRunFargateTask(ecsCluster, {
+          input: scheduler.ScheduleTargetInput.fromObject({
+            containerOverrides: [
+              {
+                environment: [{ name: 'SCHEDULED_JOB_NAME', value: jobName }],
+                name: 'NarwhalContainer'
+              }
+            ]
+          }),
+          securityGroups: [serviceSecurityGroup],
+          taskDefinition,
+          vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }
+        }),
         schedule
       });
-
-      rule.addTarget(
-        new targets.EcsTask({
-          containerOverrides: [
-            {
-              containerName: 'NarwhalContainer',
-              environment: [{ name: 'SCHEDULED_JOB_NAME', value: jobName }]
-            }
-          ],
-          cluster: ecsCluster,
-          securityGroups: [serviceSecurityGroup],
-          subnetSelection: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-          taskDefinition: taskDefinition
-        })
-      );
     }
   }
 }
