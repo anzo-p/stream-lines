@@ -28,14 +28,15 @@ object KinesisSink {
 
   def make[T <: Serializable](producerConfig: Properties)(implicit serializationSchema: SerializationSchema[T]): KinesisStreamsSink[T] = {
 
+    // keep around for now
     val loggingSchema = new LoggingSerializationSchema(serializationSchema)
 
     KinesisStreamsSink
       .builder[T]()
       .setKinesisClientProperties(producerConfig)
       .setStreamName(producerConfig.getProperty("streamName"))
-      .setSerializationSchema(loggingSchema)
-      //.setSerializationSchema(serializationSchema)
+      //.setSerializationSchema(new LoggingSerializationSchema(serializationSchema))
+      .setSerializationSchema(serializationSchema)
       .setPartitionKeyGenerator(new SerializablePartitionKeyGenerator[T]())
       .setFailOnError(false)
       .build()
