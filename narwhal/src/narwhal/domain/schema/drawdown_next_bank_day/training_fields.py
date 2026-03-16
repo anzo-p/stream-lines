@@ -2,17 +2,17 @@ from dataclasses import dataclass
 from typing import ClassVar, Callable, Any, Self
 
 from narwhal.decorators.validate_training_data import validate_training_fields
-from narwhal.domain.schema.drawdown.day_bundle import DrawdownDayBundle
+from narwhal.domain.schema.drawdown_next_bank_day.day_bundle import DrawdownNextBankDayDays
 from narwhal.domain.schema.training_fields_base import TrainingFieldsBase
 
 
 @validate_training_fields
 @dataclass(frozen=True)
-class DrawdownTrainingFields(TrainingFieldsBase):
-    LABEL = "fwd_max_drawdown"
-    COLLECTION = "drawdown-training-data"
+class DrawdownNextBankDayFields(TrainingFieldsBase):
+    LABEL = "drawdown_next_bank_day"
+    COLLECTION = "drawdown-next-bank-day-training-data"
 
-    fwd_max_drawdown: float
+    drawdown_next_bank_day: float
     members_daily_spread: float
     index_over_moving_avg: float
     index_over_kaufman_avg: float
@@ -24,10 +24,10 @@ class DrawdownTrainingFields(TrainingFieldsBase):
     days_since_dip_of_13: int
     vix: float
 
-    FIELD_EXTRACTORS: ClassVar[dict[str, Callable[[DrawdownDayBundle], Any]]] = (
+    FIELD_EXTRACTORS: ClassVar[dict[str, Callable[[DrawdownNextBankDayDays], Any]]] = (
         TrainingFieldsBase.FIELD_EXTRACTORS
         | {
-            "fwd_max_drawdown": lambda d: d.drawdown.fwd_max_drawdown,
+            "drawdown_next_bank_day": lambda d: d.drawdown.drawdown_next_bank_day,
             "members_daily_spread": lambda d: d.members.daily_spread,
             "index_over_moving_avg": lambda d: d.index.over_moving_avg,
             "index_over_kaufman_avg": lambda d: d.index.over_kaufman_avg,
@@ -37,10 +37,10 @@ class DrawdownTrainingFields(TrainingFieldsBase):
             "days_since_dip_of_5": lambda d: d.drawdown.days_since_dip_of_5,
             "days_since_dip_of_8": lambda d: d.drawdown.days_since_dip_of_8,
             "days_since_dip_of_13": lambda d: d.drawdown.days_since_dip_of_13,
-            "vix": lambda d: d.vix.value,
+            "vix": lambda d: d.vix.field_value,
         }
     )
 
     @classmethod
-    def compose(cls, bundle: DrawdownDayBundle, variant: str) -> Self:
+    def compose(cls, bundle: DrawdownNextBankDayDays, variant: str) -> Self:
         return super().compose(bundle, variant)

@@ -9,7 +9,7 @@ from narwhal.sources.influx.market_data.volume import VolumeData
 
 
 @dataclass(frozen=True)
-class DrawdownDayBundle(DayBundleBase):
+class ForwardMaxDrawdownDays(DayBundleBase):
     drawdown: DrawdownData
     index: IndexData
     members: MemberData

@@ -158,7 +158,11 @@ export class DrawdownSagemakerStack extends cdk.NestedStack {
       assumedBy: new iam.ServicePrincipal('events.amazonaws.com')
     });
 
-    const trainPipelineArgs: TrainPipelineArgs[] = ['drawdown-two-weeks', 'drawdown-five-weeks'].map((name) => ({
+    const trainPipelineArgs: TrainPipelineArgs[] = [
+      'drawdown-next-bank-day',
+      'forward-max-drawdown-two-weeks',
+      'forward-max-drawdown-five-weeks',
+    ].map((name) => ({
       bucket: appBucket,
       copyTargetDirname: `${modelsLatestDirname}/${name}/`,
       modelOutputDirname: `${modelsRunsDirname}/${name}/`,

@@ -75,7 +75,7 @@ def member_query(h: InfluxHandle) -> Iterator[MemberData]:
             t = record.get_time()
             v = record["spread"]
 
-            if t is None:
+            if t is None or v is None:
                 continue
 
             out.append(MemberData(day=t.date(), daily_spread=v))

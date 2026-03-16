@@ -11,20 +11,21 @@ class PredictionResultBase:
     timestamp: date
     variant: str
 
-    @property
-    def fields(self) -> str:
-        raise NotImplementedError
+    field_name: ClassVar[str]
+    field_value: float
 
     def to_line_protocol(self) -> str:
         measurement = f"{self.COLLECTION}-{self.variant}" if self.variant else self.COLLECTION
-        return f"{measurement} {self.fields} {to_epoch_ns(self.timestamp)}"
+        return f"{measurement} {self.field_name}={self.field_value} {to_epoch_ns(self.timestamp)}"
 
 
 @dataclass(frozen=True)
-class DrawdownPredictionResult(PredictionResultBase):
-    COLLECTION = "drawdown-prediction-results"
-    fwd_max_drawdown: float
+class DrawdownNextBankDayPredictionResult(PredictionResultBase):
+    COLLECTION = "drawdown-next-bank-day-prediction-results"
+    field_name = "drawdown_next_bank_day"
 
-    @property
-    def fields(self) -> str:
-        return f"fwd_max_drawdown={self.fwd_max_drawdown}"
+
+@dataclass(frozen=True)
+class ForwardMaxDrawdownPredictionResult(PredictionResultBase):
+    COLLECTION = "forward-max-drawdown-prediction-results"
+    field_name = "forward_max_drawdown"

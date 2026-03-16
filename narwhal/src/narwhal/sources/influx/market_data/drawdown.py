@@ -13,6 +13,7 @@ from narwhal.sources.influx.query_result import QueryResult
 class DrawdownData(QueryResult):
     day: date
     current_drawdown: float
+    drawdown_next_bank_day: float
     days_since_dip_of_3: int
     days_since_dip_of_5: int
     days_since_dip_of_8: int
@@ -59,7 +60,20 @@ def _add_days_since_dip(rows: list[DrawdownData]) -> list[DrawdownData]:
     return out
 
 
-def _add_fwd_max_drawdown(rows: list[DrawdownData], future_window_days: int) -> list[DrawdownData]:
+def _add_drawdown_change_into_next_day(rows: list[DrawdownData]) -> list[DrawdownData]:
+    rows = sorted(rows, key=lambda r: r.day)
+    out: list[DrawdownData] = []
+
+    for i, row in enumerate(rows):
+        next_drawdown = rows[i + 1].current_drawdown if i < len(rows) - 1 else 0.0
+        out.append(replace(row, drawdown_next_bank_day=next_drawdown))
+
+    return out
+
+
+def _add_forward_max_drawdown(
+    rows: list[DrawdownData], future_window_days: int
+) -> list[DrawdownData]:
     rows = sorted(rows, key=lambda r: r.day)
     levels = [r.current_drawdown for r in rows]
     row_count = len(rows)
@@ -109,6 +123,7 @@ def drawdown_query(h: InfluxHandle, fwd_bank_days: int) -> Iterator[DrawdownData
                 DrawdownData(
                     day=t.date(),
                     current_drawdown=float(v),
+                    drawdown_next_bank_day=0.0,
                     days_since_dip_of_3=0,
                     days_since_dip_of_5=0,
                     days_since_dip_of_8=0,
@@ -120,7 +135,10 @@ def drawdown_query(h: InfluxHandle, fwd_bank_days: int) -> Iterator[DrawdownData
     out = _add_days_since_dip(out)
     logger.info(f"Applied bull market streaks")
 
-    out = _add_fwd_max_drawdown(out, fwd_bank_days)
+    out = _add_drawdown_change_into_next_day(out)
+    logger.info(f"Applied drawdown change into next day")
+
+    out = _add_forward_max_drawdown(out, fwd_bank_days)
     logger.info(f"Applied forward max drawdown")
 
     logger.info(
