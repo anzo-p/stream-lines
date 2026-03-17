@@ -18,7 +18,7 @@ class DrawdownData(QueryResult):
     days_since_dip_of_5: int
     days_since_dip_of_8: int
     days_since_dip_of_13: int
-    fwd_max_drawdown: float
+    forward_max_drawdown: float
 
 
 def _flux(bucket: str) -> str:
@@ -96,7 +96,7 @@ def _add_forward_max_drawdown(
 
         # use the current max in the deque if it exists
         fwd_max = levels[dq[0]] if dq else levels[i]
-        out.append(replace(rows[i], fwd_max_drawdown=fwd_max))
+        out.append(replace(rows[i], forward_max_drawdown=fwd_max))
 
         nxt = i + future_window_days + 1
         if nxt < row_count:
@@ -105,7 +105,7 @@ def _add_forward_max_drawdown(
     return out
 
 
-def drawdown_query(h: InfluxHandle, fwd_bank_days: int) -> Iterator[DrawdownData]:
+def drawdown_query(h: InfluxHandle, forward_bank_days: int) -> Iterator[DrawdownData]:
     logger = logging.getLogger(__name__)
 
     table_list = h.query_api.query(_flux(h.bucket))
@@ -128,7 +128,7 @@ def drawdown_query(h: InfluxHandle, fwd_bank_days: int) -> Iterator[DrawdownData
                     days_since_dip_of_5=0,
                     days_since_dip_of_8=0,
                     days_since_dip_of_13=0,
-                    fwd_max_drawdown=0.0,
+                    forward_max_drawdown=0.0,
                 )
             )
 
@@ -138,13 +138,13 @@ def drawdown_query(h: InfluxHandle, fwd_bank_days: int) -> Iterator[DrawdownData
     out = _add_drawdown_change_into_next_day(out)
     logger.info(f"Applied drawdown change into next day")
 
-    out = _add_forward_max_drawdown(out, fwd_bank_days)
+    out = _add_forward_max_drawdown(out, forward_bank_days)
     logger.info(f"Applied forward max drawdown")
 
     logger.info(
-        f"Processed {len(out)} volume data records from InfluxDB query, "
-        f"using forward bank days of {fwd_bank_days} "
-        f"({int(fwd_bank_days * 1.44)} actual days)"
+        f"Processed {len(out)} drawdown records from InfluxDB query, "
+        f"using forward bank days of {forward_bank_days} "
+        f"({int(forward_bank_days * 1.44)} actual days)"
     )
 
     yield from out

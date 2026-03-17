@@ -27,7 +27,7 @@ class ForwardMaxDrawdownFields(TrainingFieldsBase):
     FIELD_EXTRACTORS: ClassVar[dict[str, Callable[[ForwardMaxDrawdownDays], Any]]] = (
         TrainingFieldsBase.FIELD_EXTRACTORS
         | {
-            "forward_max_drawdown": lambda d: d.drawdown.fwd_max_drawdown,
+            "forward_max_drawdown": lambda d: d.drawdown.forward_max_drawdown,
             "members_daily_spread": lambda d: d.members.daily_spread,
             "index_over_moving_avg": lambda d: d.index.over_moving_avg,
             "index_over_kaufman_avg": lambda d: d.index.over_kaufman_avg,
@@ -37,7 +37,7 @@ class ForwardMaxDrawdownFields(TrainingFieldsBase):
             "days_since_dip_of_5": lambda d: d.drawdown.days_since_dip_of_5,
             "days_since_dip_of_8": lambda d: d.drawdown.days_since_dip_of_8,
             "days_since_dip_of_13": lambda d: d.drawdown.days_since_dip_of_13,
-            "vix": lambda d: d.vix.field_value,
+            "vix": lambda d: d.vix.value,
         }
     )
 

@@ -37,7 +37,7 @@ class DrawdownNextBankDayFields(TrainingFieldsBase):
             "days_since_dip_of_5": lambda d: d.drawdown.days_since_dip_of_5,
             "days_since_dip_of_8": lambda d: d.drawdown.days_since_dip_of_8,
             "days_since_dip_of_13": lambda d: d.drawdown.days_since_dip_of_13,
-            "vix": lambda d: d.vix.field_value,
+            "vix": lambda d: d.vix.value,
         }
     )
 

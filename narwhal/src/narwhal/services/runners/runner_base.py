@@ -63,8 +63,12 @@ class RunnerBase(Generic[T, U, V]):
         data = self.compose(self.bundles(source))
         logger.info("Fetched and composed training data for program: %s.", self.program_name)
         logger.debug("First 5 elements: %s", data[:5])
+        logger.info("Last element: %s", data[-1])
+        logger.debug("Last element as line protocol: %s", data[-1].to_line_protocol())
+
         write_to_influx(target, data)
         logger.info("Stored training data to InfluxDB")
+
         # write all to influx, but omit 1.5 years of tail bank days from training
         # in order to force prediction over data yet unseen to the resulting model
         data = list(data[:-375])

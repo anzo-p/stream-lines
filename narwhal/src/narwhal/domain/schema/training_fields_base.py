@@ -55,9 +55,9 @@ class TrainingFieldsBase:
                 fields.append(f"{name}={value}")
 
         measurement = f"{self.COLLECTION}-{self.variant}"
-        field_values = ",".join(fields)
+        values = ",".join(fields)
         ts = to_epoch_ns(self.timestamp)
-        return f"{measurement} {field_values} {ts}"
+        return f"{measurement} {values} {ts}"
 
     def x_vector(self) -> np.ndarray:
         X = np.array([getattr(self, name) for name in self._feature_names()], dtype=float)
