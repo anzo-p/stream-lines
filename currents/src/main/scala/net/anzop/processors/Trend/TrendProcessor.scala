@@ -23,17 +23,29 @@ class TrendProcessor(config: TrendConfig, trendDiscoverer: TrendDiscoverer)
 
   @transient private var trendState: MapState[Long, Array[MarketData]] = _
 
+  private def evictOutOfWindowState(newHeadTs: Long): Unit =
+    trendState
+      .keys()
+      .asScala
+      .foreach { ts =>
+        val diff = newHeadTs - ts
+        if (diff < 0 || diff > oneWeekInMillis) {
+          trendState.remove(ts)
+        }
+      }
+
   private def findPrevBatchRemains(newHeadTs: Long): Option[(Long, Array[MarketData])] =
     trendState
       .entries()
       .asScala
       .filter { entry =>
-        // expecting max one, and exactly one banking day before
-        newHeadTs - entry.getKey <= oneWeekInMillis
+        // Keep only keys that are not in the future and at most one week old.
+        val diff = newHeadTs - entry.getKey
+        diff >= 0 && diff <= oneWeekInMillis
       }
       .toSeq
       .sortBy(_.getKey)
-      .headOption
+      .lastOption
       .map { entry =>
         entry.getKey -> entry.getValue
       }
@@ -60,6 +72,10 @@ class TrendProcessor(config: TrendConfig, trendDiscoverer: TrendDiscoverer)
   override def flatMap(chunk: List[MarketData], out: Collector[List[TrendSegment]]): Unit = {
     val newChunk = chunk.toArray
 
+    if (newChunk.isEmpty) {
+      return
+    }
+
     newChunk
       .headOption
       .foreach(elem =>
@@ -67,7 +83,10 @@ class TrendProcessor(config: TrendConfig, trendDiscoverer: TrendDiscoverer)
           logger.info(s"Trend - Data indicates reset; clearing state")
         })
 
-    val data: DV[MarketData] = findPrevBatchRemains(newChunk(0).timestamp) match {
+    val newHeadTs = newChunk.head.timestamp
+    evictOutOfWindowState(newHeadTs)
+
+    val data: DV[MarketData] = findPrevBatchRemains(newHeadTs) match {
       case Some((entryKey, remains)) =>
         trendState.remove(entryKey)
         DenseVector(

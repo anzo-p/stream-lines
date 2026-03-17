@@ -26,22 +26,21 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
       tailSegment: DV[MarketData],
       overallTrend: LinearRegression
     ): TrendSegmentConfirmation = {
-    val (tippingTime, tippingIndex) = tippingPoint[MarketData](
+    val chosenTailIndex = tippingPoint[MarketData](
       overallTrend   = window,
       deviatingTrend = tailSegment,
       tolerance      = trendConfig.tippingPointThreshold,
       getMetadata    = _.timestamp,
       getValue       = _.priceChangeAvg
-    ).map { case (_, time, index) => (time, index) }
-      .getOrElse((window(window.length - tailSegment.length).timestamp, 0))
+    ).map { case (_, _, index) => index }.getOrElse(0)
 
     val trendSegment = TrendSegment.make(
       begins           = window(0).timestamp,
-      ends             = tippingTime,
+      ends             = tailSegment(chosenTailIndex).timestamp,
       linearRegression = overallTrend
     )
 
-    TrendSegmentConfirmation(trendSegment, tippingIndex)
+    TrendSegmentConfirmation(trendSegment, chosenTailIndex)
   }
 
   private def discover(
@@ -52,10 +51,12 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
     val overallTrend = linearRegression(window.map(_.priceChangeAvg))
     val tailTrend    = linearRegression(tailSegment.map(_.priceChangeAvg))
     val slopeDiff    = Math.abs(overallTrend.slope - tailTrend.slope)
-    val varianceDiff = Math.abs(overallTrend.variance - tailTrend.variance)
+    // val tailHeadOffset = window.length - tailSegment.length
 
-    if (window.length >= trendConfig.minimumWindow &&
+    if (window.length >= minimumSegmentAndTail &&
+        //tailHeadOffset >= trendConfig.minimumWindow &&
         slopeDiff > trendConfig.regressionSlopeThreshold) {
+
       val trendSegment = createSegment(window, tailSegment, overallTrend)
       val (newRemainingData, newTailSegment) =
         appendFromHead(
@@ -110,7 +111,7 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
     }
     else {
       runDiscoveryLoop(
-        currentWindow   = dataChunk(0 until minimumSegmentAndTail - 1),
+        currentWindow   = dataChunk(0 until minimumSegmentAndTail),
         remainingData   = dataChunk(minimumSegmentAndTail until dataChunk.length),
         discoveredTrend = List()
       )
