@@ -6,14 +6,12 @@ import net.anzop.helpers.StreamHelpers
 import net.anzop.processors.{QuotationDeltaProcessor, QuotationWindowProcessor, TradeDeltaProcessor, TradeWindowProcessor}
 import net.anzop.results.WindowedTrades._
 import net.anzop.results.{QuotationDeltas, TradeDeltas, WindowedQuotations, WindowedTrades}
-import net.anzop.sinks.{InfluxSink, KinesisSink}
+import net.anzop.sinks.InfluxSink
 import net.anzop.types._
 import org.apache.flink.streaming.api.scala.{DataStream, _}
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows
 import org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer
 import org.slf4j.{Logger, LoggerFactory}
-
-import java.util.Properties
 
 object Ripples {
 
@@ -24,7 +22,7 @@ object Ripples {
 
     val influxDbConfig = InfluxDbConfig.make()
 
-    val kinesisProducerConfig: Properties                        = KinesisConfig.makeProducerConfig()
+    //val kinesisProducerConfig: Properties                        = KinesisConfig.makeProducerConfig()
     val kinesisConsumer: FlinkKinesisConsumer[MarketDataMessage] = KinesisConfig.buildConsumer()
     logger.info("Flink Kinesis consumer created")
 
@@ -109,11 +107,13 @@ object Ripples {
     tradeDifferences.addSink(new InfluxSink[TradeDeltas](influxDbConfig))
     logger.info("Flink stream results InfluxDB sinks created and connected")
 
+    /*
     allWindowedQuotations.sinkTo(KinesisSink.make[WindowedQuotations](kinesisProducerConfig))
     allWindowedTrades.sinkTo(KinesisSink.make[WindowedTrades](kinesisProducerConfig))
     quoteDifferences.sinkTo(KinesisSink.make[QuotationDeltas](kinesisProducerConfig))
     tradeDifferences.sinkTo(KinesisSink.make[TradeDeltas](kinesisProducerConfig))
     logger.info("Flink stream results Kinesis sinks created and connected")
+     */
 
     env.execute("Ripples Flink app")
   }

@@ -1,14 +1,9 @@
 package net.anzop.results
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import net.anzop.processors.{InfluxMeasurement, QuotesDeltaMeasurement}
 import net.anzop.serdes.DataSerializer
-import org.apache.flink.api.common.serialization.SerializationSchema
 
-import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
 import java.util.UUID
 
@@ -34,8 +29,8 @@ case class QuotationDeltas(
   ) extends BaseDelta
 
 object QuotationDeltas {
-  implicit val influxSerializer: DataSerializer[QuotationDeltas]    = new InfluxDBSerializer
-  implicit val jsonSerializer: SerializationSchema[QuotationDeltas] = new JsonSerializerSchema
+  implicit val influxSerializer: DataSerializer[QuotationDeltas] = new InfluxDBSerializer
+  //implicit val jsonSerializer: SerializationSchema[QuotationDeltas] = new JsonSerializerSchema
 
   val measurement: InfluxMeasurement = QuotesDeltaMeasurement
 
@@ -66,6 +61,7 @@ object QuotationDeltas {
     }
   }
 
+  /*
   private class JsonSerializerSchema extends SerializationSchema[QuotationDeltas] with Serializable {
 
     @transient private lazy val mapper =
@@ -77,4 +73,5 @@ object QuotationDeltas {
     override def serialize(data: QuotationDeltas): Array[Byte] =
       mapper.writeValueAsString(data).getBytes(StandardCharsets.UTF_8)
   }
+ */
 }

@@ -57,7 +57,7 @@ export class RipplesStack extends cdk.NestedStack {
     ripplesBucket.grantReadWrite(taskRole);
 
     kinesisMarketDataUpstream.grantRead(taskRole);
-    kinesisResultsDownStream.grantReadWrite(taskRole);
+    //kinesisResultsDownStream.grantReadWrite(taskRole);
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, 'RipplesTaskDefinition', {
       cpu: 512,
@@ -89,7 +89,7 @@ export class RipplesStack extends cdk.NestedStack {
         INFLUXDB_BUCKET_MARKET_DATA_REALTIME: influxBucketMarketDataRealtime,
         INFLUXDB_ORG: influxOrg,
         INFLUXDB_URL: influxUrl,
-        KINESIS_DOWNSTREAM_NAME: kinesisResultsDownStream.streamName,
+        //KINESIS_DOWNSTREAM_NAME: kinesisResultsDownStream.streamName,
         KINESIS_UPSTREAM_NAME: kinesisMarketDataUpstream.streamName,
         JAVA_TOOL_OPTIONS: [
           '--add-opens=java.base/java.lang=ALL-UNNAMED',

@@ -1,14 +1,9 @@
 package net.anzop.results
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import net.anzop.processors.{InfluxMeasurement, WindowedTradesMeasurement}
 import net.anzop.serdes.DataSerializer
-import org.apache.flink.api.common.serialization.SerializationSchema
 
-import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
 import java.util.UUID
 
@@ -29,8 +24,8 @@ case class WindowedTrades(
   ) extends BaseWindow
 
 object WindowedTrades {
-  implicit val influxSerializer: DataSerializer[WindowedTrades]    = new InfluxDBSerializer
-  implicit val jsonSerializer: SerializationSchema[WindowedTrades] = new JsonSerializerSchema
+  implicit val influxSerializer: DataSerializer[WindowedTrades] = new InfluxDBSerializer
+  //implicit val jsonSerializer: SerializationSchema[WindowedTrades] = new JsonSerializerSchema
 
   val measurement: InfluxMeasurement = WindowedTradesMeasurement
 
@@ -57,6 +52,7 @@ object WindowedTrades {
     }
   }
 
+  /*
   private class JsonSerializerSchema extends SerializationSchema[WindowedTrades] with Serializable {
 
     @transient private lazy val mapper =
@@ -68,4 +64,5 @@ object WindowedTrades {
     override def serialize(data: WindowedTrades): Array[Byte] =
       mapper.writeValueAsString(data).getBytes(StandardCharsets.UTF_8)
   }
+ */
 }

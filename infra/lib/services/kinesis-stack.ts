@@ -1,12 +1,12 @@
 import * as cdk from 'aws-cdk-lib';
-import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as iam from 'aws-cdk-lib/aws-iam';
+// import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+// import * as iam from 'aws-cdk-lib/aws-iam';
 import * as kinesis from 'aws-cdk-lib/aws-kinesis';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as logs from 'aws-cdk-lib/aws-logs';
+// import * as lambda from 'aws-cdk-lib/aws-lambda';
+// import * as logs from 'aws-cdk-lib/aws-logs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
-import { KinesisEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+// import { KinesisEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 
 export type KinesisStreamsStackProps = cdk.NestedStackProps & {
   appBucket: s3.IBucket;
@@ -44,6 +44,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
       streamName: marketDataUpstreamName
     });
 
+    /*
     this.resultsDownStream = new kinesis.Stream(this, 'ResultsDownStream', {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       retentionPeriod: cdk.Duration.hours(24),
@@ -97,5 +98,6 @@ export class KinesisStreamsStack extends cdk.NestedStack {
         })
       );
     }
+    */
   }
 }
