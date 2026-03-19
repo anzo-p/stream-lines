@@ -26,16 +26,7 @@ export class KinesisStreamsStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: KinesisStreamsStackProps) {
     super(scope, id, props);
 
-    const {
-      appBucket,
-      marketDataUpstreamName,
-      resultsDownStreamName,
-      resultsPusherLambdaFullPath,
-      wsApiGatewayConnectionsUrl,
-      wsApiGatewayStageProdArn,
-      wsConnsBySymbolIndex,
-      wsConnsTableName
-    } = props;
+    const { marketDataUpstreamName } = props;
 
     this.marketDataUpstream = new kinesis.Stream(this, 'MarketDataUpStream', {
       removalPolicy: cdk.RemovalPolicy.DESTROY,

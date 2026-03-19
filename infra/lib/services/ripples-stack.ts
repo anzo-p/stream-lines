@@ -37,7 +37,7 @@ export class RipplesStack extends cdk.NestedStack {
       influxOrg,
       influxUrl,
       kinesisMarketDataUpstream,
-      kinesisResultsDownStream,
+      // kinesisResultsDownStream,
       runAsOndemand = false,
       securityGroup
     } = props;

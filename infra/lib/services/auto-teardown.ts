@@ -4,6 +4,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as path from 'path';
 import * as scheduler from 'aws-cdk-lib/aws-scheduler';
+import * as targets from 'aws-cdk-lib/aws-scheduler-targets';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
 
@@ -11,6 +12,12 @@ export interface AutoTeardownStackProps extends cdk.NestedStackProps {
   targetStackArn: string;
   targetStackName: string;
 }
+
+const teardownSchedule = scheduler.ScheduleExpression.cron({
+  hour: '17', // NySe regular hours closing +1h
+  minute: '00',
+  timeZone: cdk.TimeZone.AMERICA_NEW_YORK
+});
 
 export class AutoTeardownStack extends cdk.NestedStack {
   constructor(scope: Construct, id: string, props: AutoTeardownStackProps) {
@@ -22,6 +29,7 @@ export class AutoTeardownStack extends cdk.NestedStack {
     });
 
     const teardownFn = new NodejsFunction(this, 'TeardownFn', {
+      description: `Automatically tears down entire stack ${props.targetStackName} after NySe has closd for today.`,
       entry: path.join(__dirname, '../../lambda/teardown.ts'),
       handler: 'handler',
       logGroup,
@@ -45,17 +53,13 @@ export class AutoTeardownStack extends cdk.NestedStack {
     });
     teardownFn.grantInvoke(invokeRole);
 
-    new scheduler.CfnSchedule(this, 'TeardownSchedule', {
-      flexibleTimeWindow: { mode: 'OFF' },
-      scheduleExpression: 'cron(0 17 ? * * *)', // NySe securities regular hours closing +1h
-      scheduleExpressionTimezone: 'America/New_York',
-      target: {
-        arn: teardownFn.functionArn,
-        roleArn: invokeRole.roleArn,
-        input: JSON.stringify({
+    new scheduler.Schedule(this, 'TeardownSchedule', {
+      schedule: teardownSchedule,
+      target: new targets.LambdaInvoke(teardownFn, {
+        input: scheduler.ScheduleTargetInput.fromObject({
           stackName: props.targetStackName
         })
-      }
+      })
     });
 
     cdk.Tags.of(this).add('autoTeardown', 'true');

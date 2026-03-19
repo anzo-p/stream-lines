@@ -114,6 +114,7 @@ function provisionTrainingPipeline(
   });
 
   const mlModelCopyFn = new NodejsFunction(scope, `MlModelCopyFn-${args.name}`, {
+    description: `Copies trained model artifact to "latest" path for ${args.name}.`,
     entry: path.join(__dirname, '../../lambda/ml-model-copy.ts'),
     environment: {
       FILENAME: 'model.tar.gz',
@@ -161,7 +162,7 @@ export class DrawdownSagemakerStack extends cdk.NestedStack {
     const trainPipelineArgs: TrainPipelineArgs[] = [
       'drawdown-next-bank-day',
       'forward-max-drawdown-two-weeks',
-      'forward-max-drawdown-five-weeks',
+      'forward-max-drawdown-five-weeks'
     ].map((name) => ({
       bucket: appBucket,
       copyTargetDirname: `${modelsLatestDirname}/${name}/`,
