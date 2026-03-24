@@ -48,13 +48,13 @@ class TrendDiscoverer(trendConfig: TrendConfig) extends Serializable {
       tailSegment: DV[MarketData],
       remainingData: DV[MarketData]
     ): (Option[TrendSegment], DV[MarketData], DV[MarketData]) = {
-    val overallTrend = linearRegression(window.map(_.priceChangeAvg))
-    val tailTrend    = linearRegression(tailSegment.map(_.priceChangeAvg))
-    val slopeDiff    = Math.abs(overallTrend.slope - tailTrend.slope)
-    // val tailHeadOffset = window.length - tailSegment.length
+    val overallTrend   = linearRegression(window.map(_.priceChangeAvg))
+    val tailTrend      = linearRegression(tailSegment.map(_.priceChangeAvg))
+    val slopeDiff      = Math.abs(overallTrend.slope - tailTrend.slope)
+    val tailHeadOffset = window.length - tailSegment.length
 
     if (window.length >= minimumSegmentAndTail &&
-        //tailHeadOffset >= trendConfig.minimumWindow &&
+        tailHeadOffset >= trendConfig.minimumWindow &&
         slopeDiff > trendConfig.regressionSlopeThreshold) {
 
       val trendSegment = createSegment(window, tailSegment, overallTrend)
