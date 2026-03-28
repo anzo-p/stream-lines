@@ -34,7 +34,7 @@ class ForwardMaxDrawdownRunner(
     volume_days: int
     variant: str
 
-    def bundles(self, h: InfluxHandle) -> Iterable[ForwardMaxDrawdownDays]:
+    def bundle(self, h: InfluxHandle) -> Iterable[ForwardMaxDrawdownDays]:
         return ForwardMaxDrawdownDays.daily_generator(
             drawdown=drawdown_query(h, self.drawdown_days),
             index=index_query(h, self.index_days),

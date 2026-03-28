@@ -27,7 +27,7 @@ V = TypeVar("V", bound="Serializable")
 class RunnerBase(Generic[T, U, V]):
     program_name: str
 
-    def bundles(self, h: InfluxHandle) -> Iterable[T]:
+    def bundle(self, h: InfluxHandle) -> Iterable[T]:
         raise NotImplementedError
 
     def compose(self, bundles: Iterable[T]) -> list[U]:
@@ -60,7 +60,7 @@ class RunnerBase(Generic[T, U, V]):
         write_to_influx(source, self.map_predictions(results))
 
     def train(self, source: InfluxHandle, target: InfluxHandle) -> None:
-        data = self.compose(self.bundles(source))
+        data = self.compose(self.bundle(source))
         logger.info("Fetched and composed training data for program: %s.", self.program_name)
         logger.debug("First 5 elements: %s", data[:5])
         logger.info("Last element: %s", data[-1])
