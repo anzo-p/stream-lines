@@ -53,6 +53,7 @@ export class InfraCoreStack extends cdk.Stack {
     );
 
     new BastionStack(this, 'BastionStack', {
+      amiId: process.env.AMI_BASTION!,
       keyPairName: process.env.KEY_NAME_BASTION!,
       securityGroup: bastionSg,
       ssmRole,
@@ -60,7 +61,7 @@ export class InfraCoreStack extends cdk.Stack {
     });
 
     new InfluxDbStack(this, 'InfluxDbStack', {
-      keyPairName: process.env.KEY_NAME_INFLUXDB!,
+      amiId: process.env.AMI_INFLUXDB!,
       ecsCluster: this.ecsCluster,
       initBucket: process.env.INFLUXDB_INIT_BUCKET!,
       initMode: process.env.INFLUXDB_INIT_MODE!,
@@ -68,6 +69,7 @@ export class InfraCoreStack extends cdk.Stack {
       initPassword: process.env.INFLUXDB_INIT_PASSWORD!,
       initRetention: process.env.INFLUXDB_INIT_RETENTION!,
       initUsername: process.env.INFLUXDB_INIT_USERNAME!,
+      keyPairName: process.env.KEY_NAME_INFLUXDB!,
       port: Number(process.env.INFLUXDB_SERVER_PORT!),
       securityGroup: influxSg,
       ssmRole,

@@ -10,7 +10,7 @@ import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export type InfluxDbStackProps = cdk.NestedStackProps & {
-  keyPairName: string;
+  amiId: string;
   ecsCluster: ecs.Cluster;
   initBucket: string;
   initMode: string;
@@ -18,6 +18,7 @@ export type InfluxDbStackProps = cdk.NestedStackProps & {
   initPassword: string;
   initRetention: string;
   initUsername: string;
+  keyPairName: string;
   port: number;
   securityGroup: ec2.SecurityGroup;
   ssmRole: iam.Role;
@@ -30,7 +31,7 @@ export class InfluxDbStack extends cdk.NestedStack {
     super(scope, id, props);
 
     const {
-      keyPairName,
+      amiId,
       ecsCluster,
       initBucket,
       initMode,
@@ -38,6 +39,7 @@ export class InfluxDbStack extends cdk.NestedStack {
       initPassword,
       initRetention,
       initUsername,
+      keyPairName,
       port,
       securityGroup,
       ssmRole,
@@ -54,8 +56,8 @@ export class InfluxDbStack extends cdk.NestedStack {
       availabilityZone: 'eu-north-1a', // same as EBS volume
       instanceType: new ec2.InstanceType('t4g.medium'),
       keyPair,
-      machineImage: ec2.MachineImage.latestAmazonLinux2023({
-        cpuType: ec2.AmazonLinuxCpuType.ARM_64
+      machineImage: ec2.MachineImage.genericLinux({
+        [region]: amiId
       }),
       role: ssmRole,
       securityGroup,
@@ -93,7 +95,7 @@ export class InfluxDbStack extends cdk.NestedStack {
       service: influxDiscoveryService
     });
 
-    // only SSM has internet acess, via Vpc Endpoint
+    // on initial launch when this command runs, only SSM has internet acess, via Vpc Endpoint
     new ssm.CfnAssociation(this, 'InstallDockerAssociation', {
       name: 'AWS-RunShellScript',
       parameters: {
