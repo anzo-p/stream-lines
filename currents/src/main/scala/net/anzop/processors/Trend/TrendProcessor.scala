@@ -72,17 +72,19 @@ class TrendProcessor(config: TrendConfig, trendDiscoverer: TrendDiscoverer)
           logger.info(s"Trend - Data indicates reset; clearing state")
         })
 
-    val data: DV[MarketData] = findPrevBatchRemains(newChunk.head.timestamp) match {
+    val mergedData: Array[MarketData] = findPrevBatchRemains(newChunk.head.timestamp) match {
       case Some((entryKey, remains)) =>
         trendState.remove(entryKey)
-        DenseVector(
-          (remains ++ newChunk)
-            .distinctBy(_.timestamp)
-            .sortBy(_.timestamp)
-        )
+        remains ++ newChunk
       case None =>
-        DenseVector(newChunk)
+        newChunk
     }
+
+    val data: DV[MarketData] = DenseVector(
+      mergedData
+        .distinctBy(_.timestamp)
+        .sortBy(_.timestamp)
+    )
 
     val TrendDiscovery(discovered, remains) = trendDiscoverer.processChunk(data)
 
