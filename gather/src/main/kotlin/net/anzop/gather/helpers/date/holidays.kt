@@ -19,6 +19,7 @@ private val irregularHolidays: Set<IrregularHoliday> = setOf(
     IrregularHoliday(LocalDate.of(2023, 4, 7)),
     IrregularHoliday(LocalDate.of(2024, 3, 29)),
     IrregularHoliday(LocalDate.of(2025, 4, 18)),
+    IrregularHoliday(LocalDate.of(2026, 4, 3)),
 )
 
 private val fixedRegularHolidays: Set<Pair<Int, Int>> = setOf(
