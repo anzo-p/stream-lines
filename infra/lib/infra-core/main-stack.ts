@@ -24,22 +24,21 @@ export class InfraCoreStack extends cdk.Stack {
 
     this.ecsCluster = new EcsClusterStack(this, 'EcsClusterStack', this.vpc).ecsCluster;
 
-    const bastionSg = new ec2.SecurityGroup(this, 'BastionSecurityGroup', {
-      vpc: this.vpc,
-      allowAllOutbound: true
+    const bastionSg = new ec2.SecurityGroup(this, 'BastionSecurityGroup', { vpc: this.vpc, allowAllOutbound: false });
+    const influxSg = new ec2.SecurityGroup(this, 'InfluxDbSecurityGroup', { vpc: this.vpc, allowAllOutbound: false });
+
+    [bastionSg, influxSg].forEach((sg) => {
+      sg.addEgressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), `${sg.node.id} to internet`);
     });
-    const influxSg = new ec2.SecurityGroup(this, 'InfluxDbSecurityGroup', {
-      vpc: this.vpc,
-      allowAllOutbound: true
-    });
+
     [
-      { port: ec2.Port.tcp(22), description: 'Allow Jump Bastion access to InfluxDB instance' },
+      { port: ec2.Port.tcp(22), description: `${bastionSg.node.id} to machine running influxDB` },
       {
         port: ec2.Port.tcp(Number(process.env.INFLUXDB_SERVER_PORT!)),
-        description: 'Allow Jump Bastion access to machine running influxDB'
+        description: `${bastionSg.node.id} to Influx DB instance`
       }
     ].forEach(({ port, description }) => {
-      influxSg.addIngressRule(bastionSg, port, description);
+      influxSg.connections.allowFrom(bastionSg, port, description);
     });
 
     const ssmRole = new iam.Role(this, 'Ec2SsmRole', {

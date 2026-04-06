@@ -41,21 +41,26 @@ export class ServicesStack extends cdk.Stack {
     );
 
     // const backendSg = new ec2.SecurityGroup(this, 'BackendSecurityGroup', { vpc, allowAllOutbound: true });
-    const currentsSg = new ec2.SecurityGroup(this, 'CurrentsSecurityGroup', { vpc, allowAllOutbound: true });
-    const gatherSg = new ec2.SecurityGroup(this, 'GatherSecurityGroup', { vpc, allowAllOutbound: true });
-    const ingestSg = new ec2.SecurityGroup(this, 'IngestSecurityGroup', { vpc, allowAllOutbound: true });
-    const narwhalSg = new ec2.SecurityGroup(this, 'NarwhalSecurityGroup', { vpc, allowAllOutbound: true });
-    const ripplesSg = new ec2.SecurityGroup(this, 'RipplesSecurityGroup', { vpc, allowAllOutbound: true });
+    const currentsSg = new ec2.SecurityGroup(this, 'CurrentsSecurityGroup', { vpc, allowAllOutbound: false });
+    const gatherSg = new ec2.SecurityGroup(this, 'GatherSecurityGroup', { vpc, allowAllOutbound: false });
+    const ingestSg = new ec2.SecurityGroup(this, 'IngestSecurityGroup', { vpc, allowAllOutbound: false });
+    const narwhalSg = new ec2.SecurityGroup(this, 'NarwhalSecurityGroup', { vpc, allowAllOutbound: false });
+    const ripplesSg = new ec2.SecurityGroup(this, 'RipplesSecurityGroup', { vpc, allowAllOutbound: false });
 
-    [currentsSg, gatherSg, narwhalSg, ripplesSg].forEach((sg) => {
-      influxSg.connections.allowFrom(
-        sg,
-        ec2.Port.tcp(Number(process.env.INFLUXDB_SERVER_PORT!)),
-        `${sg.node.id}-to-Influx`
-      );
+    [currentsSg, gatherSg, ingestSg, narwhalSg, ripplesSg].forEach((sg) => {
+      sg.addEgressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), `${sg.node.id} to internet`);
     });
 
-    gatherSg.connections.allowFrom(ingestSg, ec2.Port.tcp(Number(process.env.GATHER_SERVER_PORT!)), 'Ingest to Gather');
+    [currentsSg, gatherSg, narwhalSg, ripplesSg].forEach((sg) => {
+      sg.addEgressRule(influxSg, ec2.Port.tcp(Number(process.env.INFLUXDB_SERVER_PORT!)), `${sg.node.id} to Influx`);
+      influxSg.connections.allowFrom(sg, ec2.Port.tcp(Number(process.env.INFLUXDB_SERVER_PORT!)), `From ${sg.node.id}`);
+    });
+
+    gatherSg.connections.allowFrom(
+      ingestSg,
+      ec2.Port.tcp(Number(process.env.GATHER_SERVER_PORT!)),
+      `${ingestSg.node.id} to ${gatherSg.node.id}`
+    );
 
     const appBucket = s3.Bucket.fromBucketName(this, 'AppBucket', process.env.S3_APP_BUCKET!);
 
