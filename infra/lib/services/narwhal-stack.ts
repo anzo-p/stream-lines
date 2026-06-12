@@ -29,14 +29,14 @@ export type NarwhalStackProps = cdk.NestedStackProps & {
 const narwhalJobSchedule: Record<string, scheduler.ScheduleExpression> = {
   weekdaily_training_job: scheduler.ScheduleExpression.cron({
     weekDay: 'MON-FRI',
-    hour: '10',
-    minute: '30',
+    hour: '10-16/2',
+    minute: '0',
     timeZone: cdk.TimeZone.AMERICA_NEW_YORK
   }),
   weekdaily_intraday_prediction_job: scheduler.ScheduleExpression.cron({
     weekDay: 'MON-FRI',
-    hour: '10-16/3',
-    minute: '0',
+    hour: '10-16/2',
+    minute: '30',
     timeZone: cdk.TimeZone.AMERICA_NEW_YORK
   })
 };

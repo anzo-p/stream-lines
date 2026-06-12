@@ -11,11 +11,11 @@ import { CurrentsStack } from './currents-stack';
 import { DrawdownSagemakerStack } from './drawdown-sagemaker-stack';
 import { EcsTaskExecutionRole } from './ecs-task-exec-role';
 import { GatherStack } from './gather-stack';
-import { IngestStack } from './ingest-stack';
-import { KinesisStreamsStack } from './kinesis-stack';
+// import { IngestStack } from './ingest-stack';
+// import { KinesisStreamsStack } from './kinesis-stack';
 import { NarwhalStack } from './narwhal-stack';
 import { NatGatewayStack } from './nat-gateway-stack';
-import { RipplesStack } from './ripples-stack';
+// import { RipplesStack } from './ripples-stack';
 // import { WebSocketApiGatewayStack } from './api-gateway-stack';
 
 interface ServicesStackProps extends cdk.StackProps {
@@ -43,24 +43,26 @@ export class ServicesStack extends cdk.Stack {
     // const backendSg = new ec2.SecurityGroup(this, 'BackendSecurityGroup', { vpc, allowAllOutbound: true });
     const currentsSg = new ec2.SecurityGroup(this, 'CurrentsSecurityGroup', { vpc, allowAllOutbound: false });
     const gatherSg = new ec2.SecurityGroup(this, 'GatherSecurityGroup', { vpc, allowAllOutbound: false });
-    const ingestSg = new ec2.SecurityGroup(this, 'IngestSecurityGroup', { vpc, allowAllOutbound: false });
+    //const ingestSg = new ec2.SecurityGroup(this, 'IngestSecurityGroup', { vpc, allowAllOutbound: false });
     const narwhalSg = new ec2.SecurityGroup(this, 'NarwhalSecurityGroup', { vpc, allowAllOutbound: false });
-    const ripplesSg = new ec2.SecurityGroup(this, 'RipplesSecurityGroup', { vpc, allowAllOutbound: false });
+    //const ripplesSg = new ec2.SecurityGroup(this, 'RipplesSecurityGroup', { vpc, allowAllOutbound: false });
 
-    [currentsSg, gatherSg, ingestSg, narwhalSg, ripplesSg].forEach((sg) => {
+    [currentsSg, gatherSg, /*ingestSg,*/ narwhalSg, /*ripplesSg*/].forEach((sg) => {
       sg.addEgressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), `${sg.node.id} to internet`);
     });
 
-    [currentsSg, gatherSg, narwhalSg, ripplesSg].forEach((sg) => {
+    [currentsSg, gatherSg, narwhalSg, /*ripplesSg*/].forEach((sg) => {
       sg.addEgressRule(influxSg, ec2.Port.tcp(Number(process.env.INFLUXDB_SERVER_PORT!)), `${sg.node.id} to Influx`);
       influxSg.connections.allowFrom(sg, ec2.Port.tcp(Number(process.env.INFLUXDB_SERVER_PORT!)), `From ${sg.node.id}`);
     });
 
+    /*
     gatherSg.connections.allowFrom(
       ingestSg,
       ec2.Port.tcp(Number(process.env.GATHER_SERVER_PORT!)),
       `${ingestSg.node.id} to ${gatherSg.node.id}`
     );
+    */
 
     const appBucket = s3.Bucket.fromBucketName(this, 'AppBucket', process.env.S3_APP_BUCKET!);
 
@@ -73,7 +75,6 @@ export class ServicesStack extends cdk.Stack {
       wsConnsHandlerLambdaFullPath: process.env.S3_KEY_WS_CONN_HANDLER!,
       wsConnsTableName: process.env.WS_CONNS_TABLE_NAME!
     });
-    */
 
     const kinesisStack = new KinesisStreamsStack(this, 'KinesisStack', {
       appBucket,
@@ -86,7 +87,8 @@ export class ServicesStack extends cdk.Stack {
       wsConnsTableName: process.env.WS_CONNS_TABLE_NAME!
     });
 
-    // const albStack = new AlbStack(this, 'AlbStack', vpc);
+    const albStack = new AlbStack(this, 'AlbStack', vpc);
+    */
 
     const taskExecRoleStack = new EcsTaskExecutionRole(this, 'StreamLinesEcsTaskExecRole');
 
@@ -128,6 +130,7 @@ export class ServicesStack extends cdk.Stack {
       });
     }
 
+    /*
     const ripplesStack = new RipplesStack(this, 'RipplesStack', {
       desiredCount: 1,
       ecsCluster,
@@ -158,7 +161,6 @@ export class ServicesStack extends cdk.Stack {
     ingestStack.addDependency(kinesisStack);
     if (gatherStack) ingestStack.addDependency(gatherStack);
 
-    /*
     const backendStack = new BackendStack(this, 'BackendStack', {
       address: process.env.BACKEND_SERVER_ADDRESS!,
       albListener: albStack.backendAlbListener,
