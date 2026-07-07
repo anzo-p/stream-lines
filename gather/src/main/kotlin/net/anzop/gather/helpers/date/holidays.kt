@@ -23,9 +23,9 @@ private val irregularHolidays: Set<IrregularHoliday> = setOf(
 )
 
 private val fixedRegularHolidays: Set<Pair<Int, Int>> = setOf(
-    "1.1", //"New Year's Day
-    "19.6", // Juneteenth National Independence Day
-    "4.7", // Independence Day
+    "1.1",   // New Year's Day
+    "19.6",  // Juneteenth National Independence Day
+    "4.7",   // Independence Day
     "11.11", // Veterans Day
     "24.12", // Christmas Eve
     "25.12", // Christmas Day

@@ -22,20 +22,20 @@ class TaskController(
     fun fetchFinancials(@PathVariable ticker: String): HttpResponse =
         handleAndRespond {
             resolveTickerAndRun(ticker) {
-                appRunner.processRunCommand(FetchFinancials(ticker))
+                appRunner.dispatchRunCommand(FetchFinancials(ticker))
             }
         }
 
     @PostMapping("/market-data/fetch")
     fun fetchAll(): HttpResponse =
         handleAndRespond {
-            appRunner.processRunCommand(FetchMarketDataAndProcessIndex)
+            appRunner.dispatchRunCommand(FetchMarketDataAndProcessIndex)
         }
 
     @PostMapping("/market-data/redo-index")
     fun redoIndex(): HttpResponse =
         handleAndRespond {
-            appRunner.processRunCommand(RedoIndex)
+            appRunner.dispatchRunCommand(RedoIndex)
         }
 
     private inline fun resolveTickerAndRun(
