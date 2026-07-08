@@ -11,16 +11,28 @@ import { CurrentsStack } from './currents-stack';
 import { DrawdownSagemakerStack } from './drawdown-sagemaker-stack';
 import { EcsTaskExecutionRole } from './ecs-task-exec-role';
 import { GatherStack } from './gather-stack';
-// import { IngestStack } from './ingest-stack';
-// import { KinesisStreamsStack } from './kinesis-stack';
+import { GatherTaskStack } from './gather-task-stack';
+import { IngestStack } from './ingest-stack';
+import { KinesisStreamsStack } from './kinesis-stack';
 import { NarwhalStack } from './narwhal-stack';
 import { NatGatewayStack } from './nat-gateway-stack';
-// import { RipplesStack } from './ripples-stack';
+import { RipplesStack } from './ripples-stack';
 // import { WebSocketApiGatewayStack } from './api-gateway-stack';
 
 interface ServicesStackProps extends cdk.StackProps {
   ecsCluster: ecs.Cluster;
   vpc: ec2.Vpc;
+}
+
+const RUN_MODES = ['full', 'core', 'budget', 'slim'] as const;
+type RunMode = (typeof RUN_MODES)[number];
+
+function parseRunMode(runModeStr: string | undefined): RunMode {
+  if (!runModeStr) return 'core';
+  if (!RUN_MODES.includes(runModeStr as RunMode)) {
+    throw new Error(`Invalid runMode: ${runModeStr}. Use -c runMode=<${RUN_MODES.join('|')}>`);
+  }
+  return runModeStr as RunMode;
 }
 
 export class ServicesStack extends cdk.Stack {
@@ -30,8 +42,7 @@ export class ServicesStack extends cdk.Stack {
     const { ecsCluster, vpc } = props;
 
     const autoTeardownDenied = this.node.tryGetContext('autoTeardown') === 'false';
-    const runOnlyOnDemandServices = this.node.tryGetContext('onlyOnDemand') === 'true';
-    const runAllServicesOnDemand = this.node.tryGetContext('runAllAsOnDemand') === 'true';
+    const runMode: RunMode = parseRunMode(this.node.tryGetContext('runMode'));
 
     const influxSg = ec2.SecurityGroup.fromSecurityGroupId(
       this,
@@ -43,26 +54,24 @@ export class ServicesStack extends cdk.Stack {
     // const backendSg = new ec2.SecurityGroup(this, 'BackendSecurityGroup', { vpc, allowAllOutbound: true });
     const currentsSg = new ec2.SecurityGroup(this, 'CurrentsSecurityGroup', { vpc, allowAllOutbound: false });
     const gatherSg = new ec2.SecurityGroup(this, 'GatherSecurityGroup', { vpc, allowAllOutbound: false });
-    //const ingestSg = new ec2.SecurityGroup(this, 'IngestSecurityGroup', { vpc, allowAllOutbound: false });
+    const ingestSg = new ec2.SecurityGroup(this, 'IngestSecurityGroup', { vpc, allowAllOutbound: false });
     const narwhalSg = new ec2.SecurityGroup(this, 'NarwhalSecurityGroup', { vpc, allowAllOutbound: false });
-    //const ripplesSg = new ec2.SecurityGroup(this, 'RipplesSecurityGroup', { vpc, allowAllOutbound: false });
+    const ripplesSg = new ec2.SecurityGroup(this, 'RipplesSecurityGroup', { vpc, allowAllOutbound: false });
 
-    [currentsSg, gatherSg, /*ingestSg,*/ narwhalSg, /*ripplesSg*/].forEach((sg) => {
+    [currentsSg, gatherSg, ingestSg, narwhalSg, ripplesSg].forEach((sg) => {
       sg.addEgressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443), `${sg.node.id} to internet`);
     });
 
-    [currentsSg, gatherSg, narwhalSg, /*ripplesSg*/].forEach((sg) => {
+    [currentsSg, gatherSg, narwhalSg, ripplesSg].forEach((sg) => {
       sg.addEgressRule(influxSg, ec2.Port.tcp(Number(process.env.INFLUXDB_SERVER_PORT!)), `${sg.node.id} to Influx`);
       influxSg.connections.allowFrom(sg, ec2.Port.tcp(Number(process.env.INFLUXDB_SERVER_PORT!)), `From ${sg.node.id}`);
     });
 
-    /*
     gatherSg.connections.allowFrom(
       ingestSg,
       ec2.Port.tcp(Number(process.env.GATHER_SERVER_PORT!)),
       `${ingestSg.node.id} to ${gatherSg.node.id}`
     );
-    */
 
     const appBucket = s3.Bucket.fromBucketName(this, 'AppBucket', process.env.S3_APP_BUCKET!);
 
@@ -73,17 +82,6 @@ export class ServicesStack extends cdk.Stack {
       wsApiDomainName: process.env.WS_API_DOMAIN_NAME!,
       wsApiSubdomain: process.env.WS_API_SUBDOMAIN!,
       wsConnsHandlerLambdaFullPath: process.env.S3_KEY_WS_CONN_HANDLER!,
-      wsConnsTableName: process.env.WS_CONNS_TABLE_NAME!
-    });
-
-    const kinesisStack = new KinesisStreamsStack(this, 'KinesisStack', {
-      appBucket,
-      marketDataUpstreamName: process.env.KINESIS_MARKET_DATA_UPSTREAM!,
-      resultsDownStreamName: process.env.KINESIS_RESULTS_DOWNSTREAM!,
-      resultsPusherLambdaFullPath: process.env.S3_KEY_RESULTS_PUSHER!,
-      // wsApiGatewayConnectionsUrl: wsApigatewayStack.wsApiGatewayConnectionsUrl,
-      // wsApiGatewayStageProdArn: wsApigatewayStack.wsApiGatewayStageProdArn,
-      wsConnsBySymbolIndex: process.env.WS_CONNS_BY_SYMBOL_INDEX!,
       wsConnsTableName: process.env.WS_CONNS_TABLE_NAME!
     });
 
@@ -101,7 +99,44 @@ export class ServicesStack extends cdk.Stack {
     const influxBucketMarketDataRealtime = process.env.INFLUXDB_BUCKET_MARKET_DATA_REALTIME!;
 
     let gatherStack: GatherStack | undefined;
-    if (!runOnlyOnDemandServices || runAllServicesOnDemand) {
+    if (runMode === 'slim') {
+      gatherStack = new GatherTaskStack(this, 'GatherTaskStack', {
+        ecsCluster,
+        executionRole,
+        gatherDynamoDbTable: process.env.GATHER_DYNAMODB_TABLE_NAME!,
+        influxBucketMarketDataHistorical,
+        influxOrg,
+        influxUrl,
+        securityGroup: gatherSg,
+        springProfile: process.env.GATHER_SPRING_PROFILES_ACTIVE!
+      });
+    } else {
+      const kinesisStack = new KinesisStreamsStack(this, 'KinesisStack', {
+        appBucket,
+        marketDataUpstreamName: process.env.KINESIS_MARKET_DATA_UPSTREAM!,
+        resultsDownStreamName: process.env.KINESIS_RESULTS_DOWNSTREAM!,
+        resultsPusherLambdaFullPath: process.env.S3_KEY_RESULTS_PUSHER!,
+        // wsApiGatewayConnectionsUrl: wsApigatewayStack.wsApiGatewayConnectionsUrl,
+        // wsApiGatewayStageProdArn: wsApigatewayStack.wsApiGatewayStageProdArn,
+        wsConnsBySymbolIndex: process.env.WS_CONNS_BY_SYMBOL_INDEX!,
+        wsConnsTableName: process.env.WS_CONNS_TABLE_NAME!
+      });
+
+      const ripplesStack = new RipplesStack(this, 'RipplesStack', {
+        desiredCount: 1,
+        ecsCluster,
+        executionRole,
+        flinkBucketName: process.env.S3_RIPPLES_BUCKET!,
+        influxBucketMarketDataRealtime,
+        influxOrg,
+        influxUrl,
+        kinesisMarketDataUpstream: kinesisStack.marketDataUpstream,
+        kinesisResultsDownStream: kinesisStack.resultsDownStream,
+        runAsOndemand: true,
+        securityGroup: ripplesSg
+      });
+      ripplesStack.addDependency(kinesisStack);
+
       gatherStack = new GatherStack(this, 'GatherStack', {
         desiredCount: 1,
         ecsCluster,
@@ -111,56 +146,40 @@ export class ServicesStack extends cdk.Stack {
         influxOrg,
         influxUrl,
         port: Number(process.env.GATHER_SERVER_PORT!),
-        runAsOndemand: runAllServicesOnDemand,
+        runAsOndemand: runMode !== 'budget',
         securityGroup: gatherSg,
         springProfile: process.env.GATHER_SPRING_PROFILES_ACTIVE!
       });
-
-      new CurrentsStack(this, 'CurrentsStack', {
+      const ingestStack = new IngestStack(this, 'IngestStack', {
         desiredCount: 1,
         ecsCluster,
         executionRole,
-        flinkBucketName: process.env.S3_CURRENTS_BUCKET!,
-        influxBucketMarketDataHistorical,
-        influxMeasurement: process.env.CURRENTS_INFLUXDB_SOURCE_MEASURE!,
-        influxOrg,
-        influxUrl,
-        runAsOndemand: runAllServicesOnDemand,
-        securityGroup: currentsSg
+        kinesisMarketDataUpstream: kinesisStack.marketDataUpstream,
+        maxWebsocketReadsPerSec: process.env.INGEST_MAX_WS_READS_PER_SEC!,
+        maxTickerCount: process.env.INGEST_MAX_TICKER_COUNT!,
+        runAsOndemand: true,
+        securityGroup: ingestSg,
+        tickersOverride: process.env.INGEST_TICKERS_OVERRIDE!,
+        topTickersApi: process.env.INGEST_TOP_TICKERS_API!
       });
+      ingestStack.addDependency(kinesisStack);
+      if (gatherStack) ingestStack.addDependency(gatherStack);
     }
 
-    /*
-    const ripplesStack = new RipplesStack(this, 'RipplesStack', {
+    new CurrentsStack(this, 'CurrentsStack', {
       desiredCount: 1,
       ecsCluster,
       executionRole,
-      flinkBucketName: process.env.S3_RIPPLES_BUCKET!,
-      influxBucketMarketDataRealtime,
+      flinkBucketName: process.env.S3_CURRENTS_BUCKET!,
+      influxBucketMarketDataHistorical,
+      influxMeasurement: process.env.CURRENTS_INFLUXDB_SOURCE_MEASURE!,
       influxOrg,
       influxUrl,
-      kinesisMarketDataUpstream: kinesisStack.marketDataUpstream,
-      kinesisResultsDownStream: kinesisStack.resultsDownStream,
-      runAsOndemand: true,
-      securityGroup: ripplesSg
+      runAsOndemand: runMode === 'full' || runMode === 'core',
+      securityGroup: currentsSg
     });
-    ripplesStack.addDependency(kinesisStack);
 
-    const ingestStack = new IngestStack(this, 'IngestStack', {
-      desiredCount: 1,
-      ecsCluster,
-      executionRole,
-      kinesisMarketDataUpstream: kinesisStack.marketDataUpstream,
-      maxWebsocketReadsPerSec: process.env.INGEST_MAX_WS_READS_PER_SEC!,
-      maxTickerCount: process.env.INGEST_MAX_TICKER_COUNT!,
-      runAsOndemand: true,
-      securityGroup: ingestSg,
-      tickersOverride: process.env.INGEST_TICKERS_OVERRIDE!,
-      topTickersApi: process.env.INGEST_TOP_TICKERS_API!
-    });
-    ingestStack.addDependency(kinesisStack);
-    if (gatherStack) ingestStack.addDependency(gatherStack);
-
+    /*
     const backendStack = new BackendStack(this, 'BackendStack', {
       address: process.env.BACKEND_SERVER_ADDRESS!,
       albListener: albStack.backendAlbListener,

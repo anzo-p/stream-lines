@@ -99,7 +99,7 @@ npm run cdk deploy StreamLines-Services -c AutoTeardown=false
 npm run cdk destroy StreamLines-Services
 ```
 
-### 3.1. Accessing the services
+### 3.2. Accessing the services
 
 Restart a service from a. latest cfn template and b. newest container image
 ```
@@ -117,6 +117,39 @@ aws ecs execute-command \
   --container <container-name> \
   --interactive \
   --command "/bin/sh"
+```
+
+Run an ECS Task manually. This example covers the optional Gather deployment as a task.
+```
+# obtain applicable subnet ids, this fetches the PRIVATE_WITH_EGRESS via NAT
+aws ec2 describe-route-tables \
+  --filters \
+    Name=vpc-id,Values=<vpc-id> \
+    Name=route.nat-gateway-id,Values='nat-*' \
+  --query 'RouteTables[].Associations[].SubnetId' \
+  --output text
+
+# obtain applicable secutiry group id, this fetches the one associate to Gather
+aws ec2 describe-security-groups \
+  --filters Name=group-name,Values='*Gather*' \
+  --query 'SecurityGroups[].GroupId' \
+  --output text
+
+aws ecs run-task \
+  --cluster <cluster-arn> \
+  --task-definition GatherTaskDefinition \
+  --launch-type FARGATE \
+  --network-configuration 'awsvpcConfiguration={subnets=[subnet-...],securityGroups=[sg-...],assignPublicIp=DISABLED}' \
+  --overrides '{
+    "containerOverrides": [
+      {
+        "name": "GatherContainer",
+        "environment": [
+          { "name": "GATHER_JOB_NAME", "value": "fetch_and_process_index" }
+        ]
+      }
+    ]
+  }'
 ```
 
 ### 3.3. InfluxDB tokens

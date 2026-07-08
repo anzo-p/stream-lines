@@ -5,47 +5,51 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as scheduler from 'aws-cdk-lib/aws-scheduler';
+import * as schedulerTargets from 'aws-cdk-lib/aws-scheduler-targets';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
-import * as servicediscovery from 'aws-cdk-lib/aws-servicediscovery';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 /*
-  This deployment of Gather service runs as long running ECS Service
-  - Scheduled Spring Boot Scheduler
-  - Lower hardware specs
-  - Still higher costs
-  - Runs HTTP server and eg. serves the top traders to Ingest
+  This deployment of Gather service runs as ECS Task
+  - Scheduled by AWS EventBridge Scheduler instead of Spring Boot Scheduler
+  - Runs on higher hardware specs
+  - Still lower cost
+  - Does not run HTTP server and cannot serve HTTP to Ingest
 */
 
-export type GatherStackProps = cdk.NestedStackProps & {
-  desiredCount: number;
+export type GatherTaskStackProps = cdk.NestedStackProps & {
   ecsCluster: ecs.ICluster;
   executionRole: iam.IRole;
   gatherDynamoDbTable: string;
   influxBucketMarketDataHistorical: string;
   influxOrg: string;
   influxUrl: string;
-  port: number;
-  runAsOndemand: boolean;
   securityGroup: ec2.ISecurityGroup;
   springProfile: string;
 };
 
-export class GatherStack extends cdk.NestedStack {
-  constructor(scope: Construct, id: string, props: GatherStackProps) {
+const gatherJobSchedule: Record<string, scheduler.ScheduleExpression> = {
+  gather_job: scheduler.ScheduleExpression.cron({
+    weekDay: 'MON-FRI',
+    hour: '10-16',
+    minute: '5',
+    timeZone: cdk.TimeZone.AMERICA_NEW_YORK
+  })
+};
+
+export class GatherTaskStack extends cdk.NestedStack {
+  constructor(scope: Construct, id: string, props: GatherTaskStackProps) {
     super(scope, id, props);
 
     const {
-      desiredCount,
       ecsCluster,
       executionRole,
       gatherDynamoDbTable,
       influxBucketMarketDataHistorical,
       influxOrg,
       influxUrl,
-      port,
-      runAsOndemand = false,
       securityGroup,
       springProfile
     } = props;
@@ -81,8 +85,6 @@ export class GatherStack extends cdk.NestedStack {
       taskRole
     });
 
-    const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-gather');
-
     const logGroup = new logs.LogGroup(this, 'GatherLogGroup', {
       removalPolicy: RemovalPolicy.DESTROY,
       retention: logs.RetentionDays.ONE_WEEK
@@ -92,37 +94,40 @@ export class GatherStack extends cdk.NestedStack {
       streamPrefix: 'gather'
     });
 
+    const ecrRepository = ecr.Repository.fromRepositoryName(this, 'EcrRepository', 'stream-lines-gather');
+
     taskDefinition.addContainer('GatherContainer', {
       cpu: 512,
-      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       environment: {
         GATHER_DYNAMODB_TABLE_NAME: gatherDynamoDbTable,
         INFLUXDB_BUCKET_MARKET_DATA_HISTORICAL: influxBucketMarketDataHistorical,
         INFLUXDB_ORG: influxOrg,
         INFLUXDB_URL: influxUrl,
-        SPRING_PROFILES_ACTIVE: springProfile
+        SPRING_MAIN_WEB_APPLICATION_TYPE: 'none',
+        SPRING_PROFILES_ACTIVE: `${springProfile},batch`
       },
+      image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
       logging,
-      memoryLimitMiB: 1024,
-      portMappings: [{ protocol: ecs.Protocol.TCP, containerPort: port }]
+      memoryLimitMiB: 1024
     });
 
-    new ecs.FargateService(this, 'GatherEcsService', {
-      assignPublicIp: false,
-      capacityProviderStrategies: runAsOndemand
-        ? [{ capacityProvider: 'FARGATE', weight: 1 }]
-        : [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }],
-      cloudMapOptions: {
-        name: 'gather',
-        dnsTtl: cdk.Duration.seconds(30),
-        dnsRecordType: servicediscovery.DnsRecordType.A
-      },
-      cluster: ecsCluster,
-      desiredCount,
-      enableExecuteCommand: true,
-      securityGroups: [securityGroup],
-      taskDefinition,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }
-    });
+    for (const [jobName, schedule] of Object.entries(gatherJobSchedule)) {
+      new scheduler.Schedule(this, `GatherSchedule-${jobName}`, {
+        target: new schedulerTargets.EcsRunFargateTask(ecsCluster, {
+          input: scheduler.ScheduleTargetInput.fromObject({
+            containerOverrides: [
+              {
+                environment: [{ name: 'GATHER_JOB_NAME', value: 'fetch_and_process_index' }],
+                name: 'GatherContainer'
+              }
+            ]
+          }),
+          securityGroups: [securityGroup],
+          taskDefinition,
+          vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }
+        }),
+        schedule
+      });
+    }
   }
 }

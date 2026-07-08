@@ -39,8 +39,6 @@ export class IngestStack extends cdk.NestedStack {
       topTickersApi
     } = props;
 
-    securityGroup.connections.allowToAnyIpv4(ec2.Port.tcp(443), 'Allow outgoing into HTTPS only');
-
     const taskRole = new iam.Role(this, 'IngestTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
     });

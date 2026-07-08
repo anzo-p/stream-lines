@@ -109,7 +109,12 @@ Host influx
     ProxyJump bastion
 ```
 
-4. Connect to InfluxDB machine
+4. Port forward into InfluxDB on remote
+```
+ssh -L 8086:localhost:8086 influx
+```
+
+5. Connect to InfluxDB machine
 ```
 ssh influx
 ```
