@@ -154,11 +154,6 @@ source-data:
         start-date: 1996-01-02
 
     - market-data:
-        ticker: BK
-        company-name: "The Bank of New York Mellon Corporation"
-        start-date: 1996-01-02
-
-    - market-data:
         ticker: BKNG
         company-name: "Booking Holdings, Inc."
         start-date: 2009-11-06
@@ -171,6 +166,11 @@ source-data:
     - market-data:
         ticker: BMY
         company-name: "Bristol-Myers Squibb Company"
+        start-date: 1996-01-02
+
+    - market-data:
+        ticker: BNY
+        company-name: "The Bank of New York Mellon Corporation"
         start-date: 1996-01-02
 
     - market-data:

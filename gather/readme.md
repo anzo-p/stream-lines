@@ -3,11 +3,11 @@
 
 A small exercise in Kotlin, Spring Boot, InfluxDB, DynamoDB in awssdk, and Webclient.
 
-## Fetch Economical Indicators from Fred
+## Economical Indicators from Fred
 
 [Fred](https://fred.stlouisfed.org/) provides a large collection of economical indicators. For now it is used as a source for VIX - the Volatility Index by Chicago Board Options Exchange.
 
-## Fetch financials from DataJockey
+## Financials from DataJockey (appears that the services was discontinued)
 
 Acquires [financials, both annual and quarterly](https://datajockey.io) for the same companies that we obtain market data for. This allows to make all sorts of analytics to compare price development against actual business results. The analytics is planned to be calculated in a separate service running Apache Flink.
 
@@ -23,9 +23,18 @@ According to Stirling approximation it should take about one month (~20 banking 
 
 A rest api server provides an admin endpoint to fetch the financials for any company by its trading ticker symbol.
 
-## Fetch historical prices from Alpaca
+## Historical prices from Alpaca
 
-Acquires [historical bar data from Alpaca](https://docs.alpaca.markets/reference/stockbars-1) for the [n most valuable companies in the S&P 500 index](src/main/resources/source-data-params.yml). Those data are then used to compose an *equally weighted index with a daily rebalance*, whose evolution aims to mimic, though not to strictly follow, the daily features of the S&P 500. This effort potentially allows to search for [insights about trends in price development and money flows](influxdb/queries/example_queries.flux), and to discover curious patterns for possible trading signals. The service pays no attention to either dividends or brokering fees.
+Acquires [historical bar data from Alpaca](https://docs.alpaca.markets/reference/stockbars-1) for the [n most valuable companies in the S&P 500 index](src/main/resources/source-data-params.yml).
+
+## Calculate a synthetix index to mimic the S&P 500
+
+Calculate an *equally weighted index with a daily rebalance* to loosely mimic the S&P 500 index. This effort potentially allows to search for [insights about trends in price development and money flows](influxdb/queries/example_queries.flux), and to discover curious patterns for possible trading signals.
+
+...
+- Resolution is 1 (one) bank day
+- Each ticker gets an equal weight and all weights are rebalanced every day
+- The calculation pays no attention to either dividends or brokering fees that would occur of trading and holding those shares.
 
 | From aggregated index value..               | to a breakdown of underlying development, and beyond..|
 |---------------------------------------------|-------------------------------------------------------|
@@ -39,7 +48,66 @@ All securities start with the same weight. Securities that are added over time w
 
 Adjusts the weights daily to maintain equal weight distribution among securities. All securities begin each day with equal opportunity to move the index while historical gains remain mostly affected by best performers.
 
-### Maintain the list of companies
+### Maintaining the list of companies
 
 Ideally we would run eithe a somewhat stable subset of n out of S&P 500 but still evolving within some parameters or we would include the full set of S&P 500.
 See [fja05680/sp500](https://github.com/fja05680/sp500/tree/master) for one approach.
+
+### Recovering after stock event
+
+Splits and merges will immediately change the quotations of their shares with the same multiple as the stock event took place. This service fetches historical prices as adjusted to those historical events.
+
+- let a few days pass so that Alpaca internal operations has time to reflect the stock event into historical prices
+- delete entire entries from db using command below
+- the next round(s) of automatical fetching and index processing will settle the stock event effcts into that sewcurity and the entire index
+
+Delete query
+```
+curl --request POST \
+  "$INFLUX_URL/api/v2/delete?org=$ORG&bucket=stream-lines-market-data-historical" \
+  --header "Authorization: Token $INFLUX_TOKEN" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "start": "2016-01-01T00:00:00Z",
+    "stop": "2099-12-31T00:00:00Z",
+    "predicate": "_measurement=\"<securities-...-raw>\" AND ticker=\"<ticker>\""
+  }'
+```
+
+### Recovering after ticker rename
+
+1. Materialize new entries with the new ticker symbol for all securities-daily-change-... -measurements
+```
+curl --request POST \
+  "$INFLUX_URL/api/v2/query?org=$ORG" \
+  --header "Authorization: Token $INFLUX_TOKEN" \
+  --header "Content-Type: application/vnd.flux" \
+  --data-binary '
+from(bucket: "stream-lines-market-data-historical")
+  |> range(
+    start: 2016-01-01T00:00:00Z,
+    stop: 2099-12-31T00:00:00Z
+  )
+  |> filter(fn: (r) =>
+    r._measurement == "<measurement>" and
+    r.ticker == "<old ticker>"
+  )
+  |> map(fn: (r) => ({r with ticker: "<new ticker>"}))
+  |> to(bucket: "stream-lines-market-data-historical")
+'
+```
+
+2. Query for the new values, eg in Influxdb Data Explorer
+
+3. Delete entries of the old ticker symbol form all securities-daily-change-... -measurements
+```
+curl --request POST \
+  "$INFLUX_URL/api/v2/delete?org=$ORG&bucket=stream-lines-market-data-historical" \
+  --header "Authorization: Token $INFLUX_TOKEN" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "start": "2016-01-01T00:00:00Z",
+    "stop": "2099-12-31T00:00:00Z",
+    "predicate": "_measurement=\"<measurement>\" AND ticker=\"<old ticker>\""
+  }'
+```
